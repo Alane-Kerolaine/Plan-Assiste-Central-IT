@@ -1,0 +1,1645 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Manual do Portal Plan-Assiste</title>
+  <style>
+    @font-face {
+      font-family: "Titillium Web";
+      src: url("/fonts/titillium-web/TitilliumWeb-Light.ttf") format("truetype");
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Titillium Web";
+      src: url("/fonts/titillium-web/TitilliumWeb-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Titillium Web";
+      src: url("/fonts/titillium-web/TitilliumWeb-SemiBold.ttf") format("truetype");
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Titillium Web";
+      src: url("/fonts/titillium-web/TitilliumWeb-SemiBold.ttf") format("truetype");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --brand-dark: #4a7b73;
+      --brand-primary: #0d8473;
+      --brand-strong: #087765;
+      --brand-accent: #02c491;
+      --text-dark: #103f3a;
+      --text: #225c55;
+      --mint-bg: #e7f5ef;
+      --mint-soft: #f2faf7;
+      --border: #d7e7e2;
+      --warning: #d7a739;
+      --danger: #d94d6a;
+      --danger-strong: #cf3f5f;
+      --blue: #2874d8;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --shadow-soft: 0 10px 24px rgba(16, 63, 58, .06);
+      --shadow-hover: 0 16px 30px rgba(16, 63, 58, .1);
+      --site-max: 1440px;
+      --unit: 16px;
+      --grid-base: 48px;
+      --gap: 24px;
+      --sidebar: 342px;
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 32px;
+      font-family: "Titillium Web", sans-serif;
+      color: var(--text);
+      background: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-size: 18px; line-height: 1.55; }
+    a { color: inherit; text-decoration: none; }
+    a[target="_blank"]::after { content: "↗"; display: inline-block; margin-left: 7px; font-size: 16px; font-weight: 600; line-height: 1; }
+    button, input, select, textarea { font: inherit; }
+    select:not([multiple]) { min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background-color: white; color: var(--text); padding: 0 44px 0 14px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='14' height='9' viewBox='0 0 14 9' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 2l5 5 5-5' fill='none' stroke='%23087765' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 3px solid #ffd369; outline-offset: 3px; }
+
+    .manual-shell { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+    .manual-sidebar { position: sticky; top: 0; height: 100vh; overflow: auto; border-right: 1px solid var(--border); background: #f7fcfa; padding: 24px; }
+    .manual-brand { display: grid; gap: 12px; margin-bottom: 24px; }
+    .manual-brand img { width: auto; height: 53px; }
+    .manual-brand strong { color: var(--text-dark); font-size: 22px; line-height: 1.2; }
+    .manual-brand span { color: var(--brand-dark); font-size: 16px; line-height: 1.35; }
+    .portal-return-link { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white; color: var(--brand-strong); padding: 0 14px; font-weight: 700; box-shadow: var(--shadow-soft); }
+    .portal-return-link:hover { border-color: var(--brand-primary); background: var(--brand-primary); color: white; }
+    .manual-search { position: relative; display: grid; gap: 8px; margin-bottom: var(--space-sm); }
+    .manual-search label { color: var(--text-dark); font-weight: 600; }
+    .manual-search input { width: 100%; min-height: 46px; border: 2px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 0 14px; }
+    .manual-nav { display: grid; gap: 8px; margin-top: var(--space-sm); }
+    .manual-nav a { border-radius: var(--radius-sm); color: var(--text-dark); padding: 8px 12px; font-weight: 600; }
+    .manual-nav a:hover, .manual-nav a.active { background: var(--mint-bg); color: var(--brand-strong); }
+    .manual-main { min-width: 0; }
+    .manual-hero { background: linear-gradient(135deg, #f8fefd 0%, #e4f5ef 100%); border-bottom: 1px solid var(--border); }
+    .manual-hero-inner, .manual-content { width: min(calc(100% - 64px), var(--site-max)); margin-inline: auto; }
+    .manual-hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) var(--sidebar); gap: var(--gap); align-items: center; padding: 48px 0; }
+    .eyebrow { margin: 0 0 8px; color: var(--brand-strong); font-size: 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    h1, h2, h3, h4 { color: var(--text-dark); line-height: 1.18; margin: 0 0 8px; }
+    h1 { font-size: clamp(38px, 5vw, 64px); }
+    h2 { font-size: 34px; }
+    h3 { font-size: 24px; }
+    h4 { font-size: 19px; }
+    p { margin: 0 0 var(--space-sm); }
+    .hero-summary { max-width: 860px; color: var(--brand-dark); font-size: 21px; }
+    .manual-status-card { border: 1px solid var(--border); border-radius: 22px; background: white; padding: var(--space-lg); box-shadow: var(--shadow-soft); }
+    .manual-status-card dl { display: grid; gap: var(--space-sm); margin: 0; }
+    .manual-status-card div { display: grid; gap: 2px; }
+    .manual-status-card dt { color: var(--brand-dark); font-size: 16px; font-weight: 700; text-transform: uppercase; }
+    .manual-status-card dd { margin: 0; color: var(--text-dark); font-weight: 600; }
+    .manual-content { padding: 48px 0 80px; }
+    .manual-section { scroll-margin-top: 96px; margin-top: 48px; }
+    .section-header { max-width: 940px; margin-bottom: var(--space-md); }
+    .section-header p { color: var(--brand-dark); font-size: 19px; }
+    .manual-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-md); }
+    .manual-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .manual-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; padding: var(--space-md); box-shadow: var(--shadow-soft); }
+    .manual-card.compact { padding: var(--space-sm); }
+    .manual-card h3, .manual-card h4 { display: flex; align-items: center; gap: 8px; }
+    .manual-card ul, .manual-card ol { margin: var(--space-sm) 0 0; padding-left: var(--space-md); }
+    .manual-card li { margin: 8px 0; }
+    .note { border-left: 4px solid var(--brand-primary); border-radius: var(--radius-sm); background: var(--mint-soft); padding: var(--space-sm); color: var(--text-dark); }
+    .do-dont { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); }
+    .do, .dont { border-radius: var(--radius-md); padding: var(--space-sm); }
+    .do { border: 1px solid #bfe2d8; background: #f3fbf8; }
+    .dont { border: 1px solid #f0c6d0; background: #fff6f8; }
+    .do strong { color: var(--brand-strong); }
+    .dont strong { color: var(--danger); }
+    .token-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); }
+    .color-token { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: white; box-shadow: var(--shadow-soft); }
+    .color-token span { display: block; height: 74px; }
+    .color-token div { padding: var(--space-sm); }
+    .color-token code { display: block; color: var(--brand-dark); font-size: 16px; }
+    .type-scale { display: grid; gap: var(--space-sm); }
+    .type-sample { border-bottom: 1px solid var(--border); padding-bottom: var(--space-sm); }
+    .type-sample:last-child { border-bottom: 0; padding-bottom: 0; }
+    .type-sample strong, .type-body { display: block; color: var(--text-dark); }
+    .type-body { font-weight: 400; }
+    .type-h1 { font-size: 46px; line-height: 1.15; }
+    .type-h2 { font-size: 34px; line-height: 1.18; }
+    .type-h3 { font-size: 24px; line-height: 1.25; }
+    .text-sample-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); margin-top: var(--space-md); }
+    .text-demo { border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; padding: var(--space-lg); box-shadow: var(--shadow-soft); }
+    .text-demo.dark { background: var(--brand-primary); color: white; }
+    .text-demo.dark h3, .text-demo.dark p, .text-demo.dark strong { color: white; }
+    .text-link-light { color: var(--brand-strong); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+    .text-link-dark { color: white; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    blockquote { margin: var(--space-sm) 0 0; border-left: 4px solid var(--brand-primary); background: var(--mint-soft); border-radius: 6px; padding: var(--space-sm); color: var(--text-dark); font-size: 20px; line-height: 1.5; }
+    .text-demo.dark blockquote { border-color: rgba(255,255,255,.76); background: rgba(255,255,255,.12); color: white; }
+    .component-list { columns: 2; column-gap: var(--space-lg); margin-top: var(--space-sm); }
+    .component-list li { break-inside: avoid; }
+    .component-preview { display: grid; gap: var(--space-sm); border: 1px dashed #bad7d0; border-radius: var(--radius-lg); background: #fbfefd; padding: var(--space-lg); }
+    .manual-ai-chat-grid { display: grid; grid-template-columns: minmax(0, .88fr) minmax(360px, 1.12fr); gap: 24px; align-items: start; margin: 20px 0 8px; }
+    .manual-ai-label { margin: 0 0 8px; color: var(--text-dark); font-size: 16px; font-weight: 700; }
+    .manual-ai-trigger-preview { min-height: 124px; align-items: end; justify-items: end; }
+    .manual-ai-trigger { width: 58px; height: 58px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; background: var(--brand-strong); box-shadow: 0 12px 24px rgba(16,63,58,.24); }
+    .manual-ai-trigger img { width: 28px; height: 28px; }
+    .manual-ai-modal-preview { width: min(100%, 460px); overflow: hidden; margin-left: auto; border: 1px solid var(--border); border-radius: 20px; background: #ffffff; box-shadow: var(--shadow-soft); font-family: "Titillium Web", sans-serif; }
+    .manual-ai-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); padding: 20px 24px 18px; }
+    .manual-ai-header-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .manual-ai-header-icon { width: 40px; height: 40px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; background: var(--mint-bg); padding: 6px; }
+    .manual-ai-header-icon img { width: 100%; height: 100%; filter: brightness(0) saturate(100%) invert(31%) sepia(37%) saturate(1161%) hue-rotate(134deg) brightness(92%) contrast(93%); }
+    .manual-ai-title { display: grid; gap: 2px; min-width: 0; }
+    .manual-ai-title strong { color: var(--text-dark); font-size: 18px; line-height: 1.18; font-weight: 600; white-space: nowrap; }
+    .manual-ai-title span { color: var(--brand-dark); font-size: 16px; line-height: 1.25; white-space: nowrap; }
+    .manual-ai-close { width: 36px; height: 36px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: var(--brand-dark); font-size: 24px; line-height: 1; }
+    .manual-ai-messages { display: grid; gap: 12px; background: var(--mint-soft); padding: 20px 24px; }
+    .manual-ai-bubble { max-width: 82%; border-radius: 14px; padding: 10px 14px; font-size: 16px; line-height: 1.45; }
+    .manual-ai-bubble.assistant { justify-self: start; border: 1px solid var(--border); border-bottom-left-radius: 4px; background: #ffffff; color: var(--text-dark); }
+    .manual-ai-bubble.user { justify-self: end; border-bottom-right-radius: 4px; background: var(--brand-primary); color: #ffffff; }
+    .manual-ai-suggestions { display: flex; flex-wrap: wrap; gap: 8px; background: var(--mint-soft); padding: 0 24px 16px; }
+    .manual-ai-suggestions span { border: 1px solid var(--border); border-radius: 999px; background: #ffffff; color: var(--brand-strong); padding: 6px 12px; font-size: 16px; font-weight: 600; line-height: 1.3; }
+    .manual-ai-form { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border); background: #ffffff; padding: 16px 24px; }
+    .manual-ai-input { min-height: 52px; flex: 1; border: 2px solid var(--border); border-radius: 18px; color: var(--brand-dark); padding: 14px 18px; font-size: 16px; line-height: 1.4; }
+    .manual-ai-send { width: 46px; height: 46px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; background: var(--brand-primary); color: #ffffff; font-size: 22px; }
+    .manual-gov-sign-in { --button-size: 48px; width: 100%; min-height: var(--button-size); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid transparent; border-radius: 100em; background: #1351b4; color: #fff; padding: 0 16px; font: 600 16.8px/1 Rawline, Raleway, sans-serif; white-space: nowrap; box-shadow: 0 8px 18px rgba(19,81,180,.18); cursor: pointer; }
+    .manual-gov-sign-in:focus-visible { outline: 4px dashed #c2850c; outline-offset: 4px; }
+    .manual-gov-sign-in .gov-login-label { display: inline-flex; align-items: center; line-height: 1; }
+    .manual-gov-sign-in .gov-login-prefix { display: inline-block; transform: translateY(1px); }
+    .manual-gov-sign-in .text-black { display: inline-block; color: #fff; font: inherit; font-weight: 800; line-height: 1; }
+    .editor-shell { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-soft); }
+    .editor-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid var(--border); background: var(--mint-soft); padding: var(--space-sm); }
+    .editor-toolbar button { min-width: 38px; min-height: 38px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white; color: var(--brand-strong); font-weight: 700; }
+    .editor-toolbar .editor-mode { margin-left: auto; min-width: auto; padding: 0 12px; }
+    .editor-canvas { display: grid; gap: var(--space-sm); padding: var(--space-lg); }
+    .editor-canvas h4 { margin: 0; font-size: 24px; }
+    .editor-canvas figure { margin: 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--mint-soft); padding: var(--space-sm); }
+    .editor-canvas hr { width: 100%; height: 1px; border: 0; background: var(--border); margin: var(--space-md) 0; }
+    .editor-image-placeholder { min-height: 150px; display: grid; place-items: center; border: 1px dashed #8ccdc0; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f7fcfa, #e7f5ef); color: var(--brand-dark); font-weight: 700; text-align: center; }
+    .editor-canvas figcaption, .editor-figure figcaption { margin-top: 8px; color: var(--brand-dark); font-size: 16px; }
+    .editor-figure { margin: 0; }
+    .editor-source { border: 1px solid var(--border); border-radius: var(--radius-md); background: #0f2f2b; color: #d9fff5; padding: var(--space-sm); overflow-x: auto; font-family: "Cascadia Code", Consolas, monospace; font-size: 16px; line-height: 1.55; }
+    .alert-stack { display: grid; gap: var(--space-sm); }
+    .alert-example { border: 1px solid var(--border); border-left-width: 4px; border-radius: var(--radius-sm); background: white; padding: var(--space-sm); color: var(--text-dark); }
+    .alert-info { border-left-color: var(--blue); background: #f1f8fb; }
+    .alert-warning { border-left-color: var(--warning); background: #fff8e0; }
+    .alert-danger { border-left-color: var(--danger-strong); background: #fff1f4; }
+    .accordion-preview { display: grid; gap: var(--space-sm); }
+    .accordion-preview details { border: 1px solid var(--border); border-radius: var(--radius-md); background: white; padding: 0 16px; }
+    .accordion-preview summary { cursor: pointer; color: var(--text-dark); font-weight: 700; padding: var(--space-sm) 0; }
+    .accordion-preview details[open] summary { border-bottom: 1px solid var(--border); }
+    .accordion-preview p { margin: var(--space-sm) 0; }
+    .upload-preview { display: grid; place-items: center; min-height: 150px; border: 2px dashed #8ccdc0; border-radius: var(--radius-lg); background: var(--mint-soft); color: var(--text-dark); padding: var(--space-lg); text-align: center; }
+    .upload-preview strong { display: block; color: var(--brand-strong); font-size: 20px; }
+    .status-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .status-pill { border-radius: 999px; background: var(--mint-bg); color: var(--brand-strong); padding: 5px 10px; font-size: 16px; font-weight: 700; }
+    .status-pill.warning { background: #fff8e0; color: #7a540f; }
+    .status-pill.danger { background: #fff1f4; color: var(--danger-strong); }
+    .grid-spec { display: grid; gap: var(--space-sm); margin-top: var(--space-md); }
+    .grid-ruler { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; outline: 1px solid var(--border); border-radius: var(--radius-lg); background:
+      linear-gradient(to right, rgba(13,132,115,.12) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(13,132,115,.12) 1px, transparent 1px),
+      #fbfefd;
+      background-size: 16px 16px;
+    }
+    .grid-ruler.columns-1 { grid-template-columns: 1fr; }
+    .grid-ruler.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-ruler.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .grid-ruler span { min-height: 96px; display: grid; place-items: center; border: 1px solid #8ccdc0; border-radius: var(--radius-sm); background: rgba(13, 132, 115, .1); color: var(--text-dark); font-weight: 700; text-align: center; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); }
+    .metric { border: 1px solid var(--border); border-radius: var(--radius-md); background: white; padding: var(--space-sm); }
+    .metric strong { display: block; color: var(--text-dark); font-size: 24px; line-height: 1.1; }
+    .metric span { color: var(--brand-dark); font-size: 16px; }
+    .manual-figure { margin: var(--space-md) 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; padding: var(--space-sm); box-shadow: var(--shadow-soft); }
+    .manual-figure img { display: block; width: 100%; height: auto; border-radius: var(--radius-md); }
+    .manual-figure figcaption { margin-top: var(--space-sm); color: var(--brand-dark); font-size: 16px; line-height: 1.4; }
+    .preview-card-link, .preview-card-info, .preview-card-action { display: grid; grid-template-rows: auto auto 1fr auto; min-height: 224px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; padding: var(--space-md); box-shadow: var(--shadow-soft); }
+    .preview-card-link { transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease; }
+    .preview-card-link:hover { border-color: var(--brand-primary); box-shadow: var(--shadow-hover); transform: translateY(-3px); }
+    .preview-icon { width: 48px; height: 48px; display: grid; place-items: center; color: var(--brand-strong); font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+    .preview-icon.is-bare { width: 36px; height: 36px; justify-items: start; background: transparent; }
+    .preview-icon.is-circle { border-radius: 50%; background: var(--mint-bg); }
+    .preview-icon.is-square { border-radius: var(--radius-md); background: var(--mint-bg); }
+    .preview-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: var(--space-sm); color: var(--brand-strong); font-weight: 700; }
+    .button-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .btn-primary, .btn-secondary, .btn-ghost, .icon-button { min-height: 44px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 0 16px; }
+    .btn-primary { border: 1px solid var(--brand-primary); background: var(--brand-primary); color: white; }
+    .btn-secondary { border: 1px solid var(--border); background: white; color: var(--brand-strong); }
+    .btn-ghost { border: 0; background: transparent; color: var(--brand-strong); }
+    .icon-button { width: 42px; padding: 0; border: 1px solid var(--border); border-radius: 999px; background: white; color: var(--brand-strong); }
+    .form-preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-sm); }
+    .field { display: grid; gap: 8px; min-width: 0; color: var(--text-dark); font-weight: 700; }
+    .field input, .field select { width: 100%; min-width: 0; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; color: var(--text); padding: 0 14px; }
+    .field select { padding-right: 44px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { border-radius: 999px; background: #e2f1ed; color: var(--brand-dark); padding: 4px 10px; font-size: 16px; font-weight: 700; }
+    .status-tag { background: #fff7df; color: #9a6416; }
+    .news-preview { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: var(--space-sm); align-items: start; }
+    .news-preview img { width: 100%; height: 110px; object-fit: cover; border-radius: 12px; }
+    .separator-demo { border-top: 1px solid var(--border); padding-top: var(--space-md); margin-top: var(--space-md); }
+    .admin-matrix { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-soft); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    caption { color: var(--text-dark); font-size: 18px; font-weight: 700; text-align: left; }
+    th, td { border-bottom: 1px solid var(--border); padding: var(--space-sm); text-align: left; vertical-align: top; }
+    th { color: var(--text-dark); background: var(--mint-soft); font-size: 18px; font-weight: 700; }
+    td { font-size: 17px; }
+    tr:last-child td { border-bottom: 0; }
+    code, .code { border-radius: 6px; background: #edf6f3; color: #0d6458; padding: 2px 6px; font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; }
+    .empty-results { display: none; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--mint-soft); padding: 24px; margin-top: 24px; color: var(--text-dark); text-align: center; }
+    .manual-footer { border-top: 1px solid var(--border); background: #f7fcfa; padding: 24px 0; color: var(--brand-dark); }
+    .manual-footer div { width: min(calc(100% - 64px), var(--site-max)); margin-inline: auto; }
+    .nowrap { white-space: nowrap; }
+
+    /* Demo combobox */
+    .combobox-demo { position: relative; max-width: 320px; }
+    .combobox-demo-wrap { display: flex; align-items: center; border: 2px solid var(--border); border-radius: var(--radius-sm); background: white; overflow: hidden; }
+    .combobox-demo-input { flex: 1; border: 0; height: 44px; padding: 0 12px; font: inherit; color: var(--text); outline: none; }
+    .combobox-demo-toggle { width: 40px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: var(--brand-dark); font-size: 16px; }
+    .combobox-demo-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(16,63,58,.12); max-height: 210px; overflow-y: auto; z-index: 10; padding: 4px; list-style: none; margin: 0; }
+    .combobox-demo-item { display: block; width: 100%; text-align: left; padding: .4rem .75rem; border: 0; background: transparent; cursor: pointer; border-radius: 5px; font: inherit; font-size: 1rem; color: var(--text); }
+    .combobox-demo-item:hover, .combobox-demo-item.demo-hover { background: var(--mint-bg); }
+    .combobox-demo-item.demo-selected { color: var(--brand-primary); font-weight: 700; }
+
+    @media (max-width: 1100px) {
+      .manual-shell { grid-template-columns: 1fr; }
+      .manual-sidebar { position: static; height: auto; }
+      .manual-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .manual-hero-inner { grid-template-columns: 1fr; }
+      .manual-grid, .manual-grid.two, .token-grid, .form-preview, .metric-grid, .manual-ai-chat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      body { font-size: 18px; }
+      .manual-hero-inner, .manual-content, .manual-footer div { width: min(calc(100% - 32px), var(--site-max)); }
+      .manual-grid, .manual-grid.two, .token-grid, .form-preview, .do-dont, .news-preview, .metric-grid, .manual-ai-chat-grid { grid-template-columns: 1fr; }
+      .manual-nav { grid-template-columns: 1fr; }
+      h1 { font-size: 38px; }
+      h2 { font-size: 28px; }
+      .manual-ai-modal-preview { margin-left: 0; }
+      .manual-ai-title strong,
+      .manual-ai-title span { white-space: normal; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      .preview-card-link:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="manual-shell">
+    <aside class="manual-sidebar" aria-label="Navegação do manual">
+      <div class="manual-brand">
+        <img src="/assets/logo-colorida.svg" alt="Plan-Assiste">
+        <strong>Manual do Portal</strong>
+        <span>Documento interno de design, conteúdo, acessibilidade e implementação. Esta página deve permanecer fora da indexação pública.</span>
+        <a class="portal-return-link" href="/">← Voltar ao Portal</a>
+      </div>
+      <div class="manual-search">
+        <label for="manual-search-input">Buscar no manual</label>
+        <input id="manual-search-input" type="search" placeholder="Ex.: card, notícias, dashboard">
+      </div>
+      <nav class="manual-nav" id="manual-nav">
+        <a href="#principios">Princípios</a>
+        <a href="#identidade">Identidade</a>
+        <a href="#layout">Layout</a>
+        <a href="#componentes">Componentes</a>
+        <a href="#editorial">Editor e blocos</a>
+        <a href="#cards">Cards</a>
+        <a href="#conteudo">Conteúdo</a>
+        <a href="#acessibilidade">Acessibilidade</a>
+        <a href="#movimento">Movimento</a>
+        <a href="#paginas">Páginas</a>
+        <a href="#mobile">Aplicativo móvel</a>
+        <a href="#admin">Dashboard admin</a>
+        <a href="#cms-browser">CMS demonstrativo</a>
+        <a href="#qa">QA e entrega</a>
+        <a href="#referencias">Referências</a>
+      </nav>
+    </aside>
+
+    <main class="manual-main">
+      <section class="manual-hero">
+        <div class="manual-hero-inner">
+          <div>
+            <p class="eyebrow">Sistema de design e implementação</p>
+            <h1>Manual completo do<br><span class="nowrap">Portal Plan-Assiste</span></h1>
+            <p class="hero-summary">Referência para preservar a identidade visual, reduzir ambiguidade de implementação e orientar a evolução do Portal no framework definitivo do Plan-Assiste.</p>
+          </div>
+          <aside class="manual-status-card" aria-label="Resumo do manual">
+            <dl>
+              <div><dt>Uso</dt><dd>Equipe de design, desenvolvimento, conteúdo e administração</dd></div>
+              <div><dt>Indexação</dt><dd>Noindex, nofollow e fora das rotas do app</dd></div>
+              <div><dt>Atualização</dt><dd>21 de julho de 2026 — revisar a cada mudança de padrão</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      <div class="manual-content">
+        <p class="empty-results" id="empty-results">Nenhuma seção encontrada para a busca atual.</p>
+
+        <section id="principios" class="manual-section" data-section data-category="design conteudo">
+          <div class="section-header">
+            <p class="eyebrow">01. Princípios</p>
+            <h2>Fundamentos de experiência</h2>
+            <p>O Portal deve ser institucional, claro e operacional. A interface precisa ajudar o beneficiário, o credenciado e a equipe a encontrar informações sem ruído visual.</p>
+          </div>
+          <div class="manual-grid">
+            <article class="manual-card">
+              <h3>Clareza antes de decoração</h3>
+              <p>Elementos visuais só entram quando explicam hierarquia, indicam ação ou reforçam reconhecimento. Evitar enfeites sem função.</p>
+            </article>
+            <article class="manual-card">
+              <h3>Consistência de affordance</h3>
+              <p>Se parece clicável, deve ser clicável. Se é apenas informativo, não deve ter hover de elevação, seta ou CTA.</p>
+            </article>
+            <article class="manual-card">
+              <h3>Confiança institucional</h3>
+              <p>O tom deve ser seguro, simples e responsável. Evitar linguagem promocional, exagerada ou informal demais para conteúdos de saúde.</p>
+            </article>
+          </div>
+          <div class="note" style="margin-top: 24px;">Regra de ouro: cada página deve ter um objetivo primário, um caminho claro e controles previsíveis. A identidade nasce da repetição disciplinada dos mesmos padrões.</div>
+        </section>
+
+        <section id="identidade" class="manual-section" data-section data-category="design">
+          <div class="section-header">
+            <p class="eyebrow">02. Identidade visual</p>
+            <h2>Cores, tipografia e iconografia</h2>
+            <p>A paleta é predominantemente verde institucional, com fundos claros e acentos controlados para estados e categorias.</p>
+          </div>
+          <div class="token-grid">
+            <article class="color-token"><span style="background:#0d8473"></span><div><strong>Primária</strong><code>#0d8473</code></div></article>
+            <article class="color-token"><span style="background:#087765"></span><div><strong>Forte</strong><code>#087765</code></div></article>
+            <article class="color-token"><span style="background:#4a7b73"></span><div><strong>Institucional</strong><code>#4a7b73</code></div></article>
+            <article class="color-token"><span style="background:#02c491"></span><div><strong>Acento</strong><code>#02c491</code></div></article>
+            <article class="color-token"><span style="background:#3a877c"></span><div><strong>Logo escuro</strong><code>#3a877c</code></div></article>
+            <article class="color-token"><span style="background:#00e9ab"></span><div><strong>Logo acento</strong><code>#00e9ab</code></div></article>
+            <article class="color-token"><span style="background:#103f3a"></span><div><strong>Texto escuro</strong><code>#103f3a</code></div></article>
+            <article class="color-token"><span style="background:#225c55"></span><div><strong>Texto</strong><code>#225c55</code></div></article>
+            <article class="color-token"><span style="background:#e7f5ef"></span><div><strong>Fundo menta</strong><code>#e7f5ef</code></div></article>
+            <article class="color-token"><span style="background:#f2faf7"></span><div><strong>Fundo suave</strong><code>#f2faf7</code></div></article>
+            <article class="color-token"><span style="background:#d7e7e2"></span><div><strong>Borda</strong><code>#d7e7e2</code></div></article>
+            <article class="color-token"><span style="background:#315c55"></span><div><strong>Rodapé base</strong><code>#315c55</code></div></article>
+            <article class="color-token"><span style="background:#d7a739"></span><div><strong>Aviso</strong><code>#d7a739</code></div></article>
+            <article class="color-token"><span style="background:#d94d6a"></span><div><strong>Erro/acento</strong><code>#d94d6a</code></div></article>
+            <article class="color-token"><span style="background:#cf3f5f"></span><div><strong>Erro preenchido</strong><code>#cf3f5f</code></div></article>
+            <article class="color-token"><span style="background:#2874d8"></span><div><strong>Informativo</strong><code>#2874d8</code></div></article>
+          </div>
+          <div class="manual-card" style="margin-top:24px">
+            <h3>Contraste e papéis das cores</h3>
+            <p>A logo usa <span class="code">#3a877c</span> e <span class="code">#00e9ab</span>. A interface usa derivados mais controlados para garantir contraste e leitura. O verde institucional acessível (<span class="code">#4a7b73</span>) é uma variação mais segura para textos/ícones; o verde primário de ação (<span class="code">#0d8473</span>) preserva a família cromática da marca, mas passa AA com texto branco. Aviso, erro e azul informativo são cores semânticas: devem aparecer em estados, ícones, badges e alertas, sem competir com a ação primária.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Uso</th><th>Combinação</th><th>Contraste</th><th>Decisão</th></tr></thead>
+                <tbody>
+                  <tr><td>Botões/menu padrão</td><td>#ffffff sobre #0d8473</td><td>4.60:1</td><td>Aprovado para texto normal e UI.</td></tr>
+                  <tr><td>Logo escuro exato</td><td>#ffffff sobre #3a877c</td><td>4.25:1</td><td>Não usar como fundo com texto branco normal. Pode aparecer na marca e em ícones.</td></tr>
+                  <tr><td>Logo acento exato</td><td>#ffffff sobre #00e9ab</td><td>1.59:1</td><td>Não usar com texto branco. Usar como acento visual ou com texto escuro.</td></tr>
+                  <tr><td>Acento vivo acessível</td><td>#103f3a sobre #00e9ab</td><td>7.38:1</td><td>Aprovado para uso pontual com texto escuro.</td></tr>
+                  <tr><td>Hover/ênfase forte</td><td>#ffffff sobre #087765</td><td>5.47:1</td><td>Aprovado. Usar quando precisar de mais presença.</td></tr>
+                  <tr><td>Marca/institucional</td><td>#ffffff sobre #4a7b73</td><td>4.80:1</td><td>Aprovado. Usar em áreas institucionais e variação Credenciado.</td></tr>
+                  <tr><td>Texto principal</td><td>#225c55 sobre #ffffff</td><td>7.69:1</td><td>Aprovado para leitura prolongada.</td></tr>
+                  <tr><td>Títulos</td><td>#103f3a sobre #ffffff</td><td>11.70:1</td><td>Aprovado com alta legibilidade.</td></tr>
+                  <tr><td>Texto em fundo claro</td><td>#103f3a sobre #f2faf7</td><td>11.03:1</td><td>Aprovado para cards e painéis suaves.</td></tr>
+                  <tr><td>Links em fundo claro</td><td>#087765 sobre #f2faf7</td><td>5.16:1</td><td>Aprovado; usar sublinhado em texto corrido.</td></tr>
+                  <tr><td>Acento vivo</td><td>#103f3a sobre #02c491</td><td>5.19:1</td><td>Aprovado com texto escuro. Não usar branco sobre esse tom.</td></tr>
+                  <tr><td>Aviso</td><td>#103f3a sobre #d7a739</td><td>5.28:1</td><td>Aprovado com texto escuro. Não usar branco sobre esse tom.</td></tr>
+                  <tr><td>Erro/acento</td><td>#d94d6a sobre #ffffff</td><td>4.02:1</td><td>Usar como acento, ícone ou estado visual. Para fundo preenchido com texto branco, usar variação mais escura.</td></tr>
+                  <tr><td>Erro preenchido</td><td>#ffffff sobre #cf3f5f</td><td>4.64:1</td><td>Aprovado para ações destrutivas preenchidas com texto branco.</td></tr>
+                  <tr><td>Informativo</td><td>#ffffff sobre #2874d8</td><td>4.59:1</td><td>Aprovado para badges e chamadas informativas pontuais.</td></tr>
+                  <tr><td>Área da equipe</td><td>#ffffff sobre #197686</td><td>5.28:1</td><td>Aprovado; diferencia área interna sem parecer conteúdo de beneficiário.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Tipografia</h3>
+              <p>A fonte oficial e obrigatória do Portal é <strong>Titillium Web</strong>. A família deve ser carregada com os pesos 300, 400, 500 e 600. Qualquer fallback deve ser apenas contingência técnica de renderização quando a fonte não carregar; não autoriza trocar a identidade tipográfica nem escolher outra família no framework definitivo.</p>
+              <p><strong>Regra de acessibilidade:</strong> nenhum texto visível do Portal pode ter menos de 16px. A hierarquia deve ser preservada por tamanho, peso, cor e espaçamento; não se deve reduzir a fonte para forçar conteúdo a caber. Quando faltar espaço, o componente deve quebrar, redistribuir ou adaptar seu layout.</p>
+              <div class="type-scale">
+                <div class="type-sample"><strong class="type-h1">Título de página</strong><span>38 a 54px, peso semibold, line-height curto.</span></div>
+                <div class="type-sample"><strong class="type-h2">Título de seção</strong><span>24 a 34px, usado para blocos principais.</span></div>
+                <div class="type-sample"><strong class="type-h3">Título de card</strong><span>18 a 24px, proporcional ao espaço do card.</span></div>
+                <div class="type-sample"><span class="type-body">Texto de corpo</span><span>18px como padrão; 20px em textos editoriais de maior destaque.</span></div>
+                <div class="type-sample"><span class="type-body">Tabelas</span><span>18px em caption e cabeçalhos; 17px no conteúdo das células.</span></div>
+                <div class="type-sample"><span class="type-body">Texto auxiliar</span><span>17px no rodapé e em apoios que comportem leitura contínua; 16px em metadados, controles compactos e informações secundárias de cards de credenciados.</span></div>
+              </div>
+            </article>
+            <article class="manual-card">
+              <h3>Iconografia</h3>
+              <ul>
+                <li>Usar ícones de linha fina, preferencialmente Lucide.</li>
+                <li>Ícones livres em cards de destaque e atalhos: 30 a 38px, sem fundo.</li>
+                <li>Ícones informativos, de identidade ou contexto: 20 a 28px dentro de círculo de 40 a 56px.</li>
+                <li>Ícones de serviços e fluxos operacionais: 24px dentro de quadrado de 48px com raio de 12px.</li>
+                <li>Ícones sociais, sino e ações isoladas no topo/rodapé: 24px.</li>
+                <li>Indicadores auxiliares, como setas de dropdown e ícones inline: 16px.</li>
+                <li>Ícones em botões: 16 a 20px.</li>
+                <li>Ícones de tipo de credenciado: 28px dentro de círculo de 54 a 64px.</li>
+                <li>Não misturar estilos preenchidos e lineares, exceto estados ativos como favorito/avaliação.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="text-sample-grid">
+            <article class="text-demo">
+              <h3>Texto em fundo claro</h3>
+              <p>Use <strong>negrito</strong> para reforço pontual, <em>itálico</em> para termos, títulos de documentos ou ênfase leve, e <strong><em>negrito com itálico</em></strong> apenas em casos raros.</p>
+              <p>Hiperlinks em texto corrido devem usar <a class="text-link-light" href="#identidade">sublinhado visível</a>, principalmente em conteúdo editorial.</p>
+              <blockquote>Use citações para destacar norma, orientação oficial ou trecho de referência. Elas não substituem alerta.</blockquote>
+            </article>
+            <article class="text-demo dark">
+              <h3>Texto em fundo escuro</h3>
+              <p>Em fundos verdes, links precisam de sublinhado e contraste alto. Exemplo: <a class="text-link-dark" href="#identidade">consultar instruções</a>.</p>
+              <p>Evite textos longos em fundo escuro. Use esse padrão para rodapé, menus, banners curtos e chamadas compactas.</p>
+              <blockquote>Citações em fundo escuro devem usar transparência leve e borda clara.</blockquote>
+            </article>
+          </div>
+        </section>
+
+        <section id="layout" class="manual-section" data-section data-category="design">
+          <div class="section-header">
+            <p class="eyebrow">03. Layout e separadores</p>
+            <h2>Grade, respiro e divisórias</h2>
+            <p>O grid do Portal usa um canvas máximo de 1440px dividido em 30 colunas-base de 48px. Cada coluna-base contém três subcolunas de 16px. Os gutters estruturais têm 24px; por isso, as larguras resultantes dos blocos não precisam ser múltiplas isoladas de 16px: elas são calculadas depois de descontados os gutters.</p>
+          </div>
+          <div class="grid-spec">
+            <div class="grid-ruler columns-1" aria-label="Grid de uma coluna">
+              <span>1440px<br>1 bloco</span>
+            </div>
+            <div class="grid-ruler columns-2" aria-label="Grid de duas colunas">
+              <span>708px<br>coluna</span>
+              <span>708px<br>coluna</span>
+            </div>
+            <div class="grid-ruler columns-3" aria-label="Grid alternativo de três colunas">
+              <span>464px<br>coluna</span>
+              <span>464px<br>coluna</span>
+              <span>464px<br>coluna</span>
+            </div>
+            <div class="grid-ruler" aria-label="Grid principal de quatro colunas">
+              <span>342px<br>coluna</span>
+              <span>342px<br>coluna</span>
+              <span>342px<br>coluna</span>
+              <span>342px<br>coluna</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><strong>1440px</strong><span>Largura máxima do conteúdo</span></div>
+              <div class="metric"><strong>30 × 48px</strong><span>Colunas-base do canvas</span></div>
+              <div class="metric"><strong>3 × 16px</strong><span>Subcolunas por coluna-base</span></div>
+              <div class="metric"><strong>24px</strong><span>Gutter estrutural</span></div>
+            </div>
+          </div>
+          <figure class="manual-figure">
+            <img src="/assets/manual/02-grid.png" alt="Página inicial do Portal Plan-Assiste com malha de 16px sobreposta, demonstrando o grid de 1440px e quatro colunas.">
+            <figcaption>Referência visual histórica do grid planejado: o exemplo da imagem ainda mostra a versão inicial, com quatro colunas de 336px e espaçamento de 32px. Depois, optou-se por manter um espaçamento padrão de 24px, intermediário entre 16px e 32px, preservando o canvas de 1440px e a malha em unidades de 16px.</figcaption>
+          </figure>
+          <div class="manual-grid">
+            <article class="manual-card">
+              <h3>Contêiner</h3>
+              <p>Usar <span class="code">max-width: 1440px</span> e centralização. No protótipo: <span class="code">width: min(calc(100% - 64px), 1440px)</span>. O respiro lateral existe fora do container; dentro dos 1440px, o espaçamento entre colunas e cards é de 24px.</p>
+            </article>
+            <article class="manual-card">
+              <h3>Grades</h3>
+              <p>Dentro de 1440px, usar o gutter estrutural de 24px entre blocos equivalentes: <strong>1 × 1440px</strong>, <strong>2 × 708px</strong> com 1 gutter, <strong>3 × 464px</strong> com 2 gutters, ou <strong>4 × 342px</strong> com 3 gutters. Em layouts assimétricos, combinar esses tracks: por exemplo, sidebar de 342px + gutter de 24px + conteúdo de 1074px.</p>
+            </article>
+            <article class="manual-card">
+              <h3>Divisórias</h3>
+              <p>Usar linha <span class="code">1px solid var(--border)</span> entre blocos editoriais, como seções do Plan-Assiste e transição para notícias relacionadas.</p>
+            </article>
+          </div>
+          <div class="manual-card" style="margin-top:24px">
+            <h3>Espaçamento vertical</h3>
+            <p>Verticalmente, o Portal usa ritmo, não linhas rígidas de 48px: conteúdo textual pode crescer naturalmente, mas inícios de seções, paddings, gaps e alturas mínimas devem preferir a escala de 8/16/24/32/48/64px. Entre blocos equivalentes, usar 24px; em cards de conteúdo, padding de 24px; em caixas grandes, 32px; e entre contextos distintos, 48px ou 64px. Evitar valores intermediários sem justificativa funcional.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Valor</th><th>Uso recomendado</th><th>Evitar</th></tr></thead>
+                <tbody>
+                  <tr><td>8px</td><td>Microespaço entre ícone e texto, label e campo, pequenos agrupamentos internos.</td><td>Usar como gap entre cards ou blocos de página.</td></tr>
+                  <tr><td>16px</td><td>Padding compacto para botões, chips, itens de lista, controles densos e agrupamentos internos pequenos.</td><td>Usar como padding de cards editoriais, notícias ou resultados com leitura.</td></tr>
+                  <tr><td>24px</td><td>Gap padrão vertical e horizontal entre cards, blocos relacionados e grupos de filtros. Também é o padding padrão de cards pequenos de conteúdo.</td><td>Misturar com 18px, 20px ou 22px para a mesma função.</td></tr>
+                  <tr><td>32px</td><td>Padding de caixas grandes, painéis amplos, headers de conteúdo e respiro antes de blocos de alta hierarquia.</td><td>Usar em componentes densos que precisem ser escaneados rapidamente.</td></tr>
+                  <tr><td>48px</td><td>Separação entre seções de contexto diferente, hero para conteúdo e mudanças claras de assunto.</td><td>Aplicar em listas repetitivas ou substituir o gap de 24px entre pares.</td></tr>
+                  <tr><td>64px</td><td>Separação ampla entre macroseções e respiro de início/fim de páginas longas.</td><td>Usar dentro de cards ou componentes operacionais.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Tokens fixos de layout</h3>
+              <ul>
+                <li><span class="code">--site-max: 1440px</span></li>
+                <li><span class="code">--unit: 16px</span></li>
+                <li><span class="code">--grid-base: 48px</span>, coluna-base repetida 30 vezes.</li>
+                <li><span class="code">--gap: 24px</span></li>
+                <li><span class="code">--space-sm: 16px</span> para padding compacto.</li>
+                <li><span class="code">--space-md: 24px</span> para gaps estruturais e padding de cards pequenos de conteúdo.</li>
+                <li><span class="code">--space-lg: 32px</span> para padding de caixas grandes.</li>
+                <li><span class="code">--sidebar: 342px</span>, equivalente a uma coluna do grid.</li>
+              </ul>
+            </article>
+            <article class="manual-card">
+              <h3>Aplicação obrigatória</h3>
+              <ul>
+                <li>Home e seções amplas: usar 4 colunas quando houver quatro itens equivalentes.</li>
+                <li>Cards de notícia em destaque: 4 colunas no desktop, respeitando gap de 24px.</li>
+                <li>Seções internas com 3 cards no canvas completo: 3 colunas de 464px e gap de 24px.</li>
+                <li>Cards pequenos, métricas, atalhos e listas de cards também usam gap de 24px para manter alinhamento entre páginas.</li>
+                <li>Layout do Beneficiário: sidebar de 342px + conteúdo de 1074px + gap de 24px; dentro do conteúdo cabem 3 cards de 342px com 2 gaps de 24px.</li>
+                <li>Gaps internos de controles, ícones e conteúdo dentro do card podem ser menores quando forem parte da composição do componente.</li>
+                <li>Mobile: colunas empilham em 1 coluna sem alterar hierarquia, raios ou pesos tipográficos.</li>
+              </ul>
+            </article>
+          </div>
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Responsividade e comportamento por largura</h3>
+            <p>As versões responsivas não reinterpretam a identidade: elas reduzem o número de colunas, preservam a hierarquia e trocam navegações laterais por controles compactos quando o espaço não comporta leitura confortável. A regra é manter a escala de 16/24/32px e só reduzir padding em telas estreitas quando necessário para evitar quebra de texto ou botões comprimidos.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Faixa</th><th>Comportamento esperado</th><th>Quantidade de itens por linha</th><th>Regras obrigatórias</th></tr></thead>
+                <tbody>
+                  <tr><td>Desktop amplo<br><span class="code">acima de 1100px</span></td><td>Usar o canvas de até 1440px, header completo, menu horizontal e grids principais. As medidas nominais de 342/464/708px valem quando o container alcança 1440px.</td><td>Cards principais, notícias e serviços: 4 colunas. Seções de apoio: 3 colunas. Layout do Beneficiário: sidebar de 342px + conteúdo.</td><td>Gap de 24px entre cards/colunas. Padding grande de 32px em caixas amplas. Sidebar visível quando for parte do fluxo operacional.</td></tr>
+                  <tr><td>Desktop/tablet estreito<br><span class="code">até 1100px</span></td><td>Reduzir a largura da sidebar, simplificar grids e remover composições laterais que fiquem apertadas.</td><td>Cards de 4 colunas passam para 2 colunas. Seções de 3 colunas podem passar para 2 ou 1 conforme densidade. Rede credenciada e detalhes passam para 1 coluna.</td><td>Manter gap de 24px. Não criar cards mais estreitos que comprometam títulos, botões ou ícones. Sidebar do Beneficiário reduz para 288px, equivalente a 6 colunas-base de 48px.</td></tr>
+                  <tr><td>Tablet/mobile grande<br><span class="code">até 900px</span></td><td>Header fica mais compacto, redes sociais somem do topo, menu principal vira menu expansível e layouts com sidebar passam a fluxo vertical.</td><td>Rodapé passa para 1 coluna. Cards operacionais ficam em 1 ou 2 colunas conforme leitura. Filtros e toolbars devem quebrar em linhas claras.</td><td>Container passa a <span class="code">calc(100% - 32px)</span>. Menu do Beneficiário deixa de ocupar lateral e vira lista suspensa. A navegação lateral original deve ficar oculta.</td></tr>
+                  <tr><td>Mobile compacto<br><span class="code">até 640px</span></td><td>Tudo que for grade operacional deve empilhar. A experiência precisa priorizar leitura, toque e sequência vertical.</td><td>Cards, serviços, notícias, atalhos, filtros, cards de dados e ações: 1 coluna. Filtros rápidos podem usar 2 colunas apenas quando os rótulos forem curtos.</td><td>Evitar texto espremido. Botões devem ocupar largura confortável. Padding pode cair para 20/24px em áreas estreitas, mas novos padrões devem preferir 16px compacto, 24px estrutural e 32px amplo.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Menu do Beneficiário em telas menores</h3>
+              <p>No desktop, a navegação do Beneficiário funciona como sidebar porque organiza uma área operacional extensa. Ela não é igual ao menu principal do Portal: o menu principal pode exibir apenas “Catálogo de serviços”, enquanto a sidebar mantém “Minhas solicitações” e os demais destinos da área autenticada. Em telas menores, a sidebar deve ser substituída por um campo de seleção.</p>
+              <ul>
+                <li><strong>Atendimento:</strong> Catálogo de serviços, Minhas solicitações, Carteirinhas, Reembolso e auxílios, Despesas e custeios e Dependentes.</li>
+                <li><strong>Minha conta:</strong> Meus dados, Meus favoritos e Notificações.</li>
+                <li><strong>Hierarquia editorial:</strong> páginas filhas exibidas na sidebar, como Pessoa Jurídica e Pessoa Física dentro de “Como se credenciar ou renovar”, recebem recuo adicional e um pequeno conector visual. A página-pai permanece em semibold enquanto uma filha estiver ativa.</li>
+                <li>Usar <span class="code">select</span> com label visível, altura mínima de 48px, borda de 2px e raio de 9px.</li>
+                <li>O valor selecionado deve refletir a página atual, para orientar o beneficiário sem repetir toda a navegação.</li>
+                <li>Ao selecionar outro item, navegar imediatamente para a seção correspondente.</li>
+                <li>Ocultar foto, bloco de perfil e lista lateral para evitar duplicidade de navegação.</li>
+                <li>Manter esse padrão em qualquer área com navegação lateral longa. Não criar menus laterais colapsados que ainda ocupem largura útil no mobile.</li>
+              </ul>
+            </article>
+            <article class="manual-card">
+              <h3>Adaptação de grids e controles</h3>
+              <ul>
+                <li>Quatro itens equivalentes: 4 colunas no desktop, 2 colunas até 1100px e 1 coluna até 640px.</li>
+                <li>Três cards editoriais ou institucionais: 3 colunas no desktop; 1 coluna quando houver sidebar, texto longo ou largura menor que 1100px.</li>
+                <li>Filtros de busca: desktop pode usar múltiplas colunas; mobile deve empilhar campos e deixar ações em botões com largura confortável.</li>
+                <li>Cards de credenciado: manter duas colunas apenas onde houver largura real; em mobile, imagem/ícone, texto, metadados e ações devem empilhar.</li>
+                <li>Notícias relacionadas: 2 colunas em tablet, 1 coluna no mobile compacto.</li>
+                <li>Rodapé: 4 colunas no desktop e 1 coluna abaixo de 900px, preservando ordem, contraste e espaçamento de leitura.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="component-preview separator-demo">
+            <h3>Exemplo de separador editorial</h3>
+            <p>Texto final de uma matéria, orientação ou seção institucional.</p>
+            <div class="separator-demo">
+              <h4>Conteúdo relacionado</h4>
+              <p>A linha cria transição clara sem transformar o bloco seguinte em um card artificial.</p>
+            </div>
+          </div>
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Especificações de estilo que não devem ser alteradas</h3>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Elemento</th><th>Medida/valor</th><th>Regra de implantação</th></tr></thead>
+                <tbody>
+                  <tr><td>Fonte</td><td>Titillium Web, pesos 300/400/500/600</td><td>Não substituir por outra família. Fallback é apenas contingência técnica.</td></tr>
+                  <tr><td>Cor primária</td><td>#0d8473</td><td>Usar em botões primários, menu e estados ativos principais. Passa contraste AA com texto branco.</td></tr>
+                  <tr><td>Cor forte</td><td>#087765</td><td>Usar em links, ícones e textos de ação.</td></tr>
+                  <tr><td>Texto escuro</td><td>#103f3a</td><td>Usar em títulos e informações de maior hierarquia.</td></tr>
+                  <tr><td>Texto padrão</td><td>#225c55</td><td>Usar no corpo e em descrições.</td></tr>
+                  <tr><td>Borda</td><td>#d7e7e2</td><td>Usar em cards, inputs, divisórias e contornos suaves.</td></tr>
+                  <tr><td>Aviso</td><td>#d7a739</td><td>Usar em notificações, pins e alertas leves, preferencialmente com texto escuro.</td></tr>
+                  <tr><td>Erro/acento</td><td>#d94d6a</td><td>Usar em favoritos, ícones e estados críticos. Para botão destrutivo preenchido, usar uma variação mais escura com texto branco.</td></tr>
+                  <tr><td>Erro preenchido</td><td>#cf3f5f</td><td>Usar em ações destrutivas com fundo sólido e texto branco, quando o contraste AA for obrigatório.</td></tr>
+                  <tr><td>Informativo</td><td>#2874d8</td><td>Usar apenas em categorias informativas específicas, sem virar cor principal de navegação.</td></tr>
+                  <tr><td>Header</td><td>Altura mínima 132px; logo colorida com 66px de altura</td><td>Não comprimir o cabeçalho nem reduzir a presença da marca.</td></tr>
+                  <tr><td>Menu principal</td><td>Altura mínima 56px; fundo #0d8473; links semibold</td><td>Os links formam áreas contíguas que ocupam toda a altura da barra, com padding lateral responsivo de 12px a 24px; assim, cada limite fica exatamente no ponto médio entre os textos vizinhos. O item ativo usa fundo tonal #087765, texto Logo acento #00e9ab, cantos retos e <span class="code">aria-current="page"</span>. O hover escurece discretamente a mesma área. Não usar linha, contorno permanente, aumento ou deslocamento. Foco mantém outline amarelo.</td></tr>
+                  <tr><td>Container</td><td>min(calc(100% - 64px), 1440px)</td><td>Preservar respiro lateral fora do container em desktops menores; o corpo de 1440px não tem padding interno.</td></tr>
+                  <tr><td>Gap principal</td><td>24px</td><td>Usar como espaçamento padrão entre colunas e cards. Se faltar espaço, quebrar linha.</td></tr>
+                  <tr><td>Breakpoints</td><td>1100px, 900px e 640px</td><td>Usar 1100px para reduzir colunas, 900px para menus compactos e 640px para empilhamento total.</td></tr>
+                  <tr><td>Menu Beneficiário mobile</td><td>Select visível abaixo de 900px</td><td>Substitui a sidebar para preservar espaço de leitura. O select deve refletir a página atual e navegar ao trocar a opção.</td></tr>
+                  <tr><td>Sidebars das áreas restritas</td><td>342px em desktop; mesma estrutura visual para Beneficiário, Credenciado e Equipe</td><td>Usar perfil no topo, Visão geral, grupos funcionais, item ativo preenchido e Sair no rodapé. Cada perfil preserva seus próprios destinos e permissões. Abaixo de 900px, substituir o conteúdo lateral pelo mesmo seletor compacto; links de sistemas externos não entram no select.</td></tr>
+                  <tr><td>Gestão da informação</td><td>Cards de navegação por frente de trabalho</td><td>Cada card apresenta título, resumo curto e CTA “Abrir área”. O destino organiza rotinas, tutoriais, modelos e referências em seções com índice local. Solicitações operacionais da Equipe pertencem à Central IT e não devem ser reproduzidas no Portal.</td></tr>
+                  <tr><td>Notificações</td><td>Filtros por leitura, categoria e intervalo de datas; 12 itens por página</td><td>Reiniciar na primeira página ao alterar filtros, oferecer ação para limpar, estado vazio e paginação anterior/próxima. Notificações críticas continuam exigindo confirmação de leitura; as demais não devem bloquear o acesso.</td></tr>
+                  <tr><td>Avatar autenticado</td><td>48px; borda de 2px</td><td>A borda usa a mesma cor temática da barra principal do perfil ativo, garantindo continuidade visual entre identificação e navegação.</td></tr>
+                  <tr><td>Ícones de topo/rodapé</td><td>24px; gap 24px</td><td>Usar para redes sociais, sino e ações isoladas. A foto de perfil pode ser maior por ser identificação visual.</td></tr>
+                  <tr><td>Redes sociais</td><td>YouTube, WhatsApp e LinkedIn</td><td>Tooltip, <span class="code">title</span> e nome acessível devem informar exatamente o nome da rede, sem substituir pelo destino interno usado no protótipo.</td></tr>
+                  <tr><td>Padding grande</td><td>32px</td><td>Usar em caixas amplas, painéis de busca, headers editoriais e cards de maior hierarquia.</td></tr>
+                  <tr><td>Padding padrão de card</td><td>24px</td><td>Usar em notícias, serviços, resultados resumidos, cards clicáveis e blocos de conteúdo pequenos.</td></tr>
+                  <tr><td>Padding compacto</td><td>16px</td><td>Usar em botões, chips, itens de lista, controles densos e componentes pequenos sem leitura editorial.</td></tr>
+                  <tr><td>Sidebar Beneficiário</td><td>342px</td><td>Equivale a uma coluna do grid de 4 colunas.</td></tr>
+                  <tr><td>Cards principais</td><td>Raio 16 a 18px; borda 1px; sombra suave</td><td>Manter hierarquia de card sem excesso de sombra ou arredondamento.</td></tr>
+                  <tr><td>Cards pequenos/botões</td><td>Raio 8 a 9px</td><td>Não usar raios excessivamente arredondados em comandos retangulares.</td></tr>
+                  <tr><td>Campos</td><td>Altura mínima 46px; borda 2px</td><td>Labels sempre visíveis; placeholder não substitui label.</td></tr>
+                  <tr><td>Citação/nota editorial</td><td>Borda esquerda 4px, raio 6px, fundo #f2faf7</td><td>Usar para orientações, trechos de norma e alertas leves. Não usar cantos retos na esquerda.</td></tr>
+                  <tr><td>Botões de carteirinha</td><td>Altura mínima 52px</td><td>Ícone + texto, alinhados ao centro.</td></tr>
+                  <tr><td>Botões padrão</td><td>Altura mínima 40 a 48px</td><td>Usar altura conforme densidade da área, mantendo alvo clicável confortável.</td></tr>
+                  <tr><td>Foco acessível</td><td>Outline 3px #ffd369; offset 3px</td><td>Não remover outline sem substituto equivalente.</td></tr>
+                  <tr><td>Animações</td><td>180ms a 240ms; deslocamento máximo 3px</td><td>Respeitar prefers-reduced-motion.</td></tr>
+                  <tr><td>Rodapé</td><td>#0d8473 e base #315c55</td><td>Manter contraste alto, diferença visual clara entre faixas e estrutura em 4 colunas no desktop.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="componentes" class="manual-section" data-section data-category="componentes design">
+          <div class="section-header">
+            <p class="eyebrow">04. Componentes básicos</p>
+            <h2>Botões, filtros, campos e estados</h2>
+            <p>Controles devem ser explícitos, acessíveis por teclado e visualmente consistentes em todas as páginas.</p>
+          </div>
+          <div class="manual-grid two">
+            <article class="manual-card">
+              <h3>Botões</h3>
+              <div class="button-row">
+                <button class="btn-primary" type="button">Ação primária</button>
+                <button class="btn-secondary" type="button">Ação secundária</button>
+                <button class="btn-ghost" type="button">Link de ação</button>
+                <button class="icon-button" type="button" aria-label="Favoritar">★</button>
+              </div>
+              <ul>
+                <li>Primário: ações principais, como buscar, enviar, baixar e ver detalhes. Usa formato retangular com cantos arredondados de 9px; o formato de cápsula fica reservado aos controles secundários indicados neste manual.</li>
+                <li>Secundário: ações complementares, como imprimir, limpar filtro.</li>
+                <li>Ícone circular: ações rápidas de baixo texto, sempre com <span class="code">aria-label</span>.</li>
+              </ul>
+            </article>
+            <article class="manual-card">
+              <h3>Formulários e filtros</h3>
+              <div class="form-preview">
+                <label class="field">Buscar<input type="search" value="card"></label>
+                <label class="field">Categoria<select><option>Todos</option><option>Notícias</option></select></label>
+                <label class="field">Ordenar<select><option>Mais recentes</option></select></label>
+              </div>
+              <p style="margin-top:16px">Filtros ativos devem ser visíveis, removíveis e refletidos na URL quando a busca for compartilhável.</p>
+              <p><strong>Select padrão:</strong> toda lista usa label visível, altura mínima de 46px, borda de 2px, raio de 9px, fundo branco e seta verde alinhada a 16px da borda direita. O estilo nativo do navegador não deve aparecer. Em linhas de filtros, use as proporções da grade sem alterar a largura após a seleção.</p>
+              <p><strong>Botões segmentados de filtro:</strong> os conjuntos usados no Catálogo de serviços, na Rede credenciada, em Dúvidas frequentes e na Pesquisa permanecem estáticos. No hover, alteram somente a cor de fundo e da borda, sem deslocamento vertical. Contêineres com rolagem horizontal devem reservar espaço interno suficiente para não recortar nenhuma borda.</p>
+              <p><strong>Seleção de período:</strong> filtros por data usam um único campo retangular com cantos arredondados, ícone de calendário e calendário em português do Brasil. O período é exibido em dia/mês/ano e o cabeçalho do calendário usa “mês de ano”. A largura do campo não muda depois da seleção.</p>
+              <p><strong>Limpar filtros:</strong> use sempre o botão secundário em formato de cápsula, com fundo verde muito claro, borda suave e altura mínima de 46px. O hover altera apenas fundo e borda, sem deslocar o botão.</p>
+            </article>
+          </div>
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Combobox – campo com busca e lista suspensa</h3>
+            <p>Use <strong>Combobox</strong> (em vez de <code>&lt;select&gt;</code> simples) sempre que a lista de opções tiver <strong>mais de 8 itens</strong> ou quando o usuário precisar digitar para filtrar sem saber o termo exato. Implementado como componente React interno (<span class="code">Combobox</span>) com input + lista absoluta com scroll.</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:20px 0 8px">
+              <div>
+                <p style="margin:0 0 8px;font-weight:700;font-size:1rem;color:var(--text-dark)">Demonstração interativa</p>
+                <div class="combobox-demo" id="cbDemo">
+                  <div class="combobox-demo-wrap">
+                    <input class="combobox-demo-input" id="cbInput" type="text" placeholder="Digite ou selecione..." value="Fisioterapia" autocomplete="off">
+                    <button class="combobox-demo-toggle" id="cbToggle" type="button" aria-label="Abrir lista">▾</button>
+                  </div>
+                  <ul class="combobox-demo-list" id="cbList" hidden>
+                    <li><button class="combobox-demo-item" type="button">Acompanhamento nutricional</button></li>
+                    <li><button class="combobox-demo-item" type="button">Acupuntura</button></li>
+                    <li><button class="combobox-demo-item" type="button">Cirurgia com internação</button></li>
+                    <li><button class="combobox-demo-item" type="button">Cirurgia sem internação</button></li>
+                    <li><button class="combobox-demo-item" type="button">Consulta/Avaliação</button></li>
+                    <li><button class="combobox-demo-item" type="button">Exame</button></li>
+                    <li><button class="combobox-demo-item demo-selected" type="button">Fisioterapia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Fonoaudiologia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Hidroterapia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Honorários individuais</button></li>
+                    <li><button class="combobox-demo-item" type="button">Internação sem cirurgia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Medicamentos ambulatoriais</button></li>
+                    <li><button class="combobox-demo-item" type="button">Musicoterapia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Odontologia</button></li>
+                    <li><button class="combobox-demo-item" type="button">Parto</button></li>
+                  </ul>
+                </div>
+                <p style="margin:8px 0 0;font-size:1rem;color:var(--brand-dark)">Clique em ▾ ou comece a digitar para filtrar.</p>
+              </div>
+              <div>
+                <p style="margin:0 0 8px;font-weight:700;font-size:1rem;color:var(--text-dark)">Regras de comportamento</p>
+                <ul style="margin:0;padding-left:1.2rem;font-size:1rem;display:flex;flex-direction:column;gap:6px">
+                  <li>Abrir ao focar o input ou clicar no chevron.</li>
+                  <li>Fechar ao clicar fora do componente (<span class="code">mousedown</span> no <span class="code">document</span>).</li>
+                  <li>Filtrar opções em tempo real normalizando acentos.</li>
+                  <li>Lista com <span class="code">max-height: 210px</span> e scroll vertical.</li>
+                  <li>Item selecionado destacado em verde e negrito.</li>
+                  <li>Mensagem "Nenhum tipo encontrado." quando sem resultados.</li>
+                  <li>Chevron rotaciona 180° quando aberto.</li>
+                  <li>Usar <span class="code">onMouseDown + preventDefault</span> nos itens para não perder o foco do input antes da seleção.</li>
+                </ul>
+              </div>
+            </div>
+
+            <p style="margin:16px 0 8px;font-weight:700;font-size:1rem;color:var(--text-dark)">Quando usar</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div style="border-left:3px solid var(--brand-primary);padding-left:12px">
+                <strong style="font-size:1rem;color:var(--brand-primary)">✔ Use Combobox</strong>
+                <ul style="margin:6px 0 0;padding-left:1.2rem;font-size:1rem;display:flex;flex-direction:column;gap:4px">
+                  <li>Lista com mais de 8 opções.</li>
+                  <li>Usuário pode não saber o nome exato.</li>
+                  <li>Termos técnicos ou médicos extensos.</li>
+                  <li>Tipo de reembolso, CID, procedimentos.</li>
+                </ul>
+              </div>
+              <div style="border-left:3px solid var(--danger);padding-left:12px">
+                <strong style="font-size:1rem;color:var(--danger)">✘ Prefira &lt;select&gt; simples</strong>
+                <ul style="margin:6px 0 0;padding-left:1.2rem;font-size:1rem;display:flex;flex-direction:column;gap:4px">
+                  <li>Até 6–8 opções curtas e conhecidas.</li>
+                  <li>Filtros de situação (Todos / Pendente / Aprovado).</li>
+                  <li>Campos como Sexo, Estado Civil, Sim/Não.</li>
+                </ul>
+              </div>
+            </div>
+
+            <p style="margin:16px 0 6px;font-weight:700;font-size:1rem;color:var(--text-dark)">Classes CSS</p>
+            <div style="font-size:1rem;display:flex;flex-direction:column;gap:4px">
+              <div><span class="code">.go-combobox</span> – wrapper com <span class="code">position: relative</span></div>
+              <div><span class="code">.go-combobox-wrap</span> – flex row com o input e o botão de toggle</div>
+              <div><span class="code">.go-combobox-toggle</span> – botão chevron, classe <span class="code">.open</span> rotaciona o ícone</div>
+              <div><span class="code">.go-combobox-list</span> – <span class="code">ul</span> absoluto, <span class="code">max-height: 210px</span>, scroll, z-index 200</div>
+              <div><span class="code">.go-combobox-item</span> – cada opção; <span class="code">.selected</span> marca o valor atual</div>
+              <div><span class="code">.go-combobox-empty</span> – mensagem quando não há resultados filtrados</div>
+            </div>
+          </article>
+
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Assistente virtual – botão flutuante + chat</h3>
+            <p>Botão flutuante presente em todas as páginas do Portal, implementado em <span class="code">AiChatWidget</span>. Ele abre uma janela de chat para dúvidas rápidas sobre o Plan-Assiste sem retirar a pessoa do fluxo atual. O assistente é automático, usa respostas da base de dúvidas frequentes (<span class="code">supportFaqs</span>) e deve encaminhar para atendimento humano quando não houver resposta segura.</p>
+            <div class="manual-ai-chat-grid">
+              <div>
+                <p class="manual-ai-label">Gatilho fixo no canto inferior direito</p>
+                <div class="component-preview manual-ai-trigger-preview">
+                  <span class="manual-ai-trigger" aria-hidden="true">
+                    <img src="/assets/assistente-virtual.svg" alt="">
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p class="manual-ai-label">Janela de chat ancorada ao lado direito</p>
+                <div class="manual-ai-modal-preview">
+                  <div class="manual-ai-modal-header">
+                    <div class="manual-ai-header-info">
+                      <span class="manual-ai-header-icon" aria-hidden="true">
+                        <img src="/assets/assistente-virtual.svg" alt="">
+                      </span>
+                      <div class="manual-ai-title">
+                        <strong>Assistente virtual Plan-Assiste</strong>
+                        <span>Respostas automáticas sobre o Programa</span>
+                      </div>
+                    </div>
+                    <span class="manual-ai-close" aria-hidden="true">×</span>
+                  </div>
+                  <div class="manual-ai-messages">
+                    <span class="manual-ai-bubble assistant">Olá! Sou o assistente virtual do Plan-Assiste. Posso ajudar com dúvidas sobre cadastro, financeiro, cobertura, autorização de procedimentos e rede credenciada.</span>
+                    <span class="manual-ai-bubble user">Como consultar a rede credenciada?</span>
+                  </div>
+                  <div class="manual-ai-suggestions">
+                    <span>Como solicitar reembolso?</span>
+                    <span>Como consultar a rede?</span>
+                  </div>
+                  <div class="manual-ai-form">
+                    <span class="manual-ai-input">Digite sua dúvida sobre o Plan-Assiste</span>
+                    <span class="manual-ai-send" aria-hidden="true">↗</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ul>
+              <li>Gatilho é um botão circular apenas com ícone, sem rótulo visível, fixo no canto inferior direito: <span class="code">right: 32px</span>, <span class="code">bottom: 32px</span>, <span class="code">58px</span> de diâmetro. Em telas estreitas, usa <span class="code">52px</span>.</li>
+              <li>A janela não abre centralizada. Ela usa <span class="code">go-modal-overlay</span> com alinhamento no canto inferior direito e afastamento de <span class="code">60px</span> da borda direita e inferior para não concorrer com o VLibras e demais botões flutuantes.</li>
+              <li>O modal tem largura máxima de <span class="code">460px</span>, altura máxima de <span class="code">640px</span> e se ajusta ao viewport. Em telas compactas ocupa a largura útil disponível.</li>
+              <li>O cabeçalho usa o ícone oficial <span class="code">/assets/assistente-virtual.svg</span>, título em 18px semibold e subtítulo em 16px. As mensagens, sugestões e campo de texto respeitam o mínimo de 16px.</li>
+              <li>Fluxo de conteúdo: saudação inicial com sugestões de perguntas, resposta por similaridade de palavras-chave na base de dúvidas frequentes e, sem correspondência, orientação para a Central de Atendimento 24h ou para Fale conosco. Nunca inventar cobertura, prazo ou valor.</li>
+              <li>Acessibilidade: foco vai para o campo de texto ao abrir, <span class="code">Escape</span> fecha, clique fora fecha, rolagem do fundo é bloqueada e novas mensagens são anunciadas por região <span class="code">aria-live</span>. O botão de gatilho tem <span class="code">aria-label</span> por não exibir texto visível.</li>
+              <li>Não usar para coleta de dados sensíveis, abertura de protocolos oficiais ou qualquer substituição do canal humano.</li>
+            </ul>
+          </article>
+
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Gráficos (dataviz)</h3>
+            <p>Cards de indicador usados na página Transparência (<span class="code">TransparenciaPage</span>). A forma do gráfico é escolhida pela pergunta que ele responde, nunca por preferência visual: ranking/magnitude usa barra de uma cor só; tendência no tempo usa linha/área; parte-do-todo usa uma única barra empilhada com legenda – nunca pizza/donut para comparar valores próximos.</p>
+            <ul>
+              <li>Cor de série única (ranking, tendência): <span class="code">var(--brand-primary)</span> ou <span class="code">var(--brand-strong)</span> – herdam o modo alto contraste automaticamente, pois essas variáveis são redefinidas para branco nesse modo.</li>
+              <li>Paleta categórica (composição, quando há 2+ séries): ordem fixa e validada – <span class="code">var(--brand-accent)</span>, <span class="code">var(--blue)</span>, <span class="code">var(--warning)</span>, <span class="code">var(--danger)</span>. Nunca gerar uma 5ª cor; excedentes entram em "Outros".</li>
+              <li>Traços finos (linha 2px), barras com no máximo 24px de espessura, ponta arredondada (4px) e base reta; rótulo direto apenas na ponta/extremidade, nunca em todo ponto.</li>
+              <li>Toda visualização tem uma alternativa em tabela (<span class="code">details/summary</span> "Ver dados em tabela") – a tabela é a versão acessível de referência, nunca só o gráfico.</li>
+              <li>Números desta página são ilustrativos para o protótipo; quando a fonte for oficial, isso deve ficar explícito e substituir o aviso de dados ilustrativos.</li>
+            </ul>
+          </article>
+
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Inventário ampliado de componentes</h3>
+            <p>Além dos componentes já desenhados no protótipo, o sistema definitivo deve prever documentação e exemplos para estes padrões, inspirados em design systems governamentais e bibliotecas públicas maduras:</p>
+            <ul class="component-list">
+              <li>Accordion para FAQ e conteúdos progressivos.</li>
+              <li>Alertas de sucesso, atenção, erro e informação.</li>
+              <li>Breadcrumbs em páginas internas.</li>
+              <li>Banners e avisos globais com validade.</li>
+              <li>Botões primários, secundários, texto e ícone.</li>
+              <li>Cards de navegação, informação, ação e resultado.</li>
+              <li>Checkbox, radio, toggle e segmented control.</li>
+              <li>Combobox/select com busca quando a lista for longa.</li>
+              <li>Data picker e filtros por período.</li>
+              <li>Empty state com orientação para próximo passo.</li>
+              <li>Modal/dialog para confirmações críticas.</li>
+              <li>Popover e tooltip apenas para apoio contextual.</li>
+              <li>Paginação e "carregar mais".</li>
+              <li>Tabs para alternância de vistas equivalentes.</li>
+              <li>Tabelas responsivas, com ordenação e exportação.</li>
+              <li>Toast/status para ações rápidas como copiar ou salvar.</li>
+              <li>Skeleton/loading para listas com carregamento remoto.</li>
+              <li>Upload de arquivos com validação e progresso.</li>
+            </ul>
+          </article>
+        </section>
+
+        <section id="editorial" class="manual-section" data-section data-category="componentes conteudo admin">
+          <div class="section-header">
+            <p class="eyebrow">05. Componentes editoriais e administrativos</p>
+            <h2>Editor, tabelas, blocos e feedback</h2>
+            <p>O Portal definitivo deve prever um editor rico e blocos reutilizáveis para que a equipe publique conteúdo sem quebrar identidade, acessibilidade ou governança. Todo componente editorial deve nascer dos mesmos tokens de cor, tipografia, grid, raio, foco e espaçamento usados no restante do Portal.</p>
+          </div>
+          <div class="manual-grid two">
+            <article class="manual-card">
+              <h3>Editor de texto rico</h3>
+              <p>Conteúdo rico é permitido somente por meio do editor personalizado do Portal. Formulários operacionais usam campos de texto simples; não devem existir editores paralelos, HTML livre ou campos ricos com estilos próprios.</p>
+              <p>Descrições de cards, documentos, destaques, slides, resumos e legendas usam entrada de texto simples em Titillium Web Light 18px. O editor rico fica reservado ao corpo de notícias e aos blocos editoriais “Texto rico”, nos quais a formatação altera de fato a estrutura de leitura.</p>
+              <div class="editor-shell">
+                <div class="editor-toolbar" aria-label="Exemplo de barra do editor">
+                  <button type="button" title="Título">H2</button>
+                  <button type="button" title="Subtítulo">H3</button>
+                  <button type="button" title="Negrito">B</button>
+                  <button type="button" title="Itálico">I</button>
+                  <button type="button" title="Lista">•</button>
+                  <button type="button" title="Link">↗</button>
+                  <button type="button" title="Tabela">▦</button>
+                  <button type="button" title="Linha horizontal">—</button>
+                </div>
+                <div class="editor-canvas">
+                  <h4>Orientações para reembolso</h4>
+                  <p>Use parágrafos curtos, links sublinhados em texto corrido e listas quando houver etapas ou documentos.</p>
+                  <ul>
+                    <li>Informe o procedimento realizado.</li>
+                    <li>Anexe nota fiscal legível.</li>
+                    <li>Acompanhe o status pelo Portal.</li>
+                  </ul>
+                  <hr>
+                  <blockquote>Notas editoriais usam borda esquerda, fundo suave e texto escuro.</blockquote>
+                </div>
+              </div>
+            </article>
+            <article class="manual-card">
+              <h3>Governança do editor personalizado</h3>
+              <p>O editor oferece parágrafo, títulos H2 e H3, ênfases, listas, citação, alinhamento, links, linha horizontal e tabelas. O conteúdo gerado deve ser sanitizado; scripts, iframes livres, eventos JavaScript e classes externas não são aceitos.</p>
+              <pre class="editor-source">&lt;h2&gt;Orientações para reembolso&lt;/h2&gt;
+&lt;p&gt;Envie os documentos exigidos pelo regulamento.&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Documento&lt;/th&gt;&lt;th&gt;Quando usar&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+  &lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Nota fiscal&lt;/td&gt;&lt;td&gt;Sempre&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;
+&lt;/table&gt;</pre>
+              <ul>
+                <li>Salvar conteúdo pelo editor personalizado, sem campo HTML concorrente.</li>
+                <li>Validar headings em ordem lógica.</li>
+                <li>Obrigar texto alternativo em imagens informativas.</li>
+                <li>Bloquear elementos inseguros antes da prévia.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Tabela editorial padrão</h3>
+              <p>Tabelas devem ser usadas para comparação real de dados, não para diagramação. O editor oferece três estilos: padrão, realce da linha no hover e zebrado com linhas alternadas. Seus títulos e cabeçalhos usam 18px; o conteúdo das células usa 17px. Em mobile, a tabela precisa ter rolagem horizontal dentro de um contêiner, preservando cabeçalhos e conteúdo.</p>
+              <div class="admin-matrix">
+                <table>
+                  <thead><tr><th>Procedimento</th><th>Documento necessário</th><th>Prazo de referência</th></tr></thead>
+                  <tbody>
+                    <tr><td>Reembolso médico</td><td>Nota fiscal, recibo e pedido médico quando aplicável.</td><td>Até 30 dias após análise.</td></tr>
+                    <tr><td>Inclusão de dependente</td><td>Documento pessoal e comprovação de vínculo.</td><td>Até 10 dias úteis.</td></tr>
+                    <tr><td>Autorização de exame</td><td>Solicitação médica, relatório e justificativa.</td><td>Conforme complexidade.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+            <article class="manual-card">
+              <h3>Imagem com legenda</h3>
+              <p>Imagens editoriais devem ter função clara, proporção estável, legenda quando ajudarem na interpretação e texto alternativo obrigatório quando transmitirem informação.</p>
+              <figure class="editor-figure">
+                <div class="editor-image-placeholder">Imagem editorial responsiva</div>
+                <figcaption>Legenda curta com contexto. Evitar imagens decorativas em conteúdos operacionais.</figcaption>
+              </figure>
+              <ul>
+                <li>Usar largura 100% dentro do bloco e altura automática.</li>
+                <li>Definir proporção ou dimensões para evitar salto de layout.</li>
+                <li>Comprimir arquivos e usar lazy loading.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Accordion / FAQ</h3>
+              <p>Usar accordion para perguntas frequentes, explicações progressivas e listas longas de detalhes. O título precisa ser autoexplicativo; respostas não devem esconder ações críticas.</p>
+              <div class="accordion-preview">
+                <details open>
+                  <summary>Quais documentos são necessários?</summary>
+                  <p>Informe os documentos por tipo de solicitação e mantenha a resposta curta. Quando houver exceções, linkar para a página completa.</p>
+                </details>
+                <details>
+                  <summary>Como acompanhar uma solicitação?</summary>
+                  <p>Direcione para a área do beneficiário, preservando o contexto da solicitação.</p>
+                </details>
+              </div>
+            </article>
+            <article class="manual-card">
+              <h3>Alertas e mensagens</h3>
+              <p>Alertas devem orientar decisão. Não usar cor sozinha: o texto precisa dizer o estado e a consequência.</p>
+              <div class="alert-stack">
+                <div class="alert-example alert-info"><strong>Informação.</strong> O prazo pode variar conforme o tipo de solicitação.</div>
+                <div class="alert-example alert-warning"><strong>Atenção.</strong> Há documento pendente para concluir a análise.</div>
+                <div class="alert-example alert-danger"><strong>Erro.</strong> Não foi possível salvar. Revise os campos obrigatórios.</div>
+              </div>
+            </article>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Upload de arquivo</h3>
+              <p>Uploads devem indicar formatos aceitos, limite de tamanho, progresso, sucesso, erro e remoção. Em documentos sensíveis, exibir aviso de segurança e não aceitar arquivos fora da política.</p>
+              <div class="upload-preview">
+                <div>
+                  <strong>Arraste arquivos ou selecione no computador</strong>
+                  <span>PDF, JPG ou PNG até 10 MB. Texto alternativo obrigatório para imagens editoriais.</span>
+                </div>
+              </div>
+            </article>
+            <article class="manual-card">
+              <h3>Estados administrativos</h3>
+              <p>Tabelas e listagens do admin precisam exibir status, autor, última edição, ações por linha e estados de revisão. O usuário deve entender o que está publicado, em rascunho ou aguardando aprovação.</p>
+              <div class="status-row">
+                <span class="status-pill">Publicado</span>
+                <span class="status-pill warning">Em revisão</span>
+                <span class="status-pill danger">Erro de validação</span>
+              </div>
+              <div class="admin-matrix" style="margin-top:16px">
+                <table>
+                  <thead><tr><th>Conteúdo</th><th>Status</th><th>Última edição</th><th>Ação</th></tr></thead>
+                  <tbody>
+                    <tr><td>Notícia de campanha</td><td>Publicado</td><td>16/06/2026</td><td>Editar</td></tr>
+                    <tr><td>FAQ de reembolso</td><td>Em revisão</td><td>15/06/2026</td><td>Revisar</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Levantamento de componentes que devem ter padrão próprio</h3>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Componente</th><th>Uso recomendado</th><th>Regras de identidade</th><th>Cuidados de implementação</th></tr></thead>
+                <tbody>
+                  <tr><td>Editor rico</td><td>Notícias, páginas institucionais, FAQ, orientações e conteúdos normativos.</td><td>Títulos, listas, links, citações e tabelas usam estilos do Manual.</td><td>Sanitizar HTML, validar heading, bloquear scripts e preservar prévia responsiva.</td></tr>
+                  <tr><td>Tabela editorial</td><td>Comparar documentos, especialidades, prazos, canais, regras e extratos resumidos.</td><td>Título e cabeçalhos em 18px, conteúdo em 17px, cabeçalho em fundo suave, borda clara, padding 12/14px e texto escuro. Listas documentais usam colunas Nº, Documento e Ação; downloads usam sempre o CTA “Baixar” na última coluna.</td><td>Rolagem horizontal no mobile e hover tonal na linha. Documentos que exigem assinatura recebem asterisco; a nota explicativa fica fora do contêiner rolável, imediatamente abaixo da tabela.</td></tr>
+                  <tr><td>Tabelas de especialidades</td><td>Uma tabela para cada categoria; conteúdo com padding de 24px</td><td>O <span class="code">caption</span> é o cabeçalho visível da tabela: fundo verde suave, borda inferior, padding de 16px × 24px e fonte semibold de 18px. Usar os títulos Especialidades Médicas, Especialidades Paramédicas e Especialidades Odontológicas. Ordenar alfabeticamente e não usar divisórias entre as linhas de conteúdo.</td><td>Usar container query: três colunas por padrão, duas abaixo de 760px de largura disponível e uma abaixo de 460px. Redistribuir a sequência completa a cada mudança, sem células vazias fixas nem rolagem horizontal.</td></tr>
+                  <tr><td>Tabela administrativa</td><td>Listagens de conteúdo, usuários, credenciados, solicitações e auditoria.</td><td>Cabeçalhos em 18px, células em 17px, status como badges, ações discretas, hover mínimo e foco visível.</td><td>Busca, filtro, ordenação, paginação, exportação e estado vazio.</td></tr>
+                  <tr><td>Accordion</td><td>FAQ, detalhes progressivos e grupos de informações extensas.</td><td>Borda clara, raio 12px, título forte e resposta em texto regular.</td><td>Usar <span class="code">button</span> ou <span class="code">summary</span> acessível, estado expandido e navegação por teclado.</td></tr>
+                  <tr><td>Tabs</td><td>Alternar vistas equivalentes, como extrato, utilização e IRPF.</td><td>Ativo em verde primário; inativos com borda e texto forte.</td><td>Não usar tabs para etapas sequenciais; em mobile, permitir quebra ou rolagem horizontal.</td></tr>
+                  <tr><td>Stepper</td><td>Solicitações, reembolsos e fluxos guiados.</td><td>Etapas concluídas em verde, atual com destaque e futuras neutras.</td><td>Salvar rascunho, validar por etapa e permitir retorno sem perda de dados.</td></tr>
+                  <tr><td>Toast/status</td><td>Copiar protocolo, salvar rascunho, favoritar, remover item.</td><td>Mensagem curta, fundo claro ou verde escuro conforme criticidade.</td><td>Usar região anunciável e não depender apenas de desaparecimento automático.</td></tr>
+                  <tr><td>Modal/dialog</td><td>Confirmação destrutiva, troca de perfil, publicação, exclusão.</td><td>Raio 18px, padding 32px, botões claros e sem excesso de sombra.</td><td>Gerenciar foco, Escape, clique fora quando seguro e bloquear fundo.</td></tr>
+                  <tr><td>Assistente virtual (chat)</td><td>Dúvidas rápidas sobre o Plan-Assiste em qualquer página, sem sair do fluxo.</td><td>Botão flutuante só com ícone; janela ancorada ao canto inferior direito com largura máxima de 460px, afastada 60px das bordas; respostas vêm da base de dúvidas frequentes.</td><td>Sempre indicar que é automático, oferecer caminho para atendimento humano e nunca inventar dado de cobertura, prazo ou valor.</td></tr>
+                  <tr><td>Voltar ao topo</td><td>Retorno rápido ao início da página sem disputar atenção com o chat.</td><td>Botão circular flutuante discreto, com seta centralizada, posicionado acima do chatbot e com contraste suficiente sobre o conteúdo.</td><td>Manter comportamento simples, sem animação lateral; não sobrepor VLibras nem o assistente virtual.</td></tr>
+                  <tr><td>Gráficos (dataviz)</td><td>Indicadores de despesas, beneficiários e rede na página Transparência.</td><td>Forma pela pergunta (ranking, tendência, parte-do-todo); cor de série única herda alto contraste; paleta categórica validada e de ordem fixa.</td><td>Rótulo direto só na ponta/extremidade; sempre oferecer alternativa em tabela; nunca pizza para valores próximos.</td></tr>
+                  <tr><td>Upload</td><td>Anexos de solicitações, imagens editoriais e documentos administrativos.</td><td>Área tracejada, texto escuro, ícone simples e feedback de progresso.</td><td>Validar tipo/tamanho, permitir remover, exibir erro e preservar privacidade.</td></tr>
+                  <tr><td>Empty/loading/error</td><td>Listas, buscas, admin, rede credenciada e páginas restritas.</td><td>Fundo suave, texto orientativo e CTA quando houver próximo passo.</td><td>Não deixar telas sem resposta; estados precisam ser testados no QA.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="cards" class="manual-section" data-section data-category="componentes design">
+          <div class="section-header">
+            <p class="eyebrow">06. Sistema de cards</p>
+            <h2>Tipos, comportamento e CTA</h2>
+            <p>O Portal usa cards com funções diferentes. A função define comportamento, CTA e hover; a forma que envolve o ícone reforça a natureza do conteúdo, sem substituir título, texto ou rótulo acessível.</p>
+          </div>
+          <div class="manual-grid">
+            <a class="preview-card-link" href="#cards">
+              <span class="preview-icon is-bare" aria-hidden="true">→</span>
+              <h3>Card de navegação</h3>
+              <p>Usado quando o card leva a outra página. O card inteiro é clicável, tem hover e CTA alinhado ao rodapé.</p>
+              <span class="preview-cta">Saiba mais →</span>
+            </a>
+            <article class="preview-card-info">
+              <span class="preview-icon is-circle" aria-hidden="true">i</span>
+              <h3>Card informativo</h3>
+              <p>Usado para resumo, status ou explicação sem destino. Não deve levantar no hover nem exibir seta.</p>
+            </article>
+            <article class="preview-card-action">
+              <span class="preview-icon is-square" aria-hidden="true">✓</span>
+              <h3>Card operacional</h3>
+              <p>Usado em serviços, solicitações e fluxos. Deve ter botão claro, estado e resposta de ação.</p>
+              <button class="btn-primary" type="button">Iniciar solicitação</button>
+            </article>
+          </div>
+          <div class="manual-card" style="margin-top:24px">
+            <h3>Matriz de decisão</h3>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Tipo</th><th>Quando usar</th><th>CTA</th><th>Hover</th><th>Exemplos</th></tr></thead>
+                <tbody>
+                  <tr><td>Navegação</td><td>Conteúdo completo existe em outra página.</td><td>Sim, no rodapé.</td><td>Sim.</td><td>Home, Plan-Assiste, Carteirinhas, Visão geral.</td></tr>
+                  <tr><td>Card de navegação 2</td><td>Leva a uma página-filha ou neta dentro de uma seção, com hierarquia já estabelecida.</td><td>“Abrir página” no rodapé.</td><td>Discreto, com reforço de borda e fundo.</td><td>Pessoa Jurídica e Pessoa Física em Como se credenciar ou renovar.</td></tr>
+                  <tr><td>Informativo</td><td>Resumo sem ação direta.</td><td>Não.</td><td>Não.</td><td>Dados, status, resumo financeiro.</td></tr>
+                  <tr><td>Operacional</td><td>Inicia tarefa ou fluxo.</td><td>Botão explícito.</td><td>Somente no botão/card se clicável.</td><td>Catálogo de serviços e serviços dos dependentes.</td></tr>
+                  <tr><td>Resultado</td><td>Item em lista filtrável.</td><td>Ação principal + secundária.</td><td>Discreto.</td><td>Rede credenciada, busca, notícias.</td></tr>
+                  <tr><td>Avaliação Atuarial</td><td>Publica relatório atuarial por exercício dentro de uma página comum.</td><td>“Abrir PDF”.</td><td>Discreto no card; claro no botão.</td><td>Página Transparência.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="note">Nos cards do Catálogo de serviços, o ícone do serviço e o botão de favoritar ocupam caixas de 48px × 48px na mesma linha e no mesmo alinhamento vertical. Ambos usam ícones de 24px; o serviço fica à esquerda e o favorito à direita. O botão de favoritar não deve flutuar sobre o conteúdo.</div>
+          <div class="note" style="margin-top:16px"><strong>Bloco Card:</strong> o campo Tipo permanece como Card e o campo Estilo do card permite alternar entre Navegação principal, Card de navegação 2, Informativo, Operacional, Resultado e Avaliação Atuarial. A troca preserva título, texto, link, CTA, largura e metadados. O ano só fica ativo no card atuarial; nos demais estilos pode-se escolher o ícone do topo. Todos aceitam 1/1, 1/2, 1/3 e 1/4.</div>
+          <div class="note" style="margin-top:16px"><strong>Compatibilidade entre estilos:</strong> todos os cards usam a mesma estrutura externa, padding e distribuição vertical. A altura é definida pelo maior card da linha e os demais se estendem até a mesma altura. O CTA permanece ancorado no rodapé, com espaço mínimo em relação ao texto. No card atuarial, o ícone fica à esquerda e o ano alinhado à direita.</div>
+          <article class="manual-card" style="margin-top:24px">
+            <h3>Cabeçalho de página interna do Portal</h3>
+            <p>Páginas internas do Portal web devem começar com título e descrição empilhados, antes de filtros, resumos, formulários ou cards. Esse padrão é diferente do <span class="code">AppScreenHeader</span> do aplicativo móvel.</p>
+            <ul>
+              <li>Usar um único <span class="code">h1</span>, seguido imediatamente pela descrição da página.</li>
+              <li>Escrever títulos em caixa de frase: apenas a primeira palavra e nomes próprios começam com maiúscula.</li>
+              <li>Aplicar <span class="code">text-wrap: balance</span> em títulos e <span class="code">text-wrap: pretty</span> em textos corridos para evitar linhas finais com uma ou duas palavras. Não estreitar artificialmente descrições; ajustar a coluna antes de reduzir a fonte.</li>
+              <li>Manter 16px entre título e descrição e 24px entre o cabeçalho e o primeiro bloco funcional.</li>
+              <li>A descrição não deve aparecer ao lado do título em desktop.</li>
+              <li>Ação à direita é permitida apenas quando for contextual à página, como “Personalizar”; deve permanecer em uma linha e não deslocar a descrição.</li>
+              <li>Não exibir “Voltar para a área” em páginas-raiz acessíveis pela sidebar ou pelo menu. O breadcrumb e a navegação persistente já cumprem essa função.</li>
+              <li>Usar botão de retorno somente em detalhes e subfluxos sem destino persistente visível. No Portal web, seguir o padrão de botão secundário ou link de retorno; no aplicativo, usar <span class="code">AppScreenHeader</span>.</li>
+              <li>Retorno usa <span class="code">ArrowLeft</span> antes do rótulo e deslocamento de hover para a esquerda. <span class="code">ArrowRight</span> fica reservado para avançar, abrir ou conhecer um destino.</li>
+            </ul>
+          </article>
+          <div class="manual-card" style="margin-top:24px">
+            <h3>Variações de apresentação do ícone</h3>
+            <p>As três formas são intencionais e não devem ser alternadas apenas por preferência estética. Elas ajudam a distinguir hierarquia, contexto e operação.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Variação</th><th>Forma</th><th>Uso</th><th>Exemplos no Portal</th></tr></thead>
+                <tbody>
+                  <tr><td>Ícone livre</td><td>30–38px, sem contêiner</td><td>Atalho de alto nível ou card de destaque cuja ação já está clara pelo título e CTA.</td><td>Dashboard do Beneficiário, cards de orientação e navegação principal.</td></tr>
+                  <tr><td>Ícone circular</td><td>Ícone de 20–28px em círculo de 40–56px</td><td>Informação, identidade, categoria, entidade ou estado contextual; a forma suave indica apoio, não início de fluxo.</td><td>Tipo de credenciado, avisos, perfil, indicadores e cards informativos.</td></tr>
+                  <tr><td>Ícone operacional</td><td>Ícone de 24px em quadrado de 48px, raio de 12px</td><td>Serviço, solicitação ou fluxo executável. Deve permanecer consistente dentro de um catálogo ou conjunto operacional.</td><td>Catálogo de serviços, serviços dos dependentes e cards de gestão operacional.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="note" style="margin-top:24px">A forma é semântica, mas nunca pode ser o único indicador. Ícones decorativos usam <span class="code">aria-hidden="true"</span>; ações que exibem somente ícone precisam de nome acessível.</div>
+          </div>
+        </section>
+
+        <section id="conteudo" class="manual-section" data-section data-category="conteudo">
+          <div class="section-header">
+            <p class="eyebrow">07. Conteúdo e microcopy</p>
+            <h2>Tom de voz e organização textual</h2>
+            <p>O texto deve reduzir incerteza. Evitar títulos longos, duplicação de rótulos e CTAs genéricos quando o destino não entrega informação específica.</p>
+          </div>
+          <div class="do-dont">
+            <div class="do">
+              <strong>Fazer</strong>
+              <ul>
+                <li>Usar verbos claros: consultar, solicitar, imprimir, baixar, alterar.</li>
+                <li>Explicar consequência: "Acompanhe o status da solicitação".</li>
+                <li>Usar títulos curtos e descrições de uma ou duas linhas em cards.</li>
+                <li>Manter datas com ícone de calendário em notícias.</li>
+              </ul>
+            </div>
+            <div class="dont">
+              <strong>Evitar</strong>
+              <ul>
+                <li>"Clique aqui", "Saiba mais" sem destino específico ou excesso de etiquetas.</li>
+                <li>Textos promocionais em páginas institucionais.</li>
+                <li>Card com ação escondida apenas no texto.</li>
+                <li>Tags decorativas como "Institucional" quando todo o contexto já é institucional.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="acessibilidade" class="manual-section" data-section data-category="design qa">
+          <div class="section-header">
+            <p class="eyebrow">08. Acessibilidade</p>
+            <h2>Requisitos mínimos</h2>
+            <p>A experiência precisa funcionar com teclado, leitores de tela, contraste elevado, zoom e preferências de redução de movimento.</p>
+          </div>
+          <div class="manual-grid">
+            <article class="manual-card"><h3>Teclado</h3><p>Todo controle deve receber foco visível. Popovers devem abrir/fechar de forma previsível e não prender o foco sem necessidade.</p></article>
+            <article class="manual-card"><h3>Semântica</h3><p>Usar <span class="code">button</span> para ação, <span class="code">a</span> para navegação e títulos em ordem lógica.</p></article>
+            <article class="manual-card"><h3>Contraste</h3><p>Texto principal deve atingir contraste adequado. Chips claros precisam de texto forte e não podem depender apenas de cor.</p></article>
+            <article class="manual-card"><h3>Ícones</h3><p>Ícones decorativos usam <span class="code">aria-hidden="true"</span>. Botões de ícone precisam de rótulo acessível.</p></article>
+            <article class="manual-card"><h3>Movimento</h3><p>Respeitar <span class="code">prefers-reduced-motion</span>. Animações devem ser sutis e não essenciais à compreensão.</p></article>
+            <article class="manual-card"><h3>Mensagens</h3><p>Feedback de copiar, salvar, enviar e erro deve usar <span class="code">role="status"</span> ou região anunciável quando necessário.</p></article>
+          </div>
+        </section>
+
+        <section id="movimento" class="manual-section" data-section data-category="design componentes">
+          <div class="section-header">
+            <p class="eyebrow">09. Movimento e affordance</p>
+            <h2>Animações discretas</h2>
+            <p>O movimento deve sugerir interatividade, não chamar atenção para si. Usar transições entre 160ms e 240ms.</p>
+          </div>
+          <div class="manual-card">
+            <ul>
+              <li>Menu principal: transição tonal curta na área completa do link, sem deslocamento ou scale.</li>
+              <li>Cards de navegação: elevação de até 3px e sombra levemente mais presente.</li>
+              <li>Botões segmentados, filtros, campos e selects: permanecem estáticos; o hover altera somente cor, fundo ou borda, sem recortar o contorno.</li>
+              <li>Setas de CTA: deslocamento horizontal pequeno no hover.</li>
+              <li>Popovers: entrada curta, sem saltos bruscos.</li>
+              <li>Carrosséis: pausa ao hover/focus e controles acessíveis.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="paginas" class="manual-section" data-section data-category="componentes conteudo">
+          <div class="section-header">
+            <p class="eyebrow">10. Padrões por página</p>
+            <h2>Como cada área deve se comportar</h2>
+            <p>Esta seção resume decisões que devem ser preservadas na implementação definitiva.</p>
+          </div>
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Variações cromáticas por público</h3>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Área</th><th>Paleta</th><th>Motivo</th><th>Contraste principal</th></tr></thead>
+                <tbody>
+                  <tr><td>Beneficiário e Portal geral</td><td>Primária #0d8473, forte #087765, institucional #4a7b73, rodapé final #315c55</td><td>Experiência principal do Portal, com imagem de saúde, acolhimento e confiança.</td><td>Branco sobre #0d8473: 4.60:1; branco sobre #315c55: 7.52:1</td></tr>
+                  <tr><td>Área do credenciado</td><td>Primária #3f6f67, forte #315c55, fundos #edf6f3/#f5faf8</td><td>Escurece e inverte a relação dos verdes para sinalizar conteúdo profissional, sem romper com a marca.</td><td>Branco sobre #3f6f67: 5.70:1; rodapé inferior #315c55.</td></tr>
+                  <tr><td>Área da equipe</td><td>Primária #197686, forte #0f4c56, fundos #e8f5f7/#f1fafb, rodapé final #0f4c56</td><td>Rompe para azul/teal para indicar ambiente interno e evitar confusão com conteúdo do beneficiário.</td><td>Branco sobre #197686: 5.28:1; branco sobre #0f4c56: 9.60:1</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="manual-grid two">
+            <article class="manual-card"><h3>Home</h3><p>Página de passagem. Cards devem favorecer descoberta, com links claros para serviços, notícias, suporte e áreas públicas.</p></article>
+            <article class="manual-card"><h3>Beneficiário</h3><p>Área operacional. Priorizar atalhos, pendências, rede credenciada e cards de orientação navegáveis para conteúdos futuros.</p></article>
+            <article class="manual-card"><h3>Carteirinhas</h3><p>Separar ações diretas da carteirinha dos cards informativos/navegáveis. Plan-Assiste e Unimed devem ter identidade visual distinta.</p></article>
+            <article class="manual-card"><h3>Rede credenciada</h3><p>Filtros úteis, favorito, avaliações, Google e rede/custo devem ficar escaneáveis. Botões inferiores sempre alinhados ao fundo do card.</p></article>
+            <article class="manual-card"><h3>Notícias</h3><p>Data com calendário, categoria como chip, imagem relevante ou editorial, divisória antes de relacionadas e favoritos quando logado.</p></article>
+            <article class="manual-card"><h3>Suporte</h3><p>Priorizar FAQ, Central 24h e Manifestações. Evitar canais que não serão mantidos, como e-mail de contato direto.</p></article>
+            <article class="manual-card"><h3>Plan-Assiste</h3><p>Conteúdo institucional com cards de navegação e seções editoriais separadas por linhas sutis quando o conteúdo for longo.</p></article>
+            <article class="manual-card"><h3>Credenciado</h3><p>Área pública com quatro cards no desktop e acesso claro à área logada. Detalhe de credenciado sem divisórias excessivas.</p></article>
+            <article class="manual-card"><h3>Transparência</h3><p>Indicadores gerais (despesas, beneficiários, rede) em cards de gráfico com legenda, rótulos diretos e alternativa em tabela. Dados sempre identificados como ilustrativos quando não vierem de fonte oficial.</p></article>
+          </div>
+        </section>
+
+        <section id="mobile" class="manual-section" data-section data-category="componentes design mobile">
+          <div class="section-header">
+            <p class="eyebrow">11. Aplicativo móvel</p>
+            <h2>Padrões de interface para o app</h2>
+            <p>Componentes e padrões específicos para o mockup e implementação do aplicativo móvel Plan-Assiste. Seguem os mesmos tokens de cor, tipografia e espaçamento do Portal, adaptados para interação por toque e proporções de tela de celular.</p>
+          </div>
+
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Escala tipográfica mobile – Material Design 3 com Titillium Web</h3>
+            <p>As telas do app adotam a escala do <strong>Material Design 3</strong> (MD3), que define tamanhos e line-heights ideais para viewports de 360–393px. O peso "Medium (500)" do MD3 é mapeado para <strong>600 (SemiBold)</strong> no Titillium Web, pois o projeto não carrega o peso 500 separado. O contêiner do frame define <code>font-size: 16px</code> para neutralizar os 18px herdados do body do portal.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Token MD3</th><th>Tamanho</th><th>Peso</th><th>Line-height</th><th>Uso nas telas do app</th></tr></thead>
+                <tbody>
+                  <tr><td><code>displaySmall</code></td><td>36px</td><td>400</td><td>1.11</td><td>Reservado para títulos de onboarding / telas de entrada de grande hierarquia.</td></tr>
+                  <tr><td><code>headlineMedium</code></td><td>28px</td><td>400</td><td>1.29</td><td>Título principal de tela splash/login (ex.: "Acessar o Portal").</td></tr>
+                  <tr><td><code>headlineSmall</code></td><td>24px</td><td>400</td><td>1.33</td><td>Saudação em destaque (ex.: "Olá, Ana Maria!"), usada com peso 600 no contexto de banner.</td></tr>
+                  <tr><td><code>titleLarge</code></td><td>22px</td><td>400</td><td>1.27</td><td>Título de cabeçalho de tela interna (AppScreenHeader). Nome do app na splash com peso 600.</td></tr>
+                  <tr><td><code>titleMedium</code></td><td>16px</td><td>600</td><td>1.50</td><td>Título de card de destaque, nome do app no header compacto, rótulo de seção primária.</td></tr>
+                  <tr><td><code>titleSmall</code></td><td>14px</td><td>600</td><td>1.43</td><td>Subtítulo de card, rótulo de seção secundária ("Acessos rápidos").</td></tr>
+                  <tr><td><code>labelLarge</code></td><td>14px</td><td>600</td><td>1.43</td><td>Texto de botão primário e secundário.</td></tr>
+                  <tr><td><code>labelMedium</code></td><td>12px</td><td>600</td><td>1.33</td><td>Rótulos de tab/bottom nav (ativo: 600; inativo: 400), labels de formulário.</td></tr>
+                  <tr><td><code>labelSmall</code></td><td>11px</td><td>600</td><td>1.45</td><td>Eyebrows (ex.: "ÁREA DO BENEFICIÁRIO"), badges de notificação.</td></tr>
+                  <tr><td><code>bodyLarge</code></td><td>16px</td><td>400</td><td>1.50</td><td>Corpo proeminente (não usado nas telas atuais; reservado para conteúdos editoriais).</td></tr>
+                  <tr><td><code>bodyMedium</code></td><td>14px</td><td>400</td><td>1.43</td><td>Corpo padrão, descrições de card, dados de contato (bold 600 para o dado principal).</td></tr>
+                  <tr><td><code>bodySmall</code></td><td>12px</td><td>400</td><td>1.33</td><td>Textos secundários, sublabels, nota de segurança, rodapé de versão, subtítulo de card.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="note" style="margin-top:16px">Referência oficial: <a class="text-link-light" href="https://m3.material.io/styles/typography/type-scale-tokens" target="_blank" rel="noreferrer" title="Abrir em uma nova aba" aria-label="Referência Material Design 3 — abrir em uma nova aba">material.io/styles/typography/type-scale-tokens</a>. Não interpolar valores fora desta escala dentro das telas do app.</div>
+          </div>
+
+          <div class="manual-grid two" style="margin-bottom:24px">
+            <article class="manual-card">
+              <h3>Princípios da interface mobile</h3>
+              <ul>
+                <li>Usar os mesmos tokens de cor, tipografia e espaçamento do Portal.</li>
+                <li>Tamanho mínimo de toque: 44px de altura ou área equivalente.</li>
+                <li>Padding lateral padrão de tela: 20 a 24px.</li>
+                <li>Títulos de tela: 18px peso 700; corpos: 14 a 15px peso 400 ou 600.</li>
+                <li>Raios: controles em 8–9px; cards em 14–18px; pílulas em 999px.</li>
+                <li>Sombra de card: <code>0 10px 24px rgba(16,63,58,.06)</code>.</li>
+              </ul>
+            </article>
+            <article class="manual-card">
+              <h3>Navegação por pilha (screen stack)</h3>
+              <p>O app usa um modelo de pilha de telas. Cada tela empurrada preserva o histórico e o botão de voltar retorna para a tela anterior. A navegação por abas inferiores (bottom nav) redefine a pilha para o contexto daquela aba.</p>
+              <ul>
+                <li>Telas principais (login, home, serviços, rede, favoritos, perfil): raiz da pilha.</li>
+                <li>Telas de detalhe ou sub-fluxo (ex.: Fale Conosco): empilhadas sobre a tela de origem.</li>
+                <li>Troca de aba via bottom nav: reseta a pilha para aquela aba.</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Navegação inferior – Bottom Navigation</h3>
+            <p>Barra fixa no rodapé do app com 5 abas. A aba ativa usa cor primária <code>#0d8473</code> e peso semibold; inativas usam <code>#b0c8c4</code> com peso regular.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Aba</th><th>Ícone (Lucide)</th><th>Rótulo</th><th>Comportamento</th></tr></thead>
+                <tbody>
+                  <tr><td>Início</td><td>Home</td><td>Início</td><td>Tela principal do beneficiário.</td></tr>
+                  <tr><td>Serviços</td><td>Grid2X2</td><td>Serviços</td><td>Lista de serviços disponíveis.</td></tr>
+                  <tr><td>Rede</td><td>MapPin</td><td>Rede</td><td>Rede credenciada.</td></tr>
+                  <tr><td>Favoritos</td><td>Heart</td><td>Favoritos</td><td>Itens e credenciados favoritados.</td></tr>
+                  <tr><td>Perfil</td><td>User</td><td>Perfil</td><td>Dados do beneficiário e configurações.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="margin-top:12px">Especificações: borda superior <code>1px solid #d7e7e2</code>; fundo branco; padding <code>6px 0 24px</code> (24px de segurança inferior); ícones 22px; rótulos 10px.</p>
+          </div>
+
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Cabeçalho de tela interna do aplicativo – AppScreenHeader</h3>
+            <p>Padrão exclusivo do aplicativo móvel para telas de subfluxo. Botão de voltar (ícone ArrowLeft) à esquerda e título da tela ao lado. Não deve ser usado como cabeçalho das páginas internas do Portal web.</p>
+            <div class="component-preview">
+              <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #d7e7e2;background:white;border-radius:8px">
+                <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#103f3a;font-size:18px">←</div>
+                <strong style="font-size:18px;color:#103f3a;font-family:inherit">Título da tela</strong>
+              </div>
+            </div>
+            <p style="margin-top:12px">Especificações: padding 14px vertical / 20px lateral; ícone ArrowLeft 22px; título 18px peso 700 cor <code>#103f3a</code>; borda inferior <code>1px solid #d7e7e2</code>; fundo branco.</p>
+          </div>
+
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Tela de login / splash</h3>
+            <p>Tela de entrada do app. Layout vertical em três zonas: área central com logo, texto e botão de autenticação; base com card de ajuda e rodapé de versão.</p>
+            <div class="admin-matrix">
+              <table>
+                <thead><tr><th>Elemento</th><th>Especificação</th></tr></thead>
+                <tbody>
+                  <tr><td>Logo</td><td>SVG colorida <code>/assets/logo-colorida.svg</code>, 86px de altura, centralizada.</td></tr>
+                  <tr><td>Nome do app</td><td>"Plan-Assiste" 22px peso 700, cor <code>#3a877c</code> (logo escuro).</td></tr>
+                  <tr><td>Título</td><td>26px peso 700, cor <code>#103f3a</code>.</td></tr>
+                  <tr><td>Subtítulo</td><td>14px peso 500, cor <code>#8aa8a3</code>.</td></tr>
+                  <tr><td>Corpo</td><td>15px peso 400, cor <code>#4a7b73</code>, line-height 1.65, centralizado.</td></tr>
+                  <tr><td>Botão gov.br</td><td>Ver padrão "Botão gov.br" abaixo.</td></tr>
+                  <tr><td>Nota de segurança</td><td>Ícone Shield 13px + texto 13px, cor <code>#8aa8a3</code>, centralizado.</td></tr>
+                  <tr><td>Card de ajuda</td><td>Ver padrão "Card de ajuda contextual" abaixo.</td></tr>
+                  <tr><td>Rodapé de versão</td><td>13px peso 600, cor <code>#0d8473</code>, centralizado, padding inferior 8px.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Botão gov.br</h3>
+            <p>Botão de autenticação externa conforme o componente <code>Sign-in</code> do Padrão Digital de Governo. Usa a cor institucional do gov.br e a marca oficial no rótulo. <strong>Não usar o verde Plan-Assiste neste botão.</strong></p>
+            <div class="component-preview">
+              <button class="manual-gov-sign-in" type="button">
+                <span class="gov-login-label"><span class="gov-login-prefix">Entrar com&nbsp;</span><span class="text-black">gov.br</span></span>
+              </button>
+            </div>
+            <div class="admin-matrix" style="margin-top:12px">
+              <table>
+                <thead><tr><th>Propriedade</th><th>Valor</th></tr></thead>
+                <tbody>
+                  <tr><td>Referência</td><td>Componente <code>Sign-in</code> do Design System gov.br: <code>br-sign-in large primary mt-3 mt-sm-0 ml-sm-3</code>, com largura expandida no modal.</td></tr>
+                  <tr><td>Cor de fundo</td><td><code>#1351B4</code>, token interativo primário do gov.br.</td></tr>
+                  <tr><td>Fonte</td><td><code>16.8px Rawline, Raleway, sans-serif</code>.</td></tr>
+                  <tr><td>Pesos</td><td><code>Entrar com</code> em peso 600; <code>gov.br</code> em <code>.text-black</code> com peso 800, ambos brancos.</td></tr>
+                  <tr><td>Conteúdo</td><td><code>&lt;span class="gov-login-prefix"&gt;Entrar com&amp;nbsp;&lt;/span&gt;&lt;span class="text-black"&gt;gov.br&lt;/span&gt;</code>.</td></tr>
+                  <tr><td>Altura mínima</td><td>48px.</td></tr>
+                  <tr><td>Border-radius</td><td><code>100em</code> (pílula), conforme o componente do DS.</td></tr>
+                  <tr><td>Foco</td><td>Outline tracejado dourado <code>#c2850c</code>, 4px, com offset de 4px.</td></tr>
+                  <tr><td>Largura</td><td>100% do container (tela inteira menos padding lateral)</td></tr>
+                  <tr><td>Uso</td><td>Exclusivo para autenticação gov.br de beneficiários e equipe. Não reutilizar para outras ações.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="manual-grid two" style="margin-bottom:24px">
+            <article class="manual-card">
+              <h3>Card de ajuda contextual</h3>
+              <p>Componente de rodapé de telas de entrada para oferecer suporte antes da autenticação.</p>
+              <div class="component-preview">
+                <div style="display:flex;align-items:center;gap:14px;border:1.5px solid #d7e7e2;border-radius:16px;background:white;padding:16px">
+                  <div style="width:42px;height:42px;border-radius:50%;border:1.5px solid #d7e7e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;color:#0d8473">?</div>
+                  <div style="flex:1">
+                    <div style="font-weight:700;color:#103f3a;font-size:17px;font-family:inherit">Precisa de ajuda?</div>
+                    <div style="font-size:16px;color:#4a7b73;font-family:inherit">Entre em contato com nossa equipe.</div>
+                  </div>
+                  <span style="color:#4a7b73;font-size:18px">›</span>
+                </div>
+              </div>
+              <p style="margin-top:12px">Borda <code>1.5px solid #d7e7e2</code>; raio 16px; ícone HelpCircle 20px cor <code>#0d8473</code> em círculo de 42px com borda; título 17px peso 700; descrição 16px cor <code>#4a7b73</code>; seta ChevronRight 18px.</p>
+            </article>
+            <article class="manual-card">
+              <h3>Linha de contato – ContactRow</h3>
+              <p>Linha de canal de atendimento dentro de card. Ícone colorido à esquerda, texto e subtítulo no centro, separadas por borda superior.</p>
+              <div class="component-preview">
+                <div style="border:1px solid #d7e7e2;border-radius:12px;overflow:hidden;background:white">
+                  <div style="display:flex;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid #d7e7e2">
+                    <span style="color:#0d8473;font-size:18px">📞</span>
+                    <div><div style="font-weight:700;font-size:17px;color:#103f3a;font-family:inherit">0800 591 5601</div><div style="font-size:16px;color:#4a7b73;font-family:inherit">Ligação gratuita</div></div>
+                  </div>
+                  <div style="display:flex;gap:14px;align-items:center;padding:14px 20px">
+                    <span style="color:#0d8473;font-size:18px">✉</span>
+                    <div><div style="font-weight:700;font-size:17px;color:#103f3a;font-family:inherit;overflow-wrap:anywhere">planassiste-atendimento@mpf.mp.br</div><div style="font-size:16px;color:#4a7b73;font-family:inherit">E-mail</div></div>
+                  </div>
+                </div>
+              </div>
+              <p style="margin-top:12px">Padding 14px vertical / 20px lateral; ícone 20px cor <code>#0d8473</code>; texto principal 17px peso 700; subtítulo 16px; separador <code>1px solid #d7e7e2</code>; última linha sem borda; e-mails longos com <code>overflow-wrap: anywhere</code>.</p>
+            </article>
+          </div>
+
+          <div class="note">Os padrões mobile herdam todos os tokens de cor, tipografia e espaçamento do Portal. Novos componentes criados para o app devem ser documentados nesta seção antes de implementados.</div>
+        </section>
+
+        <section id="admin" class="manual-section" data-section data-category="admin">
+          <div class="section-header">
+            <p class="eyebrow">12. Dashboard administrativo</p>
+            <h2>Recursos a implementar no sistema definitivo</h2>
+            <p>O admin deve funcionar como um CMS completo e governado: a equipe precisa conseguir criar, editar, excluir, ordenar, publicar, arquivar e configurar páginas, menus, sidebars, cards, notícias, credenciados, serviços e componentes sem depender do desenvolvedor para mudanças rotineiras.</p>
+          </div>
+          <div class="manual-card" style="margin-bottom:24px">
+            <h3>Princípio do painel</h3>
+            <p>O painel administrativo deve oferecer flexibilidade comparável a um WordPress/Drupal, mas com guardrails do design system do Plan-Assiste. A equipe gestora deve conseguir mudar completamente a estrutura de páginas e conteúdos, mantendo tokens, componentes, acessibilidade, versionamento e permissões.</p>
+            <div class="do-dont">
+              <div class="do">
+                <strong>Obrigatório</strong>
+                <ul>
+                  <li>Criar, duplicar, editar, arquivar, restaurar e excluir páginas.</li>
+                  <li>Escolher template, layout, sidebar, blocos, cards, menus e ordem.</li>
+                  <li>Gerenciar categorias singulares e tags múltiplas.</li>
+                  <li>Previsualizar desktop, tablet e mobile antes de publicar.</li>
+                  <li>Versionar alterações e permitir rollback.</li>
+                </ul>
+              </div>
+              <div class="dont">
+                <strong>Não aceitar</strong>
+                <ul>
+                  <li>Páginas fixas que só o desenvolvedor consegue criar.</li>
+                  <li>Cards presos a listas hardcoded.</li>
+                  <li>Menus e sidebars sem edição no painel.</li>
+                  <li>Templates sem campos customizáveis.</li>
+                  <li>Publicação sem revisão, histórico ou prévia visual.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="admin-matrix">
+            <table>
+              <thead><tr><th>Módulo</th><th>Recursos obrigatórios</th><th>Campos essenciais</th><th>Regras de qualidade</th></tr></thead>
+              <tbody>
+                <tr><td>Páginas</td><td>Criar, duplicar, editar, excluir, arquivar, restaurar, publicar, agendar e ordenar páginas. Permitir páginas públicas, restritas, internas, landing pages e páginas utilitárias.</td><td>Título, slug, status, template, hierarquia, área, idioma quando aplicável, SEO, noindex, imagem, resumo, permissões, menu, sidebar, blocos, scripts permitidos.</td><td>Nenhuma página deve depender de alteração de código para existir. Slug único, prévia obrigatória e rollback disponível.</td></tr>
+                <tr><td>Templates</td><td>Gerenciar templates próprios: página com sidebar, sem sidebar, editorial, notícia, FAQ, listagem, detalhe, dashboard, formulário, rede credenciada, carteirinhas, suporte e página livre com blocos.</td><td>Nome, descrição, slots, regiões, tipos de blocos aceitos, variação de cor, largura, grid, sidebar, cabeçalho, rodapé, permissões.</td><td>Templates podem ser customizáveis, mas não podem quebrar tokens de cor, fonte, grid, foco e acessibilidade.</td></tr>
+                <tr><td>Sidebars</td><td>Criar, editar, excluir, associar e reordenar sidebars por página, tipo de conteúdo ou área do Portal.</td><td>Título, itens, links, ícones, agrupamentos, estado ativo, cards auxiliares, banners, ordem, visibilidade por perfil.</td><td>Sidebar deve ser opcional por página e editável sem código. Deve respeitar navegação por teclado.</td></tr>
+                <tr><td>Blocos de conteúdo</td><td>Adicionar, remover, duplicar e ordenar blocos: texto rico, hero, imagem, galeria, cards, CTA, alerta, citação, tabela, accordion, tabs, lista, embed permitido, formulário, busca, arquivo, FAQ, mapa e separador.</td><td>Tipo, conteúdo, variante visual, título, descrição, mídia, links, acessibilidade, ordem, visibilidade, publicação.</td><td>Blocos devem ter validação por tipo e prévia fiel ao Portal. Não permitir HTML livre sem governança.</td></tr>
+                <tr><td>Menus</td><td>Gerenciar menu principal, menus secundários, links do rodapé, menus laterais e atalhos.</td><td>Label, URL, tipo de link, destino, ícone, ordem, área, perfil, abrir em nova aba, estado ativo.</td><td>Menus devem aceitar reordenação e publicação agendada. Links quebrados devem ser bloqueados.</td></tr>
+                <tr><td>Notícias</td><td>Criar, editar, excluir, agendar, arquivar, destacar, favoritar destaque, relacionar notícias, gerenciar imagens e histórico.</td><td>Título, resumo, corpo, categoria, tags, data, imagem, texto alternativo, status, autor, fonte, relacionados, visibilidade.</td><td>Imagem otimizada, data válida, resumo curto, categoria singular e tags múltiplas.</td></tr>
+                <tr><td>Categorias e tags</td><td>CRUD completo de categorias e tags para notícias, serviços, credenciados, FAQ, páginas e cards. Permitir sinônimos e termos de busca.</td><td>Nome, slug, descrição, cor, ícone opcional, tipo de conteúdo, ordem, status, sinônimos, redirecionamentos.</td><td>Categoria é singular e organizacional; tags são múltiplas e descritivas. Ex.: "Atendimento" pode ser categoria; "Presencial", "Consultas", "Exames" e "Vacinas" são tags.</td></tr>
+                <tr><td>Cards</td><td>Criar, editar, excluir, duplicar, ordenar e associar cards a páginas, home, grids, carrosséis e áreas internas.</td><td>Tipo de card, título, descrição, ícone, imagem, CTA, URL, categoria, tags, ordem, variante, público, status.</td><td>Card precisa declarar se é navegação, informação, ação ou resultado. O comportamento visual deriva dessa escolha.</td></tr>
+                <tr><td>Serviços e solicitações</td><td>Gerenciar cards, fluxos, formulários, categorias, documentos, instruções, favoritos e rotas.</td><td>Nome, descrição, categoria, tags, rota, documentos exigidos, prazo, público-alvo, status, responsável.</td><td>Card operacional precisa ter ação clara e estado de disponibilidade.</td></tr>
+                <tr><td>Rede credenciada</td><td>CRUD de credenciados, especialidades, serviços, endereços, contatos, rede/custo, tags, status e importação em lote.</td><td>Nome, tipo, categoria, especialidades, endereço, geolocalização, telefone, tags, rede, avaliações, horários, canais.</td><td>Validar endereço, evitar duplicidade, manter ícones por tipo e botões alinhados.</td></tr>
+                <tr><td>Carteirinhas</td><td>Configurar operadoras, modelos visuais, campos, frente/verso, validade, download, impressão e cards de orientação.</td><td>Operadora, beneficiário, matrícula, validade, abrangência, layout, logo, cores permitidas, canal de suporte.</td><td>Plan-Assiste e Unimed precisam preservar identidades visuais distintas.</td></tr>
+                <tr><td>FAQ</td><td>Criar, editar, excluir, categorizar, ordenar, publicar, relacionar e revisar perguntas e respostas.</td><td>Categoria, pergunta, resposta, tags, palavras-chave, fonte, data de revisão, responsável.</td><td>Usar linguagem direta e manter respostas revisadas contra normas oficiais.</td></tr>
+                <tr><td>Suporte</td><td>Editar canais, manifestações, assistente virtual, central 24h, FAQs, cards e links externos.</td><td>Título, descrição, ícone, URL, telefone, disponibilidade, prioridade, público, status.</td><td>Não publicar canais sem governança de atendimento.</td></tr>
+                <tr><td>Usuários e permissões</td><td>Perfis de editor, revisor, administrador, auditor e atendimento.</td><td>Nome, órgão, perfil, permissões, status, histórico.</td><td>Publicação deve exigir permissão e registrar auditoria.</td></tr>
+                <tr><td>Auditoria</td><td>Log de alterações, histórico de versão, restauração e aprovação.</td><td>Usuário, data, ação, antes/depois, IP/sessão quando permitido.</td><td>Todo conteúdo publicado deve ter rastreabilidade.</td></tr>
+                <tr><td>Configurações</td><td>Menus, rodapé, banners, avisos, acessibilidade, termos e privacidade.</td><td>Label, rota, ordem, visibilidade, público, status.</td><td>Mudanças em navegação exigem revisão de UX e acessibilidade.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Construtor de páginas</h3>
+              <ul>
+                <li>Adicionar/remover seções por drag and drop.</li>
+                <li>Escolher grid: 1, 2, 3 ou 4 colunas conforme tokens do Portal.</li>
+                <li>Alternar sidebar: nenhuma, institucional, notícia, FAQ, beneficiário, credenciado, equipe ou customizada.</li>
+                <li>Associar cards, notícias, FAQs, serviços e credenciados dinamicamente.</li>
+                <li>Configurar visibilidade por perfil, data, área e status.</li>
+                <li>Previsualizar estados vazio, erro, carregando e publicado.</li>
+              </ul>
+            </article>
+            <article class="manual-card">
+              <h3>Governança de customização</h3>
+              <ul>
+                <li>Administradores podem customizar conteúdo, ordem, blocos, sidebars, templates e associações.</li>
+                <li>Não podem alterar livremente fonte, grid, cores fora da paleta, foco, contraste ou componentes base sem revisão de design.</li>
+                <li>Campos avançados devem existir, mas protegidos por perfil de superadministrador.</li>
+                <li>Toda exclusão de página publicada exige confirmação, motivo e possibilidade de restauração.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="manual-grid two" style="margin-top:24px">
+            <article class="manual-card">
+              <h3>Fluxo editorial recomendado</h3>
+              <ol>
+                <li>Rascunho criado por editor.</li>
+                <li>Validação de campos obrigatórios e acessibilidade.</li>
+                <li>Prévia visual em desktop e mobile.</li>
+                <li>Revisão por perfil autorizado.</li>
+                <li>Publicação imediata ou agendada.</li>
+                <li>Registro automático no histórico.</li>
+              </ol>
+            </article>
+            <article class="manual-card">
+              <h3>Validações automáticas</h3>
+              <ul>
+                <li>Obrigar texto alternativo em imagens informativas.</li>
+                <li>Bloquear links quebrados ou rotas inexistentes.</li>
+                <li>Avisar sobre títulos longos em cards.</li>
+                <li>Checar contraste de cores customizadas.</li>
+                <li>Exigir confirmação para remover conteúdo publicado.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="cms-browser" class="manual-section" data-section data-category="admin conteudo implementacao">
+          <div class="section-header">
+            <p class="eyebrow">CMS demonstrativo</p>
+            <h2>Edição estruturada com persistência no navegador</h2>
+            <p>A Administração do Portal está disponível diretamente na Área da equipe. A demonstração permite criar páginas hierárquicas, substituir páginas existentes e montar o conteúdo com blocos responsivos.</p>
+          </div>
+          <div class="manual-grid two">
+            <article class="manual-card">
+              <h3>Como editar</h3>
+              <ol>
+                <li>Entre com o perfil de equipe e abra <strong>Administração do Portal</strong>.</li>
+                <li>Selecione <strong>Páginas</strong>, edite uma página existente ou crie uma nova.</li>
+                <li>Informe título, endereço, página-mãe opcional e resumo.</li>
+                <li>Adicione blocos de texto, card, documento, destaque, Dúvidas frequentes ou Organograma.</li>
+                <li>No bloco de Dúvidas frequentes, crie, renomeie ou exclua categorias e gerencie as perguntas de cada uma. No Organograma, a numeração é automática: as setas horizontais alteram o nível e as verticais alteram a ordem.</li>
+                <li>Dúvidas frequentes e Organograma são editados na listagem geral de páginas, sem módulos administrativos separados. O Organograma também permite alterar nome da unidade, sigla, responsável e e-mail.</li>
+                <li>Os módulos <strong>Banners</strong>, <strong>Mídia</strong>, <strong>Arquivos</strong> e <strong>Notícias</strong> ficam diretamente na Administração do Portal. Mídia reúne imagens, vídeos e áudios com player; Arquivos cataloga PDFs e documentos do Office. Na demonstração, novos uploads de até 1 MB são persistidos no navegador.</li>
+                <li>O editor de páginas oferece texto rico baseado em TipTap e blocos estruturados de tabela, botão, mídia e documento. O texto comum dos campos e do editor segue a tipografia Titillium Web Light em 18px; títulos e comandos preservam seus pesos próprios. No texto rico, é possível formatar títulos, listas, citações, alinhamentos e links, além de inserir tabelas e editar ou excluir suas linhas, colunas, cabeçalhos, células e a própria tabela. O bloco próprio de tabela continua disponível para acervos e dados tabulares padronizados; botões e documentos podem apontar diretamente para itens da Biblioteca de arquivos.</li>
+                <li>Slides são administrados por slideshow: Home, Beneficiário, Credenciado e Equipe. Cada slide mantém chamada, título, descrição, CTA, imagem, texto alternativo, período, ordem, tom visual e status.</li>
+                <li>Mídias e arquivos podem ser substituídos mantendo o mesmo registro; o protótipo atualiza referências editoriais para evitar links quebrados. Imagens mostram dimensões e vídeos ou áudios mostram duração quando o navegador carrega os metadados.</li>
+                <li>Escolha linha inteira, metade, um terço ou um quarto.</li>
+                <li>Salve como rascunho ou publique. Somente a versão publicada aparece no portal. Use <strong>Cancelar edição</strong> para retornar à listagem sem salvar as mudanças da sessão.</li>
+              </ol>
+            </article>
+            <article class="manual-card">
+              <h3>Persistência e cópia de segurança</h3>
+              <ul>
+                <li>Os dados da demonstração ficam restritos ao navegador e dispositivo atuais.</li>
+                <li>Use <strong>Exportar JSON</strong> antes de limpar os dados ou trocar de computador.</li>
+                <li>Use <strong>Importar JSON</strong> para restaurar uma cópia.</li>
+                <li><strong>Restaurar conteúdo</strong> apaga personalizações e recupera o conteúdo original.</li>
+                <li>O modo de edição contextual adiciona atalhos às páginas personalizadas.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="manual-card" style="margin-top:24px">
+            <h3>Conversão de BrowserContentRepository para ApiContentRepository</h3>
+            <p>Os componentes dependem da interface <code>ContentRepository</code>, não diretamente do armazenamento local. A migração deve preservar essa interface e trocar apenas sua implementação.</p>
+            <ol>
+              <li>Crie <code>ApiContentRepository</code> implementando os mesmos métodos de leitura, assinatura, consulta, gravação, exclusão, importação e exportação.</li>
+              <li>Converta gravações e consultas em chamadas HTTP autenticadas. Valide no servidor slug, hierarquia, blocos, tamanho e permissões.</li>
+              <li>Mantenha um snapshot em memória e notifique os assinantes depois de cada resposta confirmada pela API.</li>
+              <li>Troque a instância exportada do repositório local pela nova implementação. Editores e renderizadores não devem mudar.</li>
+              <li>Migre arquivos para armazenamento de objetos; o banco guarda metadados e IDs estáveis.</li>
+              <li>Implemente versões, auditoria, rascunho/publicação e controle otimista por número de versão ou <code>updatedAt</code>.</li>
+              <li>Use cookie de sessão <code>HttpOnly</code>, <code>Secure</code> e <code>SameSite</code>. A API sempre reaplica a autorização.</li>
+            </ol>
+            <div class="note">O JSON exportado pelo navegador pode ser usado como formato inicial de migração. Mantenha versão de esquema e scripts para futuras mudanças nos blocos.</div>
+          </div>
+        </section>
+
+        <section id="qa" class="manual-section" data-section data-category="qa admin">
+          <div class="section-header">
+            <p class="eyebrow">13. QA e critérios de aceite</p>
+            <h2>Checklist antes de publicar</h2>
+            <p>Todo incremento visual ou funcional deve passar por uma checagem mínima antes de entrar em produção.</p>
+          </div>
+          <div class="manual-grid">
+            <article class="manual-card"><h3>Responsivo</h3><ul><li>Desktop largo</li><li>Notebook</li><li>Tablet</li><li>Mobile 360px</li><li>Zoom 200%</li></ul></article>
+            <article class="manual-card"><h3>Acessibilidade</h3><ul><li>Navegação por Tab</li><li>Foco visível</li><li>Leitor de tela em ações críticas</li><li>Contraste</li><li>Movimento reduzido</li></ul></article>
+            <article class="manual-card"><h3>Conteúdo</h3><ul><li>Links corretos</li><li>Datas formatadas</li><li>Sem tags redundantes</li><li>Imagens otimizadas</li><li>Texto revisado</li></ul></article>
+            <article class="manual-card"><h3>Links em nova aba</h3><p>Todo link que abrir em nova aba deve usar <span class="code">target="_blank"</span> com <span class="code">rel="noreferrer"</span>, exibir o símbolo de link externo após o rótulo e informar “Abrir em uma nova aba” no tooltip e no nome acessível. Não usar apenas cor ou uma seta comum para comunicar esse comportamento.</p></article>
+            <article class="manual-card"><h3>Estados</h3><ul><li>Vazio</li><li>Carregando</li><li>Erro</li><li>Sucesso</li><li>Sem permissão</li></ul></article>
+            <article class="manual-card"><h3>Performance</h3><ul><li>Lazy loading de imagens</li><li>Assets comprimidos</li><li>Sem scripts desnecessários</li><li>Busca local eficiente</li></ul></article>
+            <article class="manual-card"><h3>Governança</h3><ul><li>Permissão de publicação</li><li>Histórico de edição</li><li>Revisão de norma</li><li>Plano de rollback</li></ul></article>
+          </div>
+        </section>
+
+        <section id="referencias" class="manual-section" data-section data-category="design qa">
+          <div class="section-header">
+            <p class="eyebrow">14. Referências externas</p>
+            <h2>Fontes de apoio</h2>
+            <p>Estas referências ajudam a manter o manual alinhado a práticas maduras de design systems, especialmente em ambientes públicos e institucionais.</p>
+          </div>
+          <div class="manual-grid">
+            <article class="manual-card"><h3>USWDS</h3><p>Sistema de design público com componentes, padrões, acessibilidade e orientações de implementação.</p><a class="text-link-light" href="https://designsystem.digital.gov/" rel="noreferrer" target="_blank" title="Abrir em uma nova aba" aria-label="Acessar referência USWDS — abrir em uma nova aba">Acessar referência</a></article>
+            <article class="manual-card"><h3>GOV.UK Design System</h3><p>Referência de componentes, estilos, formulários, navegação, links, conteúdo e serviços digitais governamentais.</p><a class="text-link-light" href="https://design-system.service.gov.uk/" rel="noreferrer" target="_blank" title="Abrir em uma nova aba" aria-label="Acessar referência GOV.UK Design System — abrir em uma nova aba">Acessar referência</a></article>
+            <article class="manual-card"><h3>Titillium Web</h3><p>Família tipográfica oficial do Portal neste protótipo, carregada localmente a partir dos arquivos em <span class="code">public/fonts/titillium-web</span>.</p><a class="text-link-light" href="https://fonts.google.com/specimen/Titillium+Web" rel="noreferrer" target="_blank" title="Abrir em uma nova aba" aria-label="Acessar referência Titillium Web — abrir em uma nova aba">Acessar referência</a></article>
+          </div>
+        </section>
+      </div>
+
+      <footer class="manual-footer">
+        <div>
+          <strong>Manual do Portal Plan-Assiste.</strong>
+          Documento interno para orientar evolução, implementação e governança da experiência digital.
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const searchInput = document.querySelector('#manual-search-input');
+    const sections = Array.from(document.querySelectorAll('[data-section]'));
+    const empty = document.querySelector('#empty-results');
+    const navLinks = Array.from(document.querySelectorAll('#manual-nav a'));
+
+    function normalize(value) {
+      return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    function applyFilters() {
+      const query = normalize(searchInput.value.trim());
+      let visibleCount = 0;
+      sections.forEach((section) => {
+        const matchesQuery = !query || normalize(section.textContent).includes(query);
+        const visible = matchesQuery;
+        section.hidden = !visible;
+        if (visible) visibleCount += 1;
+      });
+      empty.style.display = visibleCount ? 'none' : 'block';
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        navLinks.forEach((link) => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+        });
+      });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0.01 });
+
+    sections.forEach((section) => observer.observe(section));
+
+    // Demo interativa do Combobox
+    (function () {
+      const demo = document.getElementById('cbDemo');
+      if (!demo) return;
+      const input = document.getElementById('cbInput');
+      const toggle = document.getElementById('cbToggle');
+      const list = document.getElementById('cbList');
+      const allItems = Array.from(list.querySelectorAll('.combobox-demo-item'));
+      const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+      function openList() { list.hidden = false; toggle.textContent = '▴'; }
+      function closeList() { list.hidden = true; toggle.textContent = '▾'; }
+      function filterItems() {
+        const q = norm(input.value);
+        let any = false;
+        allItems.forEach((btn) => {
+          const match = norm(btn.textContent).includes(q);
+          btn.parentElement.hidden = !match;
+          if (match) any = true;
+        });
+      }
+
+      input.addEventListener('focus', openList);
+      input.addEventListener('input', () => { openList(); filterItems(); });
+      toggle.addEventListener('click', () => list.hidden ? openList() : closeList());
+
+      allItems.forEach((btn) => {
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          allItems.forEach((b) => b.classList.remove('demo-selected'));
+          btn.classList.add('demo-selected');
+          input.value = btn.textContent;
+          closeList();
+          filterItems();
+        });
+      });
+
+      document.addEventListener('mousedown', (e) => {
+        if (!demo.contains(e.target)) closeList();
+      });
+    })();
+  </script>
+</body>
+</html>

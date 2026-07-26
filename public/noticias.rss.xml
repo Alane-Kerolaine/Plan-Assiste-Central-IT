@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Notícias do Plan-Assiste</title>
+    <link>https://planassiste.vercel.app/noticias</link>
+    <description>Notícias, comunicados e orientações do Plan-Assiste MPU.</description>
+    <language>pt-BR</language>
+    <generator>Portal Plan-Assiste</generator>
+    <item>
+      <title>Feed RSS do Plan-Assiste</title>
+      <link>https://planassiste.vercel.app/noticias</link>
+      <guid isPermaLink="true">https://planassiste.vercel.app/noticias</guid>
+      <description>O feed será gerado automaticamente a partir das notícias publicadas quando o repositório de conteúdo for conectado à API.</description>
+    </item>
+  </channel>
+</rss>
