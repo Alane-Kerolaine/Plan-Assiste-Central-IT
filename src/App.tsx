@@ -74,6 +74,8 @@ import { MockupPage } from './pages/MockupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CmsAdminOverviewPage, CmsBannersPage, CmsContactPage, CmsFilesPage, CmsMediaPage, CmsNewsPage, CmsPageEditorPage, CmsPagesPage } from './pages/CmsAdminPages'
 import { CmsAdminLoginGate } from './components/CmsAdminLoginGate'
+import { InstrucoesCondicionaisPreviewPage } from './pages/InstrucoesCondicionaisPreviewPage'
+import { isFeatureInstrucoesCondicionaisEnabled } from './utils/featureFlags'
 import {
   clearSession,
   createGovBrSession,
@@ -270,6 +272,9 @@ function App() {
         <Route path="/aplicativo" element={<AppGuidePage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/orientacoes-eps" element={<Navigate to="/plan-assiste/beneficiarios/orientacoes-sobre-eps" replace />} />
         <Route path="/mockup" element={<MockupPage />} />
+        {isFeatureInstrucoesCondicionaisEnabled() && (
+          <Route path="/dev/instrucoes-condicionais-preview" element={<InstrucoesCondicionaisPreviewPage />} />
+        )}
         <Route path="/lgpd" element={<StaticInfoPage loggedIn={loggedIn} onLogout={logout} page="lgpd" />} />
         <Route path="/privacidade" element={<StaticInfoPage loggedIn={loggedIn} onLogout={logout} page="privacidade" />} />
         <Route path="/acessibilidade" element={<StaticInfoPage loggedIn={loggedIn} onLogout={logout} page="acessibilidade" />} />

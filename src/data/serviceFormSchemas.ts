@@ -30,10 +30,38 @@ export type ServiceFormSection = {
   showIf?: ServiceFieldCondition
 }
 
+export type CasoInstrucaoDocumento = {
+  id: string
+  label: string
+  obrigatorio: boolean
+}
+
+export type AvisoNormativoConfig = {
+  titulo: string
+  conteudo: string
+  baseLegal?: { label: string, href: string }
+  exigeConfirmacao: boolean
+}
+
+export type CasoInstrucaoServico = {
+  id: string
+  titulo: string
+  icone?: string
+  documentos: CasoInstrucaoDocumento[]
+  camposAdicionais?: string[]
+  avisoNormativo?: AvisoNormativoConfig
+}
+
+export type PerguntaChaveConfig = {
+  enunciado: string
+  casos: CasoInstrucaoServico[]
+}
+
 export type ServiceFormSchema = {
   slug: string
   title: string
   sections: ServiceFormSection[]
+  perguntaChave?: PerguntaChaveConfig
 }
 
 function identificationSection(): ServiceFormSection {
