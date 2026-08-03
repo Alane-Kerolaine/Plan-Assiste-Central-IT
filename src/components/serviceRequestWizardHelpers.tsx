@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react'
 import type { ServiceField, ServiceFormSchema } from '../data/serviceFormSchemas'
 import { maskCep, maskCpf, maskPhone } from '../utils/inputMasks'
 import { BrazilianDateInput } from './BrazilianDateInput'
@@ -80,12 +81,17 @@ export function renderField(field: ServiceField, value: string, onChange: (value
         ? 'half-width'
         : undefined
   const requiredMark = field.required ? ' *' : ''
+  const fieldInfoIcon = field.infoText && (
+    <span className="field-info-icon" data-tooltip={field.infoText} tabIndex={0} role="img" aria-label={field.infoText}>
+      <Info aria-hidden="true" />
+    </span>
+  )
 
   if (field.type === 'select' || field.type === 'combobox') {
     const comboboxOptions = (field.options ?? []).map((option) => ({ value: option, label: option }))
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}
+        {field.label}{requiredMark}{fieldInfoIcon}
         <Combobox value={value} options={comboboxOptions} onSelect={onChange} placeholder={field.placeholder ?? 'Selecione'} />
       </label>
     )
@@ -94,7 +100,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
   if (field.type === 'textarea') {
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}
+        {field.label}{requiredMark}{fieldInfoIcon}
         <textarea value={value} placeholder={field.placeholder} rows={6} onChange={(event) => onChange(event.target.value)} />
       </label>
     )
@@ -103,7 +109,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
   if (field.type === 'date') {
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}
+        {field.label}{requiredMark}{fieldInfoIcon}
         <BrazilianDateInput disabled={field.disabled} required={field.required} value={value} onChangeValue={onChange} />
       </label>
     )
@@ -116,7 +122,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
 
   return (
     <label className={labelClassName} key={field.id}>
-      {field.label}{requiredMark}
+      {field.label}{requiredMark}{fieldInfoIcon}
       <input
         type={inputType}
         inputMode={inputMode}
