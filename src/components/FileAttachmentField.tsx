@@ -10,16 +10,17 @@ type FileAttachmentFieldProps = {
   label: string
   helpText?: string
   fullWidth?: boolean
+  hideLabel?: boolean
   files: File[]
   onAdd: (files: File[]) => void
   onRemove: (index: number) => void
 }
 
-export function FileAttachmentField({ label, helpText, fullWidth, files, onAdd, onRemove }: FileAttachmentFieldProps) {
+export function FileAttachmentField({ label, helpText, fullWidth, hideLabel, files, onAdd, onRemove }: FileAttachmentFieldProps) {
   const inputId = `file-${label.replace(/\s+/g, '-').toLowerCase()}`
   return (
     <div className={`service-file-field ${fullWidth ? 'wide' : ''}`.trim()}>
-      <span>{label}</span>
+      {!hideLabel && <span>{label}</span>}
       <div className="service-file-dropzone">
         <Paperclip aria-hidden="true" />
         <label className="service-file-select" htmlFor={inputId}>

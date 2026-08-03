@@ -73,7 +73,6 @@ import { placeholderPages } from './data/mock'
 import { MockupPage } from './pages/MockupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CmsAdminOverviewPage, CmsBannersPage, CmsContactPage, CmsFilesPage, CmsMediaPage, CmsNewsPage, CmsPageEditorPage, CmsPagesPage } from './pages/CmsAdminPages'
-import { CmsAdminLoginGate } from './components/CmsAdminLoginGate'
 import { InstrucoesCondicionaisPreviewPage } from './pages/InstrucoesCondicionaisPreviewPage'
 import { isFeatureInstrucoesCondicionaisEnabled } from './utils/featureFlags'
 import {
@@ -358,14 +357,14 @@ function App() {
             </RequireAuth>
           }
         />
-        <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/midias" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsMediaPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/arquivos" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsFilesPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/noticias" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsNewsPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/contatos" element={<RequireAuth session={session} profile="team"><CmsAdminLoginGate><CmsContactPage loggedIn={loggedIn} onLogout={logout} /></CmsAdminLoginGate></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/midias" element={<RequireAuth session={session} profile="team"><CmsMediaPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/arquivos" element={<RequireAuth session={session} profile="team"><CmsFilesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/noticias" element={<RequireAuth session={session} profile="team"><CmsNewsPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/contatos" element={<RequireAuth session={session} profile="team"><CmsContactPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route
           path="/gestao-operacional"
           element={

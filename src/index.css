@@ -808,7 +808,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .attachment-file-control:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(8, 119, 101, .12); }
 .reimbursement-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
 .reimbursement-actions svg { width: 18px; }
-.responsibility-term { display: flex !important; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 16px; margin-top: 16px; color: var(--text-dark); font-weight: var(--fw-semibold); }
+.responsibility-term { display: flex !important; flex-direction: row !important; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 16px; margin-top: 16px; color: var(--text-dark); font-weight: var(--fw-semibold); }
 .responsibility-term input { margin-top: 3px; flex-shrink: 0; }
 .service-field-note { border-left: 4px solid var(--brand-primary); border-radius: 8px; background: var(--mint-soft); color: var(--text-dark); padding: 12px 14px; margin: 0; font-size: 14px; }
 .request-launcher-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; background: rgba(8, 42, 38, .58); padding: 24px; }
@@ -927,6 +927,9 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .service-protocol strong { font-size: 28px; color: var(--text-dark); letter-spacing: .5px; }
 .service-protocol button { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; background: white; color: var(--brand-strong); padding: 0 14px; font-weight: var(--fw-semibold); margin-top: 4px; }
 .service-protocol button:hover { border-color: var(--brand-primary); background: #e3f7f1; }
+.service-intro-faq { display: grid; gap: 20px; }
+.service-intro-faq h3 { margin: 0 0 6px; color: var(--text-dark); font-size: 18px; }
+.service-intro-faq p { margin: 0; color: var(--brand-dark); font-size: 16px; line-height: 1.5; }
 .service-success-followup { text-align: left; margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--border); }
 .service-success-followup h3 { margin-bottom: 16px; }
 .service-success-followup ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }

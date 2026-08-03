@@ -2,7 +2,6 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, FileArchive, 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { contentRepository, createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsBlockType, type CmsPage } from '../cms/contentRepository'
-import { getCmsAdminSession, signOutCmsAdmin } from '../cms/adminAuth'
 import { cmsIconGroups } from '../cms/iconCatalog'
 import { getCmsFaqCategories, getCmsFaqs, resetCmsFaqCategories, resetCmsFaqs, type CmsFaqItem } from '../cms/specialContent'
 import { getSiteContent, saveSiteContent, type CmsAddress, type CmsBanner, type CmsContactChannel, type CmsMediaAsset, type CmsNewsItem, type CmsSocialLink } from '../cms/siteContentRepository'
@@ -212,14 +211,13 @@ export function CmsAdminOverviewPage(props: PublicPageProps) {
         <Link to="/area-da-equipe/administracao-do-portal/contatos"><Phone /><h2>Contatos institucionais</h2><p>Atualize telefones, e-mails, endereços e redes sociais exibidos em todo o site.</p></Link>
       </section>
       <section className="cms-storage-panel">
-        <div><h2>Dados desta demonstração</h2><p>{snapshot.pages.length} página(s) personalizada(s) estão salvas neste navegador. O refresh não apaga alterações. Para voltar ao site original, use “Restaurar conteúdo”.</p><small>Sessão editorial: {getCmsAdminSession()?.username}</small></div>
+        <div><h2>Dados desta demonstração</h2><p>{snapshot.pages.length} página(s) personalizada(s) estão salvas neste navegador. O refresh não apaga alterações. Para voltar ao site original, use “Restaurar conteúdo”.</p></div>
         <div className="cms-admin-actions">
           <button className={snapshot.editingEnabled ? 'primary-button' : 'secondary-button'} type="button" onClick={() => { contentRepository.setEditingEnabled(!snapshot.editingEnabled); window.location.reload() }}><Pencil /> {snapshot.editingEnabled ? 'Desativar modo de edição' : 'Ativar modo de edição'}</button>
           <button className="secondary-button" type="button" onClick={downloadBackup}><Download /> Exportar JSON</button>
           <button className="secondary-button" type="button" onClick={() => fileRef.current?.click()}><Upload /> Importar JSON</button>
           <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={importBackup} />
           <button className="secondary-button" type="button" onClick={() => { if (window.confirm('Remover todas as personalizações salvas neste navegador?')) { resetCmsFaqs(); resetCmsFaqCategories(); contentRepository.reset(); window.location.reload() } }}><Trash2 /> Restaurar conteúdo</button>
-          <button className="secondary-button" type="button" onClick={() => { signOutCmsAdmin(); window.location.reload() }}>Sair da administração</button>
         </div>
       </section>
     </AdminFrame>

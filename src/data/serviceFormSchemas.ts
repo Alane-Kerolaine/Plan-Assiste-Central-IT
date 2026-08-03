@@ -50,6 +50,13 @@ export type CasoInstrucaoServico = {
   documentos: CasoInstrucaoDocumento[]
   camposAdicionais?: string[]
   avisoNormativo?: AvisoNormativoConfig
+  /**
+   * Campos legados do schema (ex.: um `select` que a pergunta-chave substitui) cujo valor deve
+   * ser preenchido automaticamente ao escolher este caso. O formulário V2 esconde esses campos
+   * da renderização (já que ficam redundantes com a pergunta-chave) mas mantém seu valor em
+   * sincronia, para que `showIf` condicionados a eles continuem funcionando sem duplicar a pergunta.
+   */
+  sincronizarCampos?: Record<string, string>
 }
 
 export type PerguntaChaveConfig = {
@@ -57,14 +64,20 @@ export type PerguntaChaveConfig = {
   casos: CasoInstrucaoServico[]
 }
 
+export type AvisoInicialConfig = {
+  titulo: string
+  conteudo: string
+}
+
 export type ServiceFormSchema = {
   slug: string
   title: string
   sections: ServiceFormSection[]
   perguntaChave?: PerguntaChaveConfig
+  avisoInicial?: AvisoInicialConfig
 }
 
-function identificationSection(): ServiceFormSection {
+function identificationSection(localidadeLabel: string = 'Localidade da Matrícula'): ServiceFormSection {
   return {
     id: 'identificacao',
     title: 'Identificação',
@@ -75,7 +88,8 @@ function identificationSection(): ServiceFormSection {
       { id: 'dataNascimento', label: 'Data de nascimento', type: 'date', disabled: true },
       { id: 'matricula', label: 'Matrícula', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
       { id: 'telefone', label: 'Telefone do beneficiário', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
-      { id: 'localAtendimento', label: 'Local do atendimento', type: 'text', required: true, columnSpan: 3, placeholder: 'Digite o local do atendimento' },
+      { id: 'email', label: 'E-mail', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+      { id: 'localAtendimento', label: localidadeLabel, type: 'text', required: true, columnSpan: 2, placeholder: `Digite a ${localidadeLabel.toLowerCase()}` },
     ],
   }
 }
@@ -97,20 +111,20 @@ function detailsSection(): ServiceFormSection {
   }
 }
 
-function baseSchema(slug: string, title: string, extraSections: ServiceFormSection[] = []): ServiceFormSchema {
+function baseSchema(slug: string, title: string, extraSections: ServiceFormSection[] = [], localidadeLabel?: string): ServiceFormSchema {
   return {
     slug,
     title,
-    sections: [identificationSection(), ...extraSections, detailsSection()],
+    sections: [identificationSection(localidadeLabel), ...extraSections, detailsSection()],
   }
 }
 
-function authorizationSchema(slug: string, title: string, documents: Array<{ id: string, label: string, required?: boolean }>): ServiceFormSchema {
+function authorizationSchema(slug: string, title: string, documents: Array<{ id: string, label: string, required?: boolean }>, localidadeLabel?: string): ServiceFormSchema {
   return {
     slug,
     title,
     sections: [
-      identificationSection(),
+      identificationSection(localidadeLabel),
       {
         id: 'detalhes',
         title: 'Informações do pedido',
@@ -122,6 +136,19 @@ function authorizationSchema(slug: string, title: string, documents: Array<{ id:
         fields: documents.map((document) => ({ ...document, type: 'file', fullWidth: true, helpText: 'Selecione um ou mais arquivos em PDF, JPG ou PNG, com até 10 MB cada.' })),
       },
     ],
+  }
+}
+
+// Alguns formulários já têm campo(s) de e-mail próprio (com finalidade específica, distinta da
+// identificação genérica) — nesses casos o campo "E-mail" compartilhado ficaria duplicado na tela.
+function withoutGenericEmail(schema: ServiceFormSchema): ServiceFormSchema {
+  return {
+    ...schema,
+    sections: schema.sections.map((section) => (
+      section.id === 'identificacao'
+        ? { ...section, fields: section.fields.filter((field) => field.id !== 'email') }
+        : section
+    )),
   }
 }
 
@@ -155,9 +182,22 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'autorizacao-opme', title: 'Autorização de OPME' },
   { slug: 'autorizacao-exame', title: 'Autorização de Exame' },
   { slug: 'autorizacao-outros', title: 'Autorização de Procedimentos (Outros)' },
+  { slug: 'tratamentos-seriados', title: 'Tratamentos Seriados' },
+  { slug: 'autorizacao-procedimentos', title: 'Autorização de Procedimentos - Orientações Gerais' },
 ]
 
-const atualizacaoDadosCadastrais = baseSchema('atualizacao-dados-cadastrais', 'Atualização de Dados Cadastrais', [
+const LOCALIDADE_PROCEDIMENTO_LABEL = 'Localidade do Procedimento'
+// Grupo de terapias/autorizações: a planilha pede "Localidade do Procedimento" em vez do padrão
+// "Localidade da Matrícula". Aplicado tanto aos slugs simples (baseSchema) quanto aos que têm
+// documentos nomeados (authorizationSchema) — atendimento-auxilio-medicamentos fica de fora porque,
+// segundo a planilha, ele usa "Localidade da Matrícula" mesmo sendo um authorizationSchema.
+const SLUGS_LOCALIDADE_PROCEDIMENTO = new Set([
+  'autorizacao-cirurgia', 'psicologia', 'fonoaudiologia', 'terapia-ocupacional', 'fisioterapia',
+  'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-opme', 'autorizacao-outros',
+  'tratamentos-seriados', 'auxilio-aquisicao-medicamentos', 'autorizacao-procedimentos',
+])
+
+const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de Dados Cadastrais', [
   {
     id: 'dados-contato',
     title: 'Dados de contato',
@@ -191,9 +231,9 @@ const atualizacaoDadosCadastrais = baseSchema('atualizacao-dados-cadastrais', 'A
       { id: 'contaCorrente', label: 'Conta corrente ou mista', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     ],
   },
-])
+]))
 
-const emissaoCarteiraTemporaria = baseSchema('emissao-carteira-temporaria', 'Emissão de Carteira Temporária', [
+const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-carteira-temporaria', 'Emissão de Carteira Temporária', [
   {
     id: 'contato',
     title: 'Contato',
@@ -201,37 +241,9 @@ const emissaoCarteiraTemporaria = baseSchema('emissao-carteira-temporaria', 'Emi
       { id: 'emailCarteiraTemp', label: 'E-mail', type: 'text', required: true, format: 'email', placeholder: 'nome@exemplo.com' },
     ],
   },
-])
+]))
 
-const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de Documentos e Comprovantes', [
-  {
-    id: 'documento',
-    title: 'Documento solicitado',
-    fields: [
-      {
-        id: 'documentoSolicitado',
-        label: 'Documento solicitado',
-        type: 'select',
-        required: true,
-        fullWidth: true,
-        options: [
-          'Cartão do Plan-Assiste',
-          'Cartão Unimed',
-          'Cartão UniOdonto (para fora do DF e convênio odontológico)',
-          'Carta de Permanência',
-          'Documento de Acerto Financeiro',
-        ],
-      },
-      {
-        id: 'avisoCartaoPlanAssiste',
-        label: 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.',
-        type: 'note',
-        fullWidth: true,
-        showIf: { fieldId: 'documentoSolicitado', equals: 'Cartão do Plan-Assiste' },
-      },
-    ],
-  },
-])
+const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de Documentos e Comprovantes')
 
 const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompanhamento de Protocolos e Processos', [
   {
@@ -263,6 +275,27 @@ const alteracaoEndereco = baseSchema('alteracao-de-endereco', 'Alteração de en
       { id: 'cidade', label: 'Cidade', type: 'text', required: true, placeholder: 'Nome da cidade' },
       { id: 'uf', label: 'UF', type: 'combobox', required: true, options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
       { id: 'comprovanteEndereco', label: 'Comprovante de endereço', type: 'file', required: true, fullWidth: true, helpText: 'Anexe um comprovante de endereço em PDF, JPG ou PNG, com até 10 MB.' },
+    ],
+  },
+])
+
+const ASSUNTO_OUTRAS_SOLICITACOES_OPTIONS = [
+  'Autorização',
+  'Auxílio e assistência',
+  'Cadastro',
+  'Cobertura',
+  'Financeiro',
+  'Odontológico',
+  'Reembolso',
+  'Site / APP',
+]
+
+const outrasSolicitacoes = baseSchema('outras-solicitacoes', 'Outras Solicitações', [
+  {
+    id: 'assunto',
+    title: 'Assunto',
+    fields: [
+      { id: 'assuntoOutrasSolicitacoes', label: 'Assunto', type: 'select', required: true, fullWidth: true, options: ASSUNTO_OUTRAS_SOLICITACOES_OPTIONS },
     ],
   },
 ])
@@ -308,7 +341,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'titularSituacaoFuncional', label: 'Situação funcional', type: 'select', options: SITUACAO_FUNCIONAL_OPTIONS },
       { id: 'titularAtividade', label: 'Atividade', type: 'select', options: ['Ativo', 'Inativo'] },
       { id: 'titularFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome do pai ou responsável' },
-      { id: 'titularFiliacao2', label: 'Filiação 2 (preferencialmente o nome da mãe)', type: 'text', placeholder: 'Nome da mãe' },
+      { id: 'titularFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Preferencialmente o nome da mãe' },
       { id: 'titularSexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
       { id: 'titularEstadoCivil', label: 'Estado civil', type: 'text', placeholder: 'Ex.: Solteiro(a), Casado(a)' },
       { id: 'titularNacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Ex.: Brasileira' },
@@ -345,7 +378,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'dependenteIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'dependenteOrgaoEmissorUf', label: 'Órgão emissor / UF', type: 'text', placeholder: 'Ex.: SSP/UF' },
       { id: 'dependenteFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome do pai ou responsável' },
-      { id: 'dependenteFiliacao2', label: 'Filiação 2 (preferencialmente o nome da mãe)', type: 'text', placeholder: 'Nome da mãe' },
+      { id: 'dependenteFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Preferencialmente o nome da mãe' },
     ],
   },
   {
@@ -365,7 +398,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'especialCpf', label: 'CPF', type: 'text', format: 'cpf', placeholder: '000.000.000-00' },
       { id: 'especialIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'especialOrgaoEmissorUf', label: 'Órgão emissor / UF', type: 'text', placeholder: 'Ex.: SSP/UF' },
-      { id: 'especialFiliacao1', label: 'Filiação 1 (preferencialmente o nome da mãe)', type: 'text', placeholder: 'Nome da mãe' },
+      { id: 'especialFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Preferencialmente o nome da mãe' },
       { id: 'especialFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome do pai ou responsável' },
     ],
   },
@@ -483,7 +516,7 @@ const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudanç
       { id: 'mudancaEspecialCpf', label: 'CPF', type: 'text', required: true, format: 'cpf', placeholder: '000.000.000-00' },
       { id: 'mudancaEspecialIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'mudancaEspecialOrgaoEmissorUf', label: 'Órgão emissor / UF', type: 'text', placeholder: 'Ex.: SSP/UF' },
-      { id: 'mudancaEspecialFiliacao1', label: 'Filiação 1 (preferencialmente o nome da mãe)', type: 'text', placeholder: 'Nome da mãe' },
+      { id: 'mudancaEspecialFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Preferencialmente o nome da mãe' },
       { id: 'mudancaEspecialFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome do pai ou responsável' },
       {
         id: 'mudancaEspecialDocumentosNota',
@@ -516,7 +549,7 @@ const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudanç
   },
 ])
 
-const processoAposentadoriaRetorno = baseSchema('processo-aposentadoria-retorno-orgao', 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem', [
+const processoAposentadoriaRetorno = withoutGenericEmail(baseSchema('processo-aposentadoria-retorno-orgao', 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem', [
   {
     id: 'dados-funcionais',
     title: 'Dados funcionais',
@@ -564,82 +597,341 @@ const processoAposentadoriaRetorno = baseSchema('processo-aposentadoria-retorno-
       },
     ],
   },
-])
+]))
 
-const paisDependentes = baseSchema('pais-dependentes', 'Pais Dependentes (Econômicos ou não)', [
+const OPCAO_ENQUADRAMENTO_DEPENDENTE_ECONOMICO = 'Opção 1 - Pais Dependentes Econômicos (com fundamento no Requerimento de Atualização Cadastral - Dependência Econômica dos Pais, NC nº 34).'
+const OPCAO_ENQUADRAMENTO_NAO_DEPENDENTE_ECONOMICO = 'Opção 2 - Pais Não Dependentes Econômicos (com fundamento na Ficha de Inscrição de Beneficiários Especiais e Opção de Pais Não Dependentes Econômicos, NC nº 34/2023).'
+
+const paisDependentes: ServiceFormSchema = {
+  slug: 'pais-dependentes',
+  title: 'Pais Dependentes (Econômicos ou não)',
+  sections: [
+    {
+      id: 'nota-legal',
+      title: 'Pais Dependentes (Econômicos ou não)',
+      fields: [
+        {
+          id: 'notaLegalPaisDependentes',
+          label: 'A inscrição de novos pais como beneficiários está vedada desde 2020, conforme Art. 2º, § 8º, da Norma Complementar nº 34. Este documento destina-se exclusivamente a pais já inscritos no Plan-Assiste que necessitem atualizar sua condição de dependência econômica perante o Programa.',
+          type: 'note',
+          fullWidth: true,
+        },
+      ],
+    },
+    {
+      id: 'identificacao-titular',
+      title: 'Identificação do titular',
+      fields: [
+        { id: 'nomeTitular', label: 'Nome do titular', type: 'text', required: true, fullWidth: true, placeholder: 'Nome completo do titular' },
+        { id: 'matriculaTitular', label: 'Matrícula', type: 'text', required: true, placeholder: 'Número da matrícula' },
+        { id: 'cpfTitular', label: 'CPF', type: 'text', required: true, format: 'cpf', placeholder: '000.000.000-00' },
+        { id: 'ramoTitular', label: 'Ramo (se houver)', type: 'text', placeholder: 'Ex.: Judiciário, Executivo' },
+        { id: 'enderecoAtualTitular', label: 'Endereço atual (com CEP)', type: 'text', required: true, fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF e CEP' },
+        { id: 'emailParticularTitular', label: 'E-mail particular', type: 'text', required: true, format: 'email', placeholder: 'nome@exemplo.com' },
+        { id: 'celularTitular', label: 'Celular / WhatsApp (com DDD)', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
+      ],
+    },
+    {
+      id: 'opcao-enquadramento',
+      title: 'Opção de enquadramento dos pais',
+      fields: [
+        {
+          id: 'opcaoEnquadramento',
+          label: 'O titular abaixo assinado opta pelo seguinte enquadramento de seu(s) pai(s)/mãe(s) já inscrito(s) no Plan-Assiste MPU, para fins de atualização cadastral e definição do valor da contribuição mensal:',
+          type: 'radio',
+          required: true,
+          fullWidth: true,
+          options: [OPCAO_ENQUADRAMENTO_DEPENDENTE_ECONOMICO, OPCAO_ENQUADRAMENTO_NAO_DEPENDENTE_ECONOMICO],
+        },
+        {
+          id: 'declaracaoOpcaoDependenteEconomico',
+          label: 'Declaro que o(s) beneficiário(s) abaixo identificado(s) voltou(voltaram) à condição de meu(s) dependente(s) na minha Declaração de Imposto de Renda do exercício atual, e solicito o retorno da contribuição mensal para o valor da cobrança por faixa etária, excluindo o acréscimo de 50% aplicável apenas para os pais não dependentes econômicos, nos termos do art. 4º, parágrafo único, da Norma Complementar nº 34.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+          showIf: { fieldId: 'opcaoEnquadramento', equals: OPCAO_ENQUADRAMENTO_DEPENDENTE_ECONOMICO },
+        },
+        {
+          id: 'declaracaoOpcaoNaoDependenteEconomico',
+          label: 'Declaro que o(s) beneficiário(s) abaixo identificado(s) é (são) pai(s)/mãe(s) não dependente(s) econômico(s), inscrito(s) há pelo menos 5 (cinco) anos no Plan-Assiste, que perdeu (perderam) a condição de dependência junto à minha Declaração de Imposto de Renda, aplicando-se o acréscimo de 50% (cinquenta por cento) sobre a contribuição mensal, conforme normativa vigente.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+          showIf: { fieldId: 'opcaoEnquadramento', equals: OPCAO_ENQUADRAMENTO_NAO_DEPENDENTE_ECONOMICO },
+        },
+      ],
+    },
+    {
+      id: 'identificacao-beneficiarios',
+      title: 'Identificação do(s) beneficiário(s) pai(s) / mãe(s)',
+      fields: [
+        { id: 'beneficiario1Nome', label: 'Beneficiário 1 - Nome completo', type: 'text', required: true, fullWidth: true, placeholder: 'Nome completo do pai/mãe' },
+        { id: 'beneficiario2Nome', label: 'Beneficiário 2 (se houver) - Nome completo', type: 'text', fullWidth: true, placeholder: 'Nome completo do pai/mãe (se houver)' },
+      ],
+    },
+    {
+      id: 'ciencia-declaracoes',
+      title: 'Ciência e declarações do titular',
+      fields: [
+        {
+          id: 'declaracao41',
+          label: '4.1. Estou ciente sobre a obrigatoriedade de encaminhar, até 30 de junho de cada ano, a Declaração de Imposto de Renda do titular em que inclua(m) como dependente(s) o(s) nome(s) do(s) beneficiário(s) pais para fins da comprovação de dependência econômica, prevista no inciso III do art. 3º da Norma Complementar nº 34.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+        },
+        {
+          id: 'declaracao42',
+          label: '4.2. Declaro estar ciente de que a omissão de informações ou falsidade documental implicará nas sanções administrativas e legais cabíveis. Comprometo-me a informar qualquer alteração na condição de dependência no prazo estabelecido pela norma.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+        },
+        {
+          id: 'declaracao43',
+          label: '4.3. Declaro ciência de que deverei comunicar de imediato a este Plan-Assiste a ocorrência dos seguintes fatos que determinam a exclusão do(s) beneficiário(s) indicados: óbitos ou alteração de estado civil, devendo, inclusive, enviar assinado o Requerimento de Desligamento previsto no Anexo IV da Norma Complementar nº 34/2023.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+        },
+        {
+          id: 'declaracao44',
+          label: '4.4. Tenho ciência de que, além da comunicação imediata, a utilização considerada indevida ou de situação cadastral irregular conforme normativos deste Plan-Assiste afasta a incidência dos percentuais de coparticipação do beneficiário, previstos no Anexo V da Norma Complementar nº 34/2023, devendo assim a despesa de coparticipação ser integralmente cobrada deste titular.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+        },
+        {
+          id: 'declaracao45',
+          label: '4.5. Tenho ciência de que a falta de cumprimento do compromisso ora assumido sujeitar-me-á às penalidades previstas no Regulamento Geral do Plan-Assiste.',
+          type: 'checkbox',
+          required: true,
+          fullWidth: true,
+        },
+      ],
+    },
+    detailsSection(),
+  ],
+}
+
+const CASOS_AUXILIO_MEDICAMENTOS_DUVIDAS: CasoInstrucaoServico[] = [
   {
-    id: 'dependencia-economica',
-    title: 'Dependência econômica',
-    fields: [
-      { id: 'dependenciaTitularLotacao', label: 'Lotação do(a) titular', type: 'text', placeholder: 'Setor ou unidade de lotação' },
-      { id: 'dependenciaNome', label: 'Nome do beneficiário especial', type: 'text', required: true, placeholder: 'Nome completo' },
-      { id: 'dependenciaParentesco', label: 'Parentesco', type: 'text', required: true, placeholder: 'Ex.: Pai, Mãe' },
-      { id: 'dependenciaDataNascimento', label: 'Data de nascimento', type: 'date' },
-      { id: 'dependenciaCpf', label: 'CPF', type: 'text', format: 'cpf', placeholder: '000.000.000-00' },
-      { id: 'dependenciaNomeMae', label: 'Nome da mãe', type: 'text', placeholder: 'Nome completo da mãe' },
+    id: 'medicamento_geral',
+    titulo: 'Medicamento de uso geral',
+    documentos: [
+      { id: 'receitaMedica', label: 'Receita médica', obrigatorio: true },
+      { id: 'relatorioMedico', label: 'Relatório médico', obrigatorio: true },
+      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
     ],
   },
-])
+  {
+    id: 'somatropina',
+    titulo: 'Somatropina',
+    documentos: [
+      { id: 'comprovanteDesabastecimento', label: 'Comprovante de desabastecimento na rede pública', obrigatorio: true },
+      { id: 'relatorioMedico', label: 'Relatório médico', obrigatorio: true },
+      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'obesidade',
+    titulo: 'Obesidade',
+    documentos: [
+      { id: 'relatorioMedicoImc', label: 'Relatório médico detalhado com IMC', obrigatorio: true },
+      { id: 'receitaMedica', label: 'Receita médica', obrigatorio: true },
+      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
+    ],
+  },
+]
+
+// [PLACEHOLDER] Conteúdo provisório — substituir pelos documentos e casos reais do documento
+// INSTRUÇÕES_PARA_ABERTURA_DE_TICKET_V2 assim que ele for compartilhado. Não usar em produção sem revisão.
+const CASOS_ATUALIZACAO_DADOS_CADASTRAIS: CasoInstrucaoServico[] = [
+  {
+    id: 'titular',
+    titulo: 'Titular',
+    documentos: [
+      { id: 'documentoIdentificacaoTitular', label: '[PLACEHOLDER] Documento de identificação do titular', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'dependente',
+    titulo: 'Dependente',
+    documentos: [
+      { id: 'documentoIdentificacaoDependente', label: '[PLACEHOLDER] Documento de identificação do dependente', obrigatorio: true },
+      { id: 'comprovanteVinculoDependente', label: '[PLACEHOLDER] Comprovante de vínculo com o titular', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'terceiro',
+    titulo: 'Terceiro',
+    documentos: [
+      { id: 'procuracaoTerceiro', label: '[PLACEHOLDER] Procuração ou documento de representação', obrigatorio: true },
+      { id: 'documentoIdentificacaoTerceiro', label: '[PLACEHOLDER] Documento de identificação do terceiro', obrigatorio: true },
+    ],
+  },
+]
+
+// [PLACEHOLDER] "Carteira do Plan-Assiste" não é uma opção aqui — essa emissão é feita direto
+// pelo Portal/App, sem solicitação neste formulário (ver aviso "Antes de começar" no topo).
+const CASOS_EMISSAO_DOCUMENTOS: CasoInstrucaoServico[] = [
+  {
+    id: 'carteira_unimed',
+    titulo: 'Carteira Unimed',
+    documentos: [
+      { id: 'placeholderCarteiraUnimed', label: '[PLACEHOLDER] Documento exigido para emissão da carteira Unimed', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'carteira_uniodonto',
+    titulo: 'Carteira UniOdonto',
+    documentos: [
+      { id: 'placeholderCarteiraUniodonto', label: '[PLACEHOLDER] Documento exigido para emissão da carteira UniOdonto', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'carta_permanencia',
+    titulo: 'Carta de Permanência',
+    documentos: [
+      { id: 'placeholderCartaPermanencia', label: '[PLACEHOLDER] Documento exigido para emissão da carta de permanência', obrigatorio: true },
+    ],
+  },
+  {
+    id: 'documento_acerto_financeiro',
+    titulo: 'Documento de Acerto Financeiro',
+    documentos: [
+      { id: 'placeholderDocAcertoFinanceiro', label: '[PLACEHOLDER] Documento exigido para o documento de acerto financeiro', obrigatorio: true },
+    ],
+  },
+]
+
+const AVISO_INICIAL_EMISSAO_DOCUMENTOS: AvisoInicialConfig = {
+  titulo: 'Antes de começar',
+  conteudo: 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.',
+}
+
+const AVISO_INICIAL_AUXILIO_MEDICAMENTOS: AvisoInicialConfig = {
+  titulo: 'Antes de começar',
+  conteudo: 'Caso o medicamento seja vitaminas, complexos vitamínicos ou alimentares, a princípio o plano não oferece cobertura, mas a solicitação pode ser realizada no Portal do Beneficiário. Deverá ser anexado os relatórios médicos e exames laboratoriais.',
+}
+
+// Cada caso sincroniza o campo legado "tipoSolicitacaoAposentadoria", que continua controlando
+// a visibilidade da seção "Declarações" já existente — preservando as declarações reais aprovadas
+// sem duplicar a pergunta "aposentadoria vs. retorno" na tela.
+const CASOS_APOSENTADORIA_RETORNO: CasoInstrucaoServico[] = [
+  {
+    id: 'aposentadoria',
+    titulo: 'Aposentadoria',
+    documentos: [
+      { id: 'placeholderDocAposentadoria', label: '[PLACEHOLDER] Documento exigido para início do processo de aposentadoria', obrigatorio: true },
+    ],
+    sincronizarCampos: { tipoSolicitacaoAposentadoria: 'Início do Processo de Aposentadoria' },
+  },
+  {
+    id: 'retorno_orgao_origem',
+    titulo: 'Retorno ao órgão de origem',
+    documentos: [
+      { id: 'placeholderDocRetornoOrgao', label: '[PLACEHOLDER] Documento exigido para retorno ao órgão de origem', obrigatorio: true },
+    ],
+    avisoNormativo: {
+      titulo: 'Norma Complementar nº 34/2023',
+      conteudo: '[PLACEHOLDER — substituir pelo texto oficial da NC 34/2023 aplicável ao retorno ao órgão de origem, incluindo prazos, carência e condições de permanência no Plan-Assiste]',
+      exigeConfirmacao: true,
+    },
+    sincronizarCampos: { tipoSolicitacaoAposentadoria: 'Retorno ao Órgão de Origem' },
+  },
+]
 
 const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
-  [atualizacaoDadosCadastrais.slug]: atualizacaoDadosCadastrais,
-  [emissaoDocumentos.slug]: emissaoDocumentos,
+  [atualizacaoDadosCadastrais.slug]: {
+    ...atualizacaoDadosCadastrais,
+    perguntaChave: {
+      enunciado: 'Para quem é a atualização?',
+      casos: CASOS_ATUALIZACAO_DADOS_CADASTRAIS,
+    },
+  },
+  [emissaoDocumentos.slug]: {
+    ...emissaoDocumentos,
+    perguntaChave: {
+      enunciado: 'Qual documento você precisa?',
+      casos: CASOS_EMISSAO_DOCUMENTOS,
+    },
+    avisoInicial: AVISO_INICIAL_EMISSAO_DOCUMENTOS,
+  },
   [emissaoCarteiraTemporaria.slug]: emissaoCarteiraTemporaria,
   [acompanhamentoProtocolos.slug]: acompanhamentoProtocolos,
   [alteracaoEndereco.slug]: alteracaoEndereco,
   [inscricaoAdesao.slug]: inscricaoAdesao,
   [desligamento.slug]: desligamento,
   [mudancaTipoBeneficiario.slug]: mudancaTipoBeneficiario,
-  [processoAposentadoriaRetorno.slug]: processoAposentadoriaRetorno,
+  [processoAposentadoriaRetorno.slug]: {
+    ...processoAposentadoriaRetorno,
+    perguntaChave: {
+      enunciado: 'Qual o motivo?',
+      casos: CASOS_APOSENTADORIA_RETORNO,
+    },
+  },
   [paisDependentes.slug]: paisDependentes,
-  ...Object.fromEntries(SIMPLE_SERVICES.map(({ slug, title }) => [slug, baseSchema(slug, title)])),
+  [outrasSolicitacoes.slug]: outrasSolicitacoes,
+  ...Object.fromEntries(SIMPLE_SERVICES.map(({ slug, title }) =>
+    [slug, baseSchema(slug, title, [], SLUGS_LOCALIDADE_PROCEDIMENTO.has(slug) ? LOCALIDADE_PROCEDIMENTO_LABEL : undefined)])),
+  'auxilio-medicamentos-duvidas': {
+    ...baseSchema('auxilio-medicamentos-duvidas', 'Auxílio de Medicamentos - Dúvidas e Orientações'),
+    perguntaChave: {
+      enunciado: 'Sua dúvida é sobre qual tipo de medicamento?',
+      casos: CASOS_AUXILIO_MEDICAMENTOS_DUVIDAS,
+    },
+  },
   'autorizacao-cirurgia': authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
     { id: 'pedidoRelatorioMedico', label: 'Pedido ou relatório médico', required: true },
     { id: 'laudosExames', label: 'Laudos de exames', required: true },
     { id: 'documentosAdicionais', label: 'Documentos adicionais relacionados ao diagnóstico' },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   fisioterapia: authorizationSchema('fisioterapia', 'Fisioterapia', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   fonoaudiologia: authorizationSchema('fonoaudiologia', 'Fonoaudiologia', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioFonoaudiologico', label: 'Relatório fonoaudiológico com diagnóstico e tempo de tratamento', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   pilates: authorizationSchema('pilates', 'Pilates', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   psicologia: authorizationSchema('psicologia', 'Psicologia', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioPsicologico', label: 'Relatório psicológico', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   rpg: authorizationSchema('rpg', 'RPG', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   acupuntura: authorizationSchema('acupuntura', 'Acupuntura', [
     { id: 'pedidoMedicoOdontologico', label: 'Pedido médico ou odontológico', required: true },
     { id: 'documentosAdicionais', label: 'Documentos adicionais' },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   hidroterapia: authorizationSchema('hidroterapia', 'Hidroterapia', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
   'terapia-ocupacional': authorizationSchema('terapia-ocupacional', 'Terapia Ocupacional', [
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioTerapiaOcupacional', label: 'Relatório de terapia ocupacional', required: true },
-  ]),
-  'atendimento-auxilio-medicamentos': authorizationSchema('atendimento-auxilio-medicamentos', 'Atendimento para Auxílio de Medicamentos', [
-    { id: 'receitaMedica', label: 'Receita médica', required: true },
-    { id: 'relatorioMedico', label: 'Relatório médico', required: true },
-    { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
+  'atendimento-auxilio-medicamentos': {
+    ...authorizationSchema('atendimento-auxilio-medicamentos', 'Atendimento para Auxílio de Medicamentos', [
+      { id: 'receitaMedica', label: 'Receita médica', required: true },
+      { id: 'relatorioMedico', label: 'Relatório médico', required: true },
+      { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },
+    ]),
+    avisoInicial: AVISO_INICIAL_AUXILIO_MEDICAMENTOS,
+  },
   'auxilio-aquisicao-medicamentos': authorizationSchema('auxilio-aquisicao-medicamentos', 'Auxílio para Aquisição de Medicamentos', [
     { id: 'receitaMedica', label: 'Receita médica', required: true },
     { id: 'relatorioMedico', label: 'Relatório médico', required: true },
     { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },
-  ]),
+  ], LOCALIDADE_PROCEDIMENTO_LABEL),
 }
 
 export function getServiceFormSchema(slug: string): ServiceFormSchema | undefined {

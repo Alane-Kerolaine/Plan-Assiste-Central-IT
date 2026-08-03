@@ -30,9 +30,11 @@ const STATUS_BADGE_CLASS = {
 }
 
 export function ChecklistAnexos({ documentos, onAdd, onRemove }: ChecklistAnexosProps) {
+  const documentosVisiveis = documentos.filter((documento) => documento.requerido || documento.arquivos.length > 0)
+
   return (
     <div aria-label="Documentos exigidos para este caso" className="checklist-anexos" role="list">
-      {documentos.map((documento) => {
+      {documentosVisiveis.map((documento) => {
         const status = statusDocumento(documento)
         return (
           <div className="checklist-anexos-item" key={documento.id} role="listitem">
@@ -47,6 +49,7 @@ export function ChecklistAnexos({ documentos, onAdd, onRemove }: ChecklistAnexos
                 files={documento.arquivos}
                 fullWidth
                 helpText="Selecione um ou mais arquivos em PDF, JPG ou PNG, com até 10 MB cada."
+                hideLabel
                 label={documento.label}
                 onAdd={(files) => onAdd(documento.id, files)}
                 onRemove={(index) => onRemove(documento.id, index)}
