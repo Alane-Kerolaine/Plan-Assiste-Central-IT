@@ -56,7 +56,6 @@ import {
   AdminCategoriasNoticiasPage,
   AdminNoticiasPage,
   GestaoOperacionalLayout,
-  NovaAuxilioOpmeTransportesPage,
   NovaAutorizacaoPage,
   NovaInscricaoDependentePage,
   NovaNoticiaPage,
@@ -306,7 +305,6 @@ function App() {
           <Route path="minhas-solicitacoes" element={<Navigate to="/beneficiario/solicitacoes" replace />} />
           <Route path="nova-solicitacao" element={<NovaSolicitacaoPage />} />
           <Route path="reembolso-procedimentos/nova-solicitacao" element={<BeneficiaryNovaReembolsoPage />} />
-          <Route path="auxilio-opme-transportes/nova-solicitacao" element={<NovaAuxilioOpmeTransportesPage />} />
           <Route path="inscricao-dependente/nova-solicitacao" element={<NovaInscricaoDependentePage />} />
           <Route path="autorizacao-procedimentos/nova-solicitacao" element={<NovaAutorizacaoPage />} />
           <Route path="servicos/:slug/nova-solicitacao" element={<ServiceRequestPage />} />

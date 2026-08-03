@@ -1070,12 +1070,6 @@ export function ReimbursementsPage() {
           <Link className="text-link" to="/beneficiario/servicos/auxilio-aquisicao-medicamentos/nova-solicitacao">Solicitar auxílio <ArrowRight aria-hidden="true" /></Link>
         </article>
         <article>
-          <ClipboardList aria-hidden="true" />
-          <h2>Auxílio de Órteses, Próteses e Transportes</h2>
-          <p>Solicitação de auxílio para órteses, próteses e transportes, com envio de documentos pelo Portal.</p>
-          <Link className="text-link" to="/beneficiario/auxilio-opme-transportes/nova-solicitacao">Solicitar auxílio <ArrowRight aria-hidden="true" /></Link>
-        </article>
-        <article>
           <WalletCards aria-hidden="true" />
           <h2>Extrato do auxílio-saúde</h2>
           <p>Consulte o valor do auxílio efetivamente recebido na folha de pagamento.</p>
