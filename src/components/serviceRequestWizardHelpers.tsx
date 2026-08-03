@@ -91,7 +91,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
     const comboboxOptions = (field.options ?? []).map((option) => ({ value: option, label: option }))
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}{fieldInfoIcon}
+        <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
         <Combobox value={value} options={comboboxOptions} onSelect={onChange} placeholder={field.placeholder ?? 'Selecione'} />
       </label>
     )
@@ -100,7 +100,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
   if (field.type === 'textarea') {
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}{fieldInfoIcon}
+        <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
         <textarea value={value} placeholder={field.placeholder} rows={6} onChange={(event) => onChange(event.target.value)} />
       </label>
     )
@@ -109,7 +109,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
   if (field.type === 'date') {
     return (
       <label className={labelClassName} key={field.id}>
-        {field.label}{requiredMark}{fieldInfoIcon}
+        <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
         <BrazilianDateInput disabled={field.disabled} required={field.required} value={value} onChangeValue={onChange} />
       </label>
     )
@@ -122,7 +122,7 @@ export function renderField(field: ServiceField, value: string, onChange: (value
 
   return (
     <label className={labelClassName} key={field.id}>
-      {field.label}{requiredMark}{fieldInfoIcon}
+      <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
       <input
         type={inputType}
         inputMode={inputMode}
