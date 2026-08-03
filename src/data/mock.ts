@@ -731,15 +731,6 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     featured: true,
   },
   {
-    id: 'remocao',
-    title: 'Auxílio de Órteses, Próteses e Transportes',
-    category: 'Reembolso e auxílios',
-    description: 'Solicite auxílio para órteses e próteses não ligadas a ato cirúrgico, tratamento fora do domicílio e diárias para acompanhante.',
-    tags: ['Órteses', 'Próteses', 'Transporte', 'Acompanhante'],
-    action: 'Solicitar auxílio',
-    route: '/beneficiario/auxilio-opme-transportes/nova-solicitacao',
-  },
-  {
     id: 'irpf',
     title: 'IRPF',
     category: 'Financeiro',

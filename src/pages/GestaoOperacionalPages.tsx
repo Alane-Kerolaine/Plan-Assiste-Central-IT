@@ -27,8 +27,6 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Combobox, Footer, Header, MainMenu, RestrictedAreaSidebar, type AreaSidebarGroup } from '../components/PortalComponents'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { BrazilianDateInput } from '../components/BrazilianDateInput'
-import { FileAttachmentField } from '../components/FileAttachmentField'
 import { NewsDateRangePicker } from './PublicPages'
 
 const gestaoPageNames: Record<string, string> = {
@@ -753,94 +751,6 @@ export function NovaReembolsoPage() {
       ) : (
         <ReembolsoForm servidor={selectedServidor} onBack={() => setSelectedServidor(null)} />
       )}
-    </div>
-  )
-}
-
-// ============================================================
-// Nova Solicitação de Auxílio para Medicamentos (página de formulário)
-// ============================================================
-
-export function NovaAuxilioOpmeTransportesPage() {
-  const [tipo, setTipo] = useState('Órteses e próteses não ligadas a ato cirúrgico')
-  const [beneficiario, setBeneficiario] = useState('Ana Maria de Araújo')
-  const [notice, setNotice] = useState('')
-  const [attachments, setAttachments] = useState<Record<string, File[]>>({})
-  const parentesco = beneficiario === 'Ana Maria de Araújo' ? 'Titular' : beneficiario === 'André Luiz Araújo' ? 'Menores sob guarda' : 'Enteados'
-
-  function addPdfFiles(label: string, files: File[]) {
-    const validFiles = files.filter((file) => file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024)
-    if (validFiles.length !== files.length) setNotice('Anexe somente arquivos PDF com até 5 MB por arquivo.')
-    setAttachments((current) => ({ ...current, [label]: [...(current[label] || []), ...validFiles] }))
-  }
-
-  function removePdfFile(label: string, index: number) {
-    setAttachments((current) => ({ ...current, [label]: (current[label] || []).filter((_, fileIndex) => fileIndex !== index) }))
-  }
-
-  return (
-    <div>
-      <div className="go-page-header">
-        <h1>Nova solicitação de auxílio de órteses, próteses e transportes</h1>
-        <p>Solicite o auxílio e envie toda a documentação pelo Portal.</p>
-      </div>
-      <div className="go-table-card" style={{ padding: '1.5rem 2rem' }}>
-        <form onSubmit={(event) => { event.preventDefault(); setNotice('Solicitação registrada para análise no protótipo.') }}>
-          <div className="go-form-grid">
-            <div className="go-field">
-              <label className="go-label">Beneficiário</label>
-              <select className="go-select" value={beneficiario} onChange={(event) => setBeneficiario(event.target.value)}>
-                <option>Ana Maria de Araújo</option>
-                <option>André Luiz Araújo</option>
-                <option>Maria Olívia Araújo</option>
-              </select>
-            </div>
-            <div className="go-field">
-              <label className="go-label">Tipo de dependente</label>
-              <input className="go-input" value={parentesco} disabled />
-            </div>
-            <div className="go-field full">
-              <label className="go-label">Tipo de auxílio</label>
-              <select className="go-select" value={tipo} onChange={(event) => setTipo(event.target.value)}>
-                <option>Órteses e próteses não ligadas a ato cirúrgico</option>
-                <option>Transporte de paciente em tratamento fora do domicílio</option>
-                <option>Transporte com cobertura de diárias para acompanhante</option>
-              </select>
-            </div>
-            <div className="go-field full">
-              <label className="go-label">Descrição do item, tratamento ou deslocamento</label>
-              <textarea className="go-textarea" rows={4} placeholder="Descreva o item solicitado, o tratamento e o percurso, quando aplicável." />
-            </div>
-            <div className="go-field">
-              <label className="go-label">Data prevista</label>
-              <BrazilianDateInput className="go-input" />
-            </div>
-            <div className="go-field">
-              <label className="go-label">Valor estimado (R$)</label>
-              <input type="text" className="go-input" placeholder="0,00" />
-            </div>
-            {tipo.includes('Transporte') && (
-              <>
-                <div className="go-field"><label className="go-label">Origem</label><input className="go-input" /></div>
-                <div className="go-field"><label className="go-label">Destino</label><input className="go-input" /></div>
-              </>
-            )}
-            {['Pedido ou relatório médico', 'Orçamentos e comprovantes', 'Documentos adicionais'].map((label) => (
-              <FileAttachmentField
-                fullWidth
-                files={attachments[label] || []}
-                helpText="PDF, até 5 MB por arquivo."
-                key={label}
-                label={label}
-                onAdd={(files) => addPdfFiles(label, files)}
-                onRemove={(index) => removePdfFile(label, index)}
-              />
-            ))}
-          </div>
-          <button type="submit" className="go-submit"><Send /> Enviar solicitação</button>
-          {notice && <p className="action-notice" role="status">{notice}</p>}
-        </form>
-      </div>
     </div>
   )
 }
