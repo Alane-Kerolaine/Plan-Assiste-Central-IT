@@ -52,6 +52,8 @@ export function ServiceRequestWizard({
       dataNascimento: beneficiary?.dataNascimento ?? '',
       matricula: beneficiary?.matricula ?? '',
       email: beneficiary?.email ?? '',
+      telefone: beneficiary?.telefone ?? '',
+      localAtendimento: beneficiary?.localidade ?? '',
       banco: beneficiary?.banco ?? '',
       agencia: beneficiary?.agencia ?? '',
       contaCorrente: beneficiary?.contaCorrente ?? '',
