@@ -78,6 +78,7 @@ export type ServiceFormSchema = {
 }
 
 function identificationSection(localidadeLabel: string = 'Localidade da Matrícula'): ServiceFormSection {
+  const localidadeTravada = localidadeLabel === 'Localidade da Matrícula'
   return {
     id: 'identificacao',
     title: 'Identificação',
@@ -89,7 +90,15 @@ function identificationSection(localidadeLabel: string = 'Localidade da Matrícu
       { id: 'matricula', label: 'Matrícula', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
       { id: 'telefone', label: 'Telefone do beneficiário', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'email', label: 'E-mail', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'localAtendimento', label: localidadeLabel, type: 'text', required: true, columnSpan: 2, placeholder: `Digite a ${localidadeLabel.toLowerCase()}` },
+      {
+        id: 'localAtendimento',
+        label: localidadeLabel,
+        type: 'text',
+        required: true,
+        disabled: localidadeTravada,
+        columnSpan: 2,
+        placeholder: localidadeTravada ? 'Selecione um beneficiário' : `Digite a ${localidadeLabel.toLowerCase()}`,
+      },
     ],
   }
 }
@@ -337,7 +346,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     title: 'Inscrição do titular',
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
     fields: [
-      { id: 'titularNomeSocial', label: 'Nome social (Portaria PGR/MPU nº 7/2018)', type: 'text', placeholder: 'Se houver, informe o nome social' },
+      { id: 'titularNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'titularSituacaoFuncional', label: 'Situação funcional', type: 'select', options: SITUACAO_FUNCIONAL_OPTIONS },
       { id: 'titularAtividade', label: 'Atividade', type: 'select', options: ['Ativo', 'Inativo'] },
       { id: 'titularFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome do pai ou responsável' },
@@ -370,7 +379,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Dependente' },
     fields: [
       { id: 'dependenteNome', label: 'Nome do dependente', type: 'text', required: true, placeholder: 'Nome completo do dependente' },
-      { id: 'dependenteNomeSocial', label: 'Nome social (Portaria PGR/MPU nº 7/2018)', type: 'text', placeholder: 'Se houver, informe o nome social' },
+      { id: 'dependenteNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'dependenteTipo', label: 'Tipo de dependência', type: 'select', required: true, options: DEPENDENTE_TIPO_OPTIONS },
       { id: 'dependenteSexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
       { id: 'dependenteNaturalidade', label: 'Naturalidade', type: 'text', placeholder: 'Cidade de nascimento' },
@@ -389,7 +398,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'especialTitularEmailParticular', label: 'E-mail particular do(a) titular', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
       { id: 'especialTitularCelular', label: 'Celular ou WhatsApp do(a) titular (com DDD)', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'especialNome', label: 'Nome completo do beneficiário', type: 'text', required: true, placeholder: 'Nome completo do beneficiário especial' },
-      { id: 'especialNomeSocial', label: 'Nome social (Portaria PGR/MPU nº 7/2018)', type: 'text', placeholder: 'Se houver, informe o nome social' },
+      { id: 'especialNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'especialTipo', label: 'Tipo de dependência', type: 'select', required: true, options: BENEFICIARIO_ESPECIAL_TIPO_OPTIONS },
       { id: 'especialDataNascimento', label: 'Data de nascimento', type: 'date' },
       { id: 'especialSexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
@@ -507,7 +516,7 @@ const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudanç
       { id: 'mudancaEspecialTitularEmailParticular', label: 'E-mail particular do(a) titular', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
       { id: 'mudancaEspecialTitularCelular', label: 'Celular ou WhatsApp do(a) titular (com DDD)', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'mudancaEspecialNome', label: 'Nome completo do beneficiário', type: 'text', required: true, placeholder: 'Nome completo do beneficiário especial' },
-      { id: 'mudancaEspecialNomeSocial', label: 'Nome social (Portaria PGR/MPU nº 7/2018)', type: 'text', placeholder: 'Se houver, informe o nome social' },
+      { id: 'mudancaEspecialNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'mudancaEspecialTipo', label: 'Tipo de dependência', type: 'select', required: true, options: BENEFICIARIO_ESPECIAL_TIPO_OPTIONS },
       { id: 'mudancaEspecialDataNascimento', label: 'Data de nascimento', type: 'date' },
       { id: 'mudancaEspecialSexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },

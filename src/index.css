@@ -676,8 +676,8 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .extract-copay-table th:first-child, .extract-copay-table td:first-child { position: sticky; left: 0; z-index: 1; min-width: 240px; box-shadow: 1px 0 0 var(--border); }
 .extract-copay-table th:first-child { z-index: 2; background: var(--mint-soft); }
 
-.cookie-consent-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; background: rgba(0, 45, 54, .62); padding: 20px; }
-.cookie-consent-dialog { width: min(720px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border-radius: 20px; background: #fff; padding: 28px; box-shadow: 0 24px 70px rgba(0, 45, 54, .3); }
+.cookie-consent-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; background: rgba(0, 45, 54, .62); padding: 20px; overflow-y: auto; }
+.cookie-consent-dialog { width: min(720px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; border-radius: 20px; background: #fff; padding: 28px; box-shadow: 0 24px 70px rgba(0, 45, 54, .3); }
 .cookie-consent-dialog h2 { margin: 4px 0 12px; color: var(--text-dark); font-size: clamp(26px, 4vw, 34px); }
 .cookie-policy-links, .cookie-consent-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .cookie-policy-links { margin: 18px 0; }
