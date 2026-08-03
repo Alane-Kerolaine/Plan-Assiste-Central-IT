@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 
 export type ComboboxOption = { value: string, label: string }
@@ -7,6 +7,7 @@ export function Combobox({ value, options, onSelect, placeholder, onClear }: { v
   const selectedLabel = options.find((option) => option.value === value)?.label || ''
   const [query, setQuery] = useState(selectedLabel)
   const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const label = options.find((option) => option.value === value)?.label ?? ''
@@ -22,6 +23,7 @@ export function Combobox({ value, options, onSelect, placeholder, onClear }: { v
     setQuery(option.label)
     setFilterActive(false)
     setOpen(false)
+    window.setTimeout(() => inputRef.current?.blur(), 0)
   }
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); setHighlighted((current) => Math.min(current + 1, filtered.length - 1)) }
@@ -32,11 +34,14 @@ export function Combobox({ value, options, onSelect, placeholder, onClear }: { v
   return <span className={`cms-combobox${onClear ? ' has-clear' : ''}`} onBlur={() => window.setTimeout(() => setOpen(false), 150)}>
     <span className="field-with-icon">
       <input
+        ref={inputRef}
         value={query}
         onFocus={(event) => { setOpen(true); event.target.select() }}
         onChange={(event) => { setQuery(event.target.value); setFilterActive(true); setOpen(true); setHighlighted(0) }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
       />
       {onClear && (
         <button

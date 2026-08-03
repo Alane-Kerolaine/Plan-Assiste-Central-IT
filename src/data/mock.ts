@@ -703,16 +703,6 @@ export const providers: Provider[] = [
 
 export const beneficiaryRequests: BeneficiaryRequest[] = [
   {
-    id: 'atualizacao-cadastral',
-    title: 'Atualização cadastral',
-    category: 'Cadastro',
-    description: 'Atualize dados de titulares, dependentes e beneficiários especiais.',
-    tags: ['Dados pessoais', 'Contato'],
-    action: 'Atualizar meus dados',
-    route: '/beneficiario/meus-dados',
-    featured: true,
-  },
-  {
     id: 'inclusao-dependentes',
     title: 'Inclusão de dependentes',
     category: 'Cadastro',
@@ -1100,6 +1090,15 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/abertura-solicitacoes-administrativas/nova-solicitacao',
   },
   {
+    id: 'servico-outras-solicitacoes',
+    title: 'Outras Solicitações',
+    category: 'Cadastro',
+    description: 'Envie uma solicitação que não se enquadra nas demais categorias do catálogo.',
+    tags: ['Outros assuntos'],
+    action: 'Enviar solicitação',
+    route: '/beneficiario/servicos/outras-solicitacoes/nova-solicitacao',
+  },
+  {
     id: 'servico-autorizacao-opme',
     title: 'Autorização de OPME',
     category: 'Autorizações',
@@ -1109,6 +1108,15 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
   },
   {
+    id: 'servico-autorizacao-procedimentos',
+    title: 'Autorização de Procedimentos - Orientações Gerais',
+    category: 'Autorizações',
+    description: 'Consulte orientações gerais e solicite autorização de procedimentos.',
+    tags: ['Autorização', 'Procedimentos', 'Orientações'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/autorizacao-procedimentos/nova-solicitacao',
+  },
+  {
     id: 'servico-autorizacao-outros',
     title: 'Autorização de Procedimentos (Outros)',
     category: 'Autorizações',
@@ -1116,6 +1124,15 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     tags: ['Autorização', 'Outros procedimentos'],
     action: 'Solicitar autorização',
     route: '/beneficiario/servicos/autorizacao-outros/nova-solicitacao',
+  },
+  {
+    id: 'servico-tratamentos-seriados',
+    title: 'Tratamentos Seriados',
+    category: 'Autorizações',
+    description: 'Solicite autorização para tratamentos seriados (sessões contínuas de um mesmo procedimento).',
+    tags: ['Tratamentos seriados', 'Autorização'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/tratamentos-seriados/nova-solicitacao',
   },
   {
     id: 'servico-processo-aposentadoria-retorno',
@@ -1178,15 +1195,16 @@ export type Beneficiary = {
   cpf: string
   dataNascimento: string
   matricula: string
+  email: string
   banco: string
   agencia: string
   contaCorrente: string
 }
 
 export const beneficiaries: Beneficiary[] = [
-  { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'andre', name: 'André Luiz Araújo', relation: 'Menores sob guarda', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteados', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', email: 'ana.araujo@exemplo.com', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'andre', name: 'André Luiz Araújo', relation: 'Menores sob guarda', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteados', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
 ]
 
 export const quickAccess: Service[] = [

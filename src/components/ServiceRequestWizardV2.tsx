@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CheckCircle2, ChevronLeft, Copy, RotateCcw, Send } from 'lucide-react'
 import { beneficiaries } from '../data/mock'
-import { isFieldVisible, type ServiceFormSchema } from '../data/serviceFormSchemas'
+import { isFieldVisible, type CasoInstrucaoServico, type PerguntaChaveConfig, type ServiceFormSchema } from '../data/serviceFormSchemas'
 import { generateProtocolNumber } from '../utils/protocol'
-import { isFeatureInstrucoesCondicionaisEnabled } from '../utils/featureFlags'
 import { AvisoNormativo } from './AvisoNormativo'
-import { FileAttachmentField } from './FileAttachmentField'
+import { ChecklistAnexos, type ChecklistAnexosDocumento } from './ChecklistAnexos'
+import { Combobox } from './Combobox'
 import { BeneficiarySelect, WizardSteps } from './serviceRequestWizardComponents'
 import {
   DEFAULT_SUCCESS_SECONDARY_ACTION,
@@ -17,17 +17,37 @@ import {
 } from './serviceRequestWizardHelpers'
 
 type Props = {
-  schema: ServiceFormSchema
+  schema: ServiceFormSchema & { perguntaChave: PerguntaChaveConfig }
   successSecondaryAction?: { label: string, to: string }
 }
 
-export function ServiceRequestWizard({
+function dedupeDocumentos(casos: CasoInstrucaoServico[]) {
+  const seen = new Set<string>()
+  return casos.flatMap((caso) => caso.documentos).filter((documento) => {
+    if (seen.has(documento.id)) return false
+    seen.add(documento.id)
+    return true
+  })
+}
+
+export function ServiceRequestWizardV2({
   schema,
   successSecondaryAction = DEFAULT_SUCCESS_SECONDARY_ACTION,
 }: Props) {
+  const { perguntaChave } = schema
+  const todosDocumentos = dedupeDocumentos(perguntaChave.casos)
+  const camposSincronizados = new Set(
+    perguntaChave.casos.flatMap((caso) => Object.keys(caso.sincronizarCampos ?? {})),
+  )
+
   const [step, setStep] = useState<WizardStep>('form')
-  const [values, setValues] = useState<Record<string, string>>(() => initialValues(schema))
-  const [attachments, setAttachments] = useState<Record<string, File[]>>({})
+  const [values, setValues] = useState<Record<string, string>>(() => ({
+    ...initialValues(schema),
+    ...perguntaChave.casos[0].sincronizarCampos,
+  }))
+  const [casoId, setCasoId] = useState(perguntaChave.casos[0].id)
+  const [anexosPorDocumento, setAnexosPorDocumento] = useState<Record<string, File[]>>({})
+  const [avisoConfirmado, setAvisoConfirmado] = useState(false)
   const [notice, setNotice] = useState('')
   const [protocol, setProtocol] = useState('')
   const [copied, setCopied] = useState(false)
@@ -37,6 +57,9 @@ export function ServiceRequestWizard({
     const id = setTimeout(() => setCopied(false), 2000)
     return () => clearTimeout(id)
   }, [copied])
+
+  const casoSelecionado = perguntaChave.casos.find((caso) => caso.id === casoId) ?? perguntaChave.casos[0]
+  const documentosRequeridos = new Set(casoSelecionado.documentos.map((documento) => documento.id))
 
   function updateValue(fieldId: string, value: string) {
     setValues((current) => ({ ...current, [fieldId]: value }))
@@ -58,19 +81,29 @@ export function ServiceRequestWizard({
     }))
   }
 
-  function addFiles(fieldId: string, newFiles: File[]) {
-    setAttachments((current) => ({ ...current, [fieldId]: [...(current[fieldId] ?? []), ...newFiles] }))
+  function handleCasoChange(nextCasoId: string) {
+    setCasoId(nextCasoId)
+    setAvisoConfirmado(false)
+    const nextCaso = perguntaChave.casos.find((caso) => caso.id === nextCasoId)
+    if (nextCaso?.sincronizarCampos) {
+      setValues((current) => ({ ...current, ...nextCaso.sincronizarCampos }))
+    }
   }
 
-  function removeFile(fieldId: string, index: number) {
-    setAttachments((current) => ({ ...current, [fieldId]: (current[fieldId] ?? []).filter((_, i) => i !== index) }))
+  function addFiles(documentoId: string, newFiles: File[]) {
+    setAnexosPorDocumento((current) => ({ ...current, [documentoId]: [...(current[documentoId] ?? []), ...newFiles] }))
+  }
+
+  function removeFile(documentoId: string, index: number) {
+    setAnexosPorDocumento((current) => ({ ...current, [documentoId]: (current[documentoId] ?? []).filter((_, i) => i !== index) }))
   }
 
   const visibleSections = schema.sections
     .filter((section) => isFieldVisible(section.showIf, values))
     .map((section) => ({
       ...section,
-      fields: section.fields.filter((field) => isFieldVisible(field.showIf, values)),
+      fields: section.fields.filter((field) =>
+        isFieldVisible(field.showIf, values) && field.type !== 'file' && !camposSincronizados.has(field.id)),
     }))
 
   function validate(): string[] {
@@ -82,13 +115,17 @@ export function ServiceRequestWizard({
           if (values[field.id] !== 'true') missing.push(field.label)
           return
         }
-        if (field.type === 'file') {
-          if ((attachments[field.id]?.length ?? 0) === 0) missing.push(field.label)
-          return
-        }
         if (!values[field.id]?.trim()) missing.push(field.label)
       })
     })
+    casoSelecionado.documentos.forEach((documento) => {
+      if (documento.obrigatorio && (anexosPorDocumento[documento.id]?.length ?? 0) === 0) {
+        missing.push(documento.label)
+      }
+    })
+    if (casoSelecionado.avisoNormativo?.exigeConfirmacao && !avisoConfirmado) {
+      missing.push('Confirmação do aviso normativo')
+    }
     return missing
   }
 
@@ -108,12 +145,20 @@ export function ServiceRequestWizard({
   }
 
   function handleReset() {
-    setValues(initialValues(schema))
-    setAttachments({})
+    setValues({ ...initialValues(schema), ...perguntaChave.casos[0].sincronizarCampos })
+    setAnexosPorDocumento({})
+    setCasoId(perguntaChave.casos[0].id)
+    setAvisoConfirmado(false)
     setNotice('')
     setProtocol('')
     setStep('form')
   }
+
+  const checklistDocumentos: ChecklistAnexosDocumento[] = todosDocumentos.map((documento) => ({
+    ...documento,
+    requerido: documentosRequeridos.has(documento.id),
+    arquivos: anexosPorDocumento[documento.id] ?? [],
+  }))
 
   if (step === 'success') {
     return (
@@ -166,17 +211,34 @@ export function ServiceRequestWizard({
                     <dd>
                       {field.type === 'beneficiary'
                         ? (beneficiaries.find((item) => item.id === values[field.id])?.name ?? '–')
-                        : field.type === 'file'
-                          ? ((attachments[field.id]?.length ?? 0) > 0
-                            ? attachments[field.id].map((file) => file.name).join(', ')
-                            : '–')
-                          : formatReviewValue(field, values[field.id])}
+                        : formatReviewValue(field, values[field.id])}
                     </dd>
                   </div>
                 ))}
               </dl>
             </div>
           ))}
+          <div className="reimbursement-form-section">
+            <h3>Instruções específicas — {casoSelecionado.titulo}</h3>
+            <dl className="service-review-grid">
+              {casoSelecionado.documentos.map((documento) => (
+                <div className="service-review-row" key={documento.id}>
+                  <dt>{documento.label}</dt>
+                  <dd>
+                    {(anexosPorDocumento[documento.id]?.length ?? 0) > 0
+                      ? anexosPorDocumento[documento.id].map((file) => file.name).join(', ')
+                      : '–'}
+                  </dd>
+                </div>
+              ))}
+              {casoSelecionado.avisoNormativo?.exigeConfirmacao && (
+                <div className="service-review-row">
+                  <dt>Aviso normativo</dt>
+                  <dd>{avisoConfirmado ? 'Confirmado' : 'Não confirmado'}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
           {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
           <div className="reimbursement-actions">
             <button className="secondary-button" type="button" onClick={() => setStep('form')}>
@@ -197,7 +259,7 @@ export function ServiceRequestWizard({
       <form className="reimbursement-form" onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
         <section className="reimbursement-card">
           <h2>Formulário</h2>
-          {isFeatureInstrucoesCondicionaisEnabled() && schema.avisoInicial && (
+          {schema.avisoInicial && (
             <AvisoNormativo
               confirmado={false}
               conteudo={schema.avisoInicial.conteudo}
@@ -222,25 +284,35 @@ export function ServiceRequestWizard({
                   </div>
                 )}
                 <div className="reimbursement-grid">
-                  {otherFields.map((field) => (
-                    field.type === 'file'
-                      ? (
-                        <FileAttachmentField
-                          fullWidth={field.fullWidth}
-                          files={attachments[field.id] ?? []}
-                          helpText={field.helpText}
-                          key={field.id}
-                          label={field.label}
-                          onAdd={(newFiles) => addFiles(field.id, newFiles)}
-                          onRemove={(index) => removeFile(field.id, index)}
-                        />
-                      )
-                      : renderField(field, values[field.id], (value) => updateValue(field.id, value))
-                  ))}
+                  {section.id === 'detalhes' && (
+                    <label className="wide" key="pergunta-chave-combobox">
+                      {perguntaChave.enunciado}
+                      <Combobox
+                        onSelect={handleCasoChange}
+                        options={perguntaChave.casos.map((caso) => ({ value: caso.id, label: caso.titulo }))}
+                        placeholder="Selecione uma opção"
+                        value={casoId}
+                      />
+                    </label>
+                  )}
+                  {otherFields.map((field) => renderField(field, values[field.id], (value) => updateValue(field.id, value)))}
                 </div>
               </div>
             )
           })}
+          <div className="reimbursement-form-section">
+            <h3>Documentos exigidos — {casoSelecionado.titulo}</h3>
+            <ChecklistAnexos documentos={checklistDocumentos} onAdd={addFiles} onRemove={removeFile} />
+          </div>
+          {casoSelecionado.avisoNormativo && (
+            <div className="reimbursement-form-section">
+              <AvisoNormativo
+                {...casoSelecionado.avisoNormativo}
+                confirmado={avisoConfirmado}
+                onConfirmar={setAvisoConfirmado}
+              />
+            </div>
+          )}
           {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
           <div className="reimbursement-actions">
             <button className="primary-button" type="submit">
