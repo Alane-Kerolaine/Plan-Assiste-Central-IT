@@ -732,8 +732,8 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: end; }
 .reimbursement-filters > label:nth-child(3) { grid-column: span 2; }
 .reimbursement-filter-number { grid-column: auto; }
-.reimbursement-filters label, .reimbursement-grid label, .attachment-grid label { display: flex; flex-direction: column; gap: 8px; color: var(--text-dark); font-weight: var(--fw-semibold); }
-.reimbursement-filters input, .reimbursement-filters select, .reimbursement-grid input, .reimbursement-grid select, .reimbursement-grid textarea, .attachment-grid input { width: 100%; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background-color: white; color: var(--text); padding: 0 14px; }
+.reimbursement-filters label, .reimbursement-grid label { display: flex; flex-direction: column; gap: 8px; color: var(--text-dark); font-weight: var(--fw-semibold); }
+.reimbursement-filters input, .reimbursement-filters select, .reimbursement-grid input, .reimbursement-grid select, .reimbursement-grid textarea { width: 100%; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background-color: white; color: var(--text); padding: 0 14px; }
 .reimbursement-filters select, .reimbursement-grid select { padding: 0 38px 0 14px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='14' height='9' viewBox='0 0 14 9' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 2l5 5 5-5' fill='none' stroke='%23087765' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
 .reimbursement-grid textarea { padding-top: 12px; resize: vertical; }
 .reimbursement-filters button { min-height: 46px; border: 1px solid var(--border); border-radius: 999px; background: var(--mint-soft); color: var(--brand-strong); padding: 0 16px; font-weight: var(--fw-semibold); }
@@ -794,18 +794,8 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-grid input:disabled { background: #f4faf8; color: var(--brand-dark); cursor: not-allowed; }
 .reimbursement-profile-hint { margin: 12px 0 0; }
 .reimbursement-profile-hint a { color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: underline; }
-.reimbursement-checkbox { display: flex !important; flex-direction: row; align-items: center; align-content: initial; min-height: 46px; gap: 10px !important; }
-.reimbursement-checkbox input { flex: 0 0 18px; }
-.reimbursement-checkbox input, .responsibility-term input { width: 18px; min-height: auto; height: 18px; accent-color: var(--brand-primary); }
+.responsibility-term input { width: 18px; min-height: auto; height: 18px; accent-color: var(--brand-primary); }
 .reimbursement-warning { border-left: 4px solid var(--warning); border-radius: 8px; background: #fff8e0; color: var(--text-dark); padding: 12px 14px; margin: 16px 0 0; }
-.attachment-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.attachment-grid .wide { grid-column: 1 / -1; }
-.attachment-field { display: grid; gap: 8px; color: var(--text-dark); }
-.attachment-file-control { display: flex !important; align-items: center; gap: 12px !important; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background: white; padding: 5px 7px; cursor: pointer; overflow: hidden; }
-.attachment-file-control input { position: absolute; width: 1px; height: 1px; min-height: 0; opacity: 0; pointer-events: none; }
-.attachment-file-button { flex: 0 0 auto; border: 1px solid var(--border); border-radius: 7px; background: var(--mint-soft); color: var(--brand-strong); padding: 7px 12px; line-height: 1.2; }
-.attachment-file-name { min-width: 0; overflow: hidden; color: var(--text); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
-.attachment-file-control:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(8, 119, 101, .12); }
 .reimbursement-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
 .reimbursement-actions svg { width: 18px; }
 .responsibility-term { display: flex !important; flex-direction: row !important; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 16px; margin-top: 16px; color: var(--text-dark); font-weight: var(--fw-semibold); }
@@ -3639,7 +3629,7 @@ select:not([multiple]) {
   .preference-item { grid-template-columns: 1fr; }
   .request-action { grid-column: 2; justify-self: stretch; justify-content: center; }
   .preference-item .request-action, .preference-actions { grid-column: auto; justify-self: stretch; justify-content: center; }
-  .dependents-summary, .dependent-card dl, .notification-toolbar, .notification-preference-grid, .extract-summary, .extract-filters, .reimbursement-summary, .reimbursement-filters, .reimbursement-result-actions, .reimbursement-grid, .attachment-grid { grid-template-columns: 1fr; }
+  .dependents-summary, .dependent-card dl, .notification-toolbar, .notification-preference-grid, .extract-summary, .extract-filters, .reimbursement-summary, .reimbursement-filters, .reimbursement-result-actions, .reimbursement-grid { grid-template-columns: 1fr; }
   .service-review-grid { grid-template-columns: 1fr; }
   .service-review-row dt { margin-top: 8px; }
   .service-success { padding: 32px 20px; }
