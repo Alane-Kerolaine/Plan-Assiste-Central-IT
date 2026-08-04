@@ -6,12 +6,13 @@ import {
   ArrowRight,
   BadgeCheck,
   Bell,
-  Bone,
   Brain,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
   Clock,
+  Copy,
   Download,
   Dumbbell,
   FileText,
@@ -72,6 +73,10 @@ import {
 } from '../utils/userProfile'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { BrazilianDateInput } from '../components/BrazilianDateInput'
+import { FileAttachmentField } from '../components/FileAttachmentField'
+import { WizardSteps } from '../components/serviceRequestWizardComponents'
+import { DEFAULT_SUCCESS_SECONDARY_ACTION, type WizardStep } from '../components/serviceRequestWizardHelpers'
+import { generateProtocolNumber } from '../utils/protocol'
 import {
   getStoredNotifications,
   markAllNotificationsRead,
@@ -226,7 +231,7 @@ const beneficiaryAuthorizationGroups = [
         title: 'Autorização de OPME',
         text: 'Solicite autorização para órteses, próteses e materiais especiais indicados em procedimento.',
         to: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
-        icon: Bone,
+        icon: Stethoscope,
       },
     ],
   },
@@ -800,13 +805,45 @@ function reimbursementDateValue(date: string) {
   return new Date(year, month - 1, day).getTime()
 }
 
+const REEMBOLSO_INSTRUCTIONS = [
+  'Selecione o tipo de reembolso e o beneficiário atendido para cada procedimento.',
+  'Anexe a nota fiscal/recibo e os demais documentos exigidos para o tipo escolhido.',
+  'Revise os dados na etapa de Revisão antes de confirmar o envio.',
+  'Guarde o número de protocolo gerado para acompanhar sua solicitação.',
+]
+
+const REEMBOLSO_FAQ = [
+  {
+    question: 'Quais documentos preciso anexar?',
+    answer: 'Os documentos variam conforme o tipo de reembolso selecionado: nota fiscal ou recibo é sempre exigido, e a depender do procedimento também são solicitados pedido ou relatório médico, perícia e, no caso de tratamento odontológico, orçamento no modelo do Plan-Assiste.',
+  },
+  {
+    question: 'Em quanto tempo recebo o reembolso?',
+    answer: 'Após o envio, a solicitação passa por análise e o crédito é feito na conta bancária cadastrada como recebimento de salário do beneficiário titular. Pendências de documentação podem prorrogar esse prazo.',
+  },
+  {
+    question: 'Posso incluir mais de um procedimento na mesma solicitação?',
+    answer: 'Sim. Utilize o botão "Adicionar solicitação" para incluir cada procedimento na lista antes de revisar e enviar; todos serão analisados dentro do mesmo protocolo.',
+  },
+]
+
 export function BeneficiaryNovaReembolsoPage() {
   const profile = getStoredUserProfile()
+  const [showForm, setShowForm] = useState(false)
+  const [step, setStep] = useState<WizardStep>('form')
   const [draft, setDraft] = useState<ReimbursementDraft>(initialReimbursementDraft)
   const [items, setItems] = useState<ReimbursementDraft[]>([])
-  const [attachmentFiles, setAttachmentFiles] = useState<Record<string, string[]>>({})
+  const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File[]>>({})
   const [acceptedTerm, setAcceptedTerm] = useState(false)
   const [notice, setNotice] = useState('')
+  const [protocol, setProtocol] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const id = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(id)
+  }, [copied])
 
   function updateDraft<Key extends keyof ReimbursementDraft>(key: Key, value: ReimbursementDraft[Key]) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -822,161 +859,349 @@ export function BeneficiaryNovaReembolsoPage() {
     setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
   }
 
-  function validateReimbursementFiles(label: string, event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files || [])
-    const invalidType = files.find((file) => file.type !== 'application/pdf')
-    const oversized = files.find((file) => file.size > 5 * 1024 * 1024)
+  function addAttachmentFiles(label: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
     if (invalidType || oversized) {
-      event.target.value = ''
       setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
-      setAttachmentFiles((current) => ({ ...current, [label]: [] }))
       return
     }
-    setAttachmentFiles((current) => ({ ...current, [label]: files.map((file) => file.name) }))
+    setAttachmentFiles((current) => ({ ...current, [label]: [...(current[label] ?? []), ...newFiles] }))
   }
 
-  function submitReimbursement(event: FormEvent) {
+  function removeAttachmentFile(label: string, index: number) {
+    setAttachmentFiles((current) => ({ ...current, [label]: (current[label] ?? []).filter((_, fileIndex) => fileIndex !== index) }))
+  }
+
+  function handleContinue(event: FormEvent) {
     event.preventDefault()
     if (items.length === 0) {
-      setNotice('Adicione pelo menos uma solicitação antes de enviar.')
+      setNotice('Adicione pelo menos uma solicitação antes de continuar.')
       return
     }
+    setNotice('')
+    setStep('review')
+  }
+
+  function handleConfirm() {
     if (!acceptedTerm) {
       setNotice('Aceite o termo de responsabilidade para concluir o envio.')
       return
     }
-    setNotice(`Solicitação registrada para análise com ${pluralCount(items.length, 'item', 'itens')}.`)
+    setNotice('')
+    setProtocol(generateProtocolNumber())
+    setStep('success')
+  }
+
+  function handleReset() {
+    setDraft(initialReimbursementDraft)
     setItems([])
+    setAttachmentFiles({})
     setAcceptedTerm(false)
+    setNotice('')
+    setProtocol('')
+    setStep('form')
+  }
+
+  const catalogEntry = beneficiaryRequests.find((request) => request.id === 'reembolso')
+
+  if (!showForm) {
+    return (
+      <div className="reimbursements-page">
+        <div className="provider-page-heading">
+          <h1>{catalogEntry?.title ?? 'Reembolso de Livre Escolha'}</h1>
+          {catalogEntry?.description && <p className="page-subtitle">{catalogEntry.description}</p>}
+        </div>
+        <section className="reimbursement-card">
+          <div className="service-intro-faq">
+            {REEMBOLSO_FAQ.map((item) => (
+              <div key={item.question}>
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </div>
+            ))}
+          </div>
+          <div className="service-success-followup">
+            <h3>Instruções</h3>
+            <ol>
+              {REEMBOLSO_INSTRUCTIONS.map((instruction, index) => (
+                <li key={instruction}>
+                  <span className="service-followup-index">{index + 1}</span> {instruction}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="reimbursement-actions">
+            <button className="primary-button" onClick={() => setShowForm(true)} type="button">
+              Iniciar solicitação <ArrowRight aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  const heading = (
+    <div className="provider-page-heading">
+      <h1>Nova solicitação de reembolso</h1>
+      <p className="page-subtitle">Preencha os dados do procedimento e anexe os documentos digitalizados.</p>
+    </div>
+  )
+
+  if (step === 'success') {
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="service-success">
+            <CheckCircle2 aria-hidden="true" className="service-success-icon" />
+            <h2>Solicitação criada com sucesso!</h2>
+            <p>Sua solicitação foi registrada para análise.</p>
+            <div className="service-protocol">
+              <span>Número do protocolo</span>
+              <strong>{protocol}</strong>
+              <button type="button" onClick={() => { navigator.clipboard.writeText(protocol); setCopied(true) }}>
+                <Copy aria-hidden="true" /> {copied ? 'Copiado!' : 'Copiar protocolo'}
+              </button>
+            </div>
+            <div className="service-success-followup">
+              <h3>Como acompanhar?</h3>
+              <ol>
+                <li><span className="service-followup-index">1</span> Acesse o menu Minhas Solicitações</li>
+                <li><span className="service-followup-index">2</span> Localize o protocolo informado</li>
+                <li><span className="service-followup-index">3</span> Verifique o status e atualizações</li>
+              </ol>
+            </div>
+            <div className="service-success-actions">
+              <button className="primary-button" type="button" onClick={handleReset}>
+                <RotateCcw aria-hidden="true" /> Registrar nova solicitação
+              </button>
+              <Link className="secondary-button" to={DEFAULT_SUCCESS_SECONDARY_ACTION.to}>{DEFAULT_SUCCESS_SECONDARY_ACTION.label}</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'review') {
+    const attachedEntries = Object.entries(attachmentFiles).filter(([, files]) => files.length > 0)
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="reimbursement-card service-review">
+            <h2>Revise sua solicitação</h2>
+            <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
+
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Titular</dt><dd>Ana Maria de Araújo</dd></div>
+                <div className="service-review-row"><dt>Matrícula</dt><dd>30003387</dd></div>
+                <div className="service-review-row"><dt>Ramo</dt><dd>MPDFT</dd></div>
+                <div className="service-review-row"><dt>E-mail</dt><dd>{profile.email}</dd></div>
+                <div className="service-review-row"><dt>Telefone com DDD</dt><dd>{profile.phone}</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Banco</dt><dd>Banco do Brasil - Nº 001</dd></div>
+                <div className="service-review-row"><dt>Agência</dt><dd>3085-6</dd></div>
+                <div className="service-review-row"><dt>Conta</dt><dd>19865</dd></div>
+                <div className="service-review-row"><dt>DV conta</dt><dd>X</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Solicitações</h3>
+              <div className="reimbursement-table-wrap">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
+                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={`${item.receiptNumber}-${index}`}>
+                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.providerDocument}</td><td>{item.type}</td>
+                        <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Anexos</h3>
+              <dl className="service-review-grid">
+                {attachedEntries.length > 0
+                  ? attachedEntries.map(([label, files]) => (
+                    <div className="service-review-row" key={label}>
+                      <dt>{label}</dt>
+                      <dd>{files.map((file) => file.name).join(', ')}</dd>
+                    </div>
+                  ))
+                  : <div className="service-review-row"><dt>Documentos</dt><dd>–</dd></div>}
+              </dl>
+            </div>
+
+            <label className="responsibility-term">
+              <input type="checkbox" checked={acceptedTerm} onChange={(event) => setAcceptedTerm(event.target.checked)} />
+              Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o Regulamento Geral do Plan-Assiste e as Normas Complementares que disciplinam a matéria. Declaro que li e concordo com os termos.
+            </label>
+
+            {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="secondary-button" type="button" onClick={() => setStep('form')}>
+                <ChevronLeft aria-hidden="true" /> Voltar e editar
+              </button>
+              <button className="primary-button" type="button" onClick={handleConfirm}>
+                <Send aria-hidden="true" /> Confirmar e enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="reimbursements-page">
-      <div className="provider-page-heading">
-        <h1>Nova solicitação de reembolso</h1>
-        <p className="page-subtitle">Preencha os dados do procedimento e anexe os documentos digitalizados.</p>
-      </div>
-      <form className="reimbursement-form" onSubmit={submitReimbursement}>
-        <section className="reimbursement-card">
-          <div className="reimbursement-form-section">
-            <h3>Identificação do(a) titular</h3>
-            <div className="reimbursement-grid reimbursement-grid-two-columns">
-              <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
-              <label>Matrícula<input value="30003387" disabled /></label>
-              <label>Ramo<input value="MPDFT" disabled /></label>
-              <label>E-mail<input value={profile.email} disabled /></label>
-              <label>Telefone com DDD<input value={profile.phone} disabled /></label>
+      {heading}
+      <div className="service-wizard">
+        <WizardSteps current={step} />
+        <form className="reimbursement-form" onSubmit={handleContinue}>
+          <section className="reimbursement-card">
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
+                <label>Matrícula<input value="30003387" disabled /></label>
+                <label>Ramo<input value="MPDFT" disabled /></label>
+                <label>E-mail<input value={profile.email} disabled /></label>
+                <label>Telefone com DDD<input value={profile.phone} disabled /></label>
+              </div>
+              <p className="service-field-hint reimbursement-profile-hint">
+                E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+              </p>
             </div>
-            <p className="service-field-hint reimbursement-profile-hint">
-              E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
-            </p>
-          </div>
 
-          <div className="reimbursement-form-section">
-            <h3>Dados bancários</h3>
-            <div className="reimbursement-grid reimbursement-grid-two-columns">
-              <label>Banco<input value="Banco do Brasil - Nº 001" disabled /></label>
-              <label>Agência<input value="3085-6" disabled /></label>
-              <label>Conta<input value="19865" disabled /></label>
-              <label>DV conta<input value="X" disabled /></label>
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Banco<input value="Banco do Brasil - Nº 001" disabled /></label>
+                <label>Agência<input value="3085-6" disabled /></label>
+                <label>Conta<input value="19865" disabled /></label>
+                <label>DV conta<input value="X" disabled /></label>
+              </div>
+              <p className="reimbursement-warning">
+                Os dados bancários são obtidos a partir do cadastro do beneficiário titular no Plan-Assiste. Os créditos dos reembolsos são obrigatoriamente creditados na conta de recebimento do salário do beneficiário titular.
+                Caso os dados cadastrados refiram-se à conta diversa ou exclusiva para recebimento da remuneração, encaminhe um e-mail para <a href="mailto:seplan-cadastro@mpu.mp.br">seplan-cadastro@mpu.mp.br</a>, informando a matrícula e os novos dados bancários.
+              </p>
             </div>
-            <p className="reimbursement-warning">
-              Os dados bancários são obtidos a partir do cadastro do beneficiário titular no Plan-Assiste. Os créditos dos reembolsos são obrigatoriamente creditados na conta de recebimento do salário do beneficiário titular.
-              Caso os dados cadastrados refiram-se à conta diversa ou exclusiva para recebimento da remuneração, encaminhe um e-mail para <a href="mailto:seplan-cadastro@mpu.mp.br">seplan-cadastro@mpu.mp.br</a>, informando a matrícula e os novos dados bancários.
-            </p>
-          </div>
 
-          <div className="reimbursement-form-section">
-            <h3>Dados da solicitação</h3>
-            <div className="reimbursement-grid">
-              <label>
-                Tipo de reembolso
-                <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)}>
-                  <option value="">Selecione o tipo</option>
-                  {reimbursementTypes.map((item) => <option key={item}>{item}</option>)}
-                </select>
-              </label>
-              <label>
-                Beneficiário atendido
-                <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
-                  {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
-                </select>
-              </label>
-              <label>Tipo de dependente<input value={draft.dependentType} disabled /></label>
-              <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} /></label>
-              <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
-              <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} /></label>
-              <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', event.target.value)} placeholder="R$ 0,00" /></label>
-              <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} /></label>
-              <label className="reimbursement-checkbox wide">
-                <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
-                Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
-              </label>
-              <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} /></label>
+            <div className="reimbursement-form-section">
+              <h3>Dados da solicitação</h3>
+              <div className="reimbursement-grid">
+                <label>
+                  Tipo de reembolso
+                  <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)}>
+                    <option value="">Selecione o tipo</option>
+                    {reimbursementTypes.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Beneficiário atendido
+                  <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                  </select>
+                </label>
+                <label>Tipo de dependente<input value={draft.dependentType} disabled /></label>
+                <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} /></label>
+                <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
+                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} /></label>
+                <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', event.target.value)} placeholder="R$ 0,00" /></label>
+                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} /></label>
+                <label className="responsibility-term wide">
+                  <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
+                  Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
+                </label>
+                <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} /></label>
+              </div>
             </div>
-          </div>
 
-          <div className="reimbursement-form-section">
-            <h3>Anexos</h3>
-            <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
-            <div className="attachment-grid">
-              {reimbursementAttachments(draft.type, draft.isPriorityCare).map((label) => (
-                <div className="attachment-field" key={label}>
-                  <strong>{label}</strong>
-                  {label === 'Orçamento odontológico' && <a href="https://planassiste.mpu.mp.br/beneficiarios/docs-formularios/orcamento_odontologico_Edit.pdf" target="_blank" rel="noreferrer">Baixar modelo</a>}
-                  <label className="attachment-file-control">
-                    <span className="attachment-file-button">Selecionar arquivos</span>
-                    <span className="attachment-file-name">
-                      {attachmentFiles[label]?.length
-                        ? attachmentFiles[label].length === 1 ? attachmentFiles[label][0] : `${attachmentFiles[label].length} arquivos selecionados`
-                        : 'Nenhum arquivo selecionado'}
-                    </span>
-                    <input type="file" accept="application/pdf,.pdf" multiple onChange={(event) => validateReimbursementFiles(label, event)} />
-                  </label>
-                </div>
-              ))}
-              {!draft.type && <p className="page-subtitle wide">Selecione o tipo de reembolso para ver os documentos necessários.</p>}
-            </div>
-          </div>
-
-          <div className="reimbursement-actions">
-            <button type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
-          </div>
-
-          {items.length > 0 && (
-            <div className="reimbursement-table-wrap">
-              <table className="reimbursement-table">
-                <thead>
-                  <tr>
-                    <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
-                    <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <tr key={`${item.receiptNumber}-${index}`}>
-                      <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
-                      <td>{item.providerDocument}</td><td>{item.type}</td>
-                      <td>{item.sessions || '-'}</td><td>{item.value}</td>
-                    </tr>
+            <div className="reimbursement-form-section">
+              <h3>Anexos</h3>
+              <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
+              {draft.type ? (
+                <div className="checklist-anexos">
+                  {reimbursementAttachments(draft.type, draft.isPriorityCare).map((label) => (
+                    <div key={label}>
+                      {label === 'Orçamento odontológico' && (
+                        <p className="service-field-hint">
+                          <a href="https://planassiste.mpu.mp.br/beneficiarios/docs-formularios/orcamento_odontologico_Edit.pdf" target="_blank" rel="noreferrer">Baixar modelo</a>
+                        </p>
+                      )}
+                      <FileAttachmentField
+                        fullWidth
+                        files={attachmentFiles[label] ?? []}
+                        label={label}
+                        onAdd={(files) => addAttachmentFiles(label, files)}
+                        onRemove={(index) => removeAttachmentFile(label, index)}
+                      />
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              ) : (
+                <p className="page-subtitle wide">Selecione o tipo de reembolso para ver os documentos necessários.</p>
+              )}
             </div>
-          )}
 
-          <label className="responsibility-term">
-            <input type="checkbox" checked={acceptedTerm} onChange={(event) => setAcceptedTerm(event.target.checked)} />
-            Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o Regulamento Geral do Plan-Assiste e as Normas Complementares que disciplinam a matéria. Declaro que li e concordo com os termos.
-          </label>
+            <div className="reimbursement-actions">
+              <button type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
+            </div>
 
-          <div className="reimbursement-actions">
-            <button className="primary-button" type="submit"><Send aria-hidden="true" /> Enviar solicitação</button>
-            <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAcceptedTerm(false) }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
-          </div>
-        </section>
-        {notice && <p className="action-notice" role="status">{notice}</p>}
-      </form>
+            {items.length > 0 && (
+              <div className="reimbursement-table-wrap">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
+                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={`${item.receiptNumber}-${index}`}>
+                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.providerDocument}</td><td>{item.type}</td>
+                        <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {notice && <p className="action-notice" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="primary-button" type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
+              <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAttachmentFiles({}); setAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
+            </div>
+          </section>
+        </form>
+      </div>
     </div>
   )
 }
