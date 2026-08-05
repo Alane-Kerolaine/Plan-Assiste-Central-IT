@@ -15,6 +15,7 @@ import {
   Copy,
   Download,
   Dumbbell,
+  FileImage,
   FileText,
   Heart,
   HeartPulse,
@@ -26,6 +27,7 @@ import {
   Eye,
   HandCoins,
   HandHeart,
+  Headphones,
   HelpCircle,
   IdCard,
   PersonStanding,
@@ -38,6 +40,7 @@ import {
   Speech,
   Star,
   Stethoscope,
+  Undo2,
   UserPlus,
   UserRound,
   WalletCards,
@@ -1127,16 +1130,16 @@ export function BeneficiaryNovaReembolsoPage() {
                   </select>
                 </label>
                 <label>Tipo de dependente<input value={draft.dependentType} disabled /></label>
-                <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} /></label>
+                <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
                 <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
-                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} /></label>
+                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
                 <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', event.target.value)} placeholder="R$ 0,00" /></label>
-                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} /></label>
+                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} placeholder="Se aplicável" /></label>
                 <label className="responsibility-term wide">
                   <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
                   Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
                 </label>
-                <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} /></label>
+                <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} placeholder="Inclua informações que ajudem na análise da solicitação" /></label>
               </div>
             </div>
 
@@ -3030,7 +3033,7 @@ export function NotificationsPage() {
 // Minhas Solicitações
 // ============================================================
 
-type MinhasSolicitacaoStatus = 'Em andamento' | 'Pendente' | 'Concluída'
+type MinhasSolicitacaoStatus = 'Aberto' | 'Em andamento' | 'Suspenso' | 'Reativado' | 'Reaberto' | 'Concluída'
 type MinhasSolicitacaoAssunto = 'Autorizações' | 'Cadastro' | 'Reembolso e auxílios' | 'Financeiro' | 'Documentos'
 
 type MinhasSolicitacaoFormField = {
@@ -3040,8 +3043,11 @@ type MinhasSolicitacaoFormField = {
 
 type MinhasSolicitacaoAtualizacao = {
   data: string
+  hora?: string
   titulo: string
   descricao: string
+  autor?: 'atendente' | 'beneficiario'
+  anexos?: string[]
 }
 
 type MinhasSolicitacao = {
@@ -3062,7 +3068,7 @@ function solicitacaoConcluida(status: MinhasSolicitacaoStatus) {
 
 const minhasSolicitacoesData: MinhasSolicitacao[] = [
   {
-    id: 'SOL-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Reembolso de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '20/03/2026', status: 'Pendente',
+    id: 'SOL-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Reembolso de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '20/03/2026', status: 'Suspenso',
     formulario: [
       { label: 'Tipo de reembolso', value: 'Consulta/Avaliação' },
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
@@ -3073,6 +3079,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['nota-fiscal-9987.pdf', 'comprovante-pagamento.pdf'],
     atualizacoes: [
+      { data: '22/03/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando documento complementar para prosseguir com a análise.' },
       { data: '20/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3128,7 +3135,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'MED-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Auxílio para Medicamentos', beneficiario: 'João Silva Santos (Titular)', data: '22/03/2026', status: 'Pendente',
+    id: 'MED-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Auxílio para Medicamentos', beneficiario: 'João Silva Santos (Titular)', data: '22/03/2026', status: 'Reativado',
     formulario: [
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
       { label: 'Medicamento', value: 'Uso contínuo - anti-hipertensivo' },
@@ -3137,6 +3144,8 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['receita-medica.pdf', 'nota-fiscal-farmacia.pdf'],
     atualizacoes: [
+      { data: '25/03/2026', titulo: 'Solicitação reativada', descricao: 'Documento complementar recebido. A análise foi retomada pela equipe técnica.' },
+      { data: '23/03/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando receita médica atualizada para prosseguir com a análise.' },
       { data: '22/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3185,7 +3194,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'DEP-2026-002', assunto: 'Cadastro', tipo: 'Inscrição de Dependente', beneficiario: 'Pedro Silva Santos', data: '05/03/2026', status: 'Pendente',
+    id: 'DEP-2026-002', assunto: 'Cadastro', tipo: 'Inscrição de Dependente', beneficiario: 'Pedro Silva Santos', data: '05/03/2026', status: 'Suspenso',
     formulario: [
       { label: 'Nome do dependente', value: 'Pedro Silva Santos' },
       { label: 'Parentesco', value: 'Filho' },
@@ -3193,11 +3202,12 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['certidao-nascimento.pdf'],
     atualizacoes: [
+      { data: '08/03/2026', titulo: 'Solicitação suspensa', descricao: 'Certidão de nascimento ilegível. Envie uma nova cópia digitalizada.' },
       { data: '05/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
   {
-    id: 'AUT-2026-001', assunto: 'Autorizações', tipo: 'Autorização de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '23/03/2026', status: 'Pendente',
+    id: 'AUT-2026-001', assunto: 'Autorizações', tipo: 'Autorização de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '23/03/2026', status: 'Reaberto',
     formulario: [
       { label: 'Procedimento solicitado', value: 'Fisioterapia' },
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
@@ -3205,6 +3215,8 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['pedido-medico.pdf', 'relatorio-fisioterapico.pdf'],
     atualizacoes: [
+      { data: '27/03/2026', titulo: 'Solicitação reaberta', descricao: 'O beneficiário reabriu a solicitação após anexar o relatório fisioterápico faltante.' },
+      { data: '25/03/2026', titulo: 'Solicitação recusada', descricao: 'Relatório fisioterápico não apresentado. Consulte os documentos exigidos.' },
       { data: '23/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3245,8 +3257,9 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['contracheque-fevereiro.pdf'],
     atualizacoes: [
-      { data: '20/03/2026', titulo: 'Em andamento', descricao: 'Solicitação encaminhada para a área financeira.' },
-      { data: '18/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
+      { data: '22/03/2026', hora: '09:15', titulo: 'Atendimento', descricao: 'Recebemos sua solicitação e já estamos analisando. Segue o comprovante e o parecer técnico gerados até o momento.', autor: 'atendente', anexos: ['comprovante-atualizacao.pdf', 'parecer-tecnico.pdf'] },
+      { data: '20/03/2026', hora: '11:40', titulo: 'Em andamento', descricao: 'Solicitação encaminhada para a área financeira.' },
+      { data: '18/03/2026', hora: '15:00', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
   {
@@ -3277,26 +3290,64 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'DOC-2026-002', assunto: 'Documentos', tipo: 'Segunda Via de Documento', beneficiario: 'Pedro Silva Santos (Filho)', data: '25/02/2026', status: 'Pendente',
+    id: 'DOC-2026-002', assunto: 'Documentos', tipo: 'Segunda Via de Documento', beneficiario: 'Pedro Silva Santos (Filho)', data: '25/02/2026', status: 'Suspenso',
     formulario: [
       { label: 'Beneficiário atendido', value: 'Pedro Silva Santos' },
       { label: 'Documento solicitado', value: 'Carteirinha do Plan-Assiste' },
     ],
     anexos: [],
     atualizacoes: [
+      { data: '27/02/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando confirmação do endereço de entrega.' },
       { data: '25/02/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
+    ],
+  },
+  {
+    id: 'DOC-2026-003', assunto: 'Documentos', tipo: 'Emissão de Declaração', beneficiario: 'João Silva Santos (Titular)', data: '28/03/2026', status: 'Aberto',
+    formulario: [
+      { label: 'Beneficiário atendido', value: 'João Silva Santos' },
+      { label: 'Documento solicitado', value: 'Declaração de dependentes' },
+      { label: 'Finalidade', value: 'Imposto de renda' },
+    ],
+    anexos: [],
+    atualizacoes: [
+      { data: '28/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
 ]
 
 function solicitacaoStatusBadge(status: MinhasSolicitacaoStatus) {
   if (status === 'Concluída') return 'go-badge approved'
-  if (status === 'Em andamento') return 'go-badge analysis'
+  if (status === 'Em andamento' || status === 'Reativado') return 'go-badge analysis'
+  if (status === 'Suspenso') return 'go-badge refused'
+  if (status === 'Reaberto') return 'go-badge warning'
   return 'go-badge pending'
 }
 
 function solicitacaoStatusLabel(status: MinhasSolicitacaoStatus) {
   return status
+}
+
+function anexoIcone(nome: string) {
+  const extensao = nome.split('.').pop()?.toLowerCase() ?? ''
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extensao)) return <FileImage aria-hidden="true" />
+  return <FileText aria-hidden="true" />
+}
+
+function AnexoItem({ nome, onNotice }: { nome: string, onNotice: (mensagem: string) => void }) {
+  return (
+    <li>
+      {anexoIcone(nome)}
+      <span className="solicitacao-attachment-name">{nome}</span>
+      <span className="solicitacao-attachment-actions">
+        <button type="button" title="Visualizar arquivo" aria-label={`Visualizar ${nome}`} onClick={() => onNotice(`Visualização de "${nome}" indisponível neste protótipo.`)}>
+          <Eye aria-hidden="true" />
+        </button>
+        <button type="button" title="Baixar arquivo" aria-label={`Baixar ${nome}`} onClick={() => onNotice(`Download de "${nome}" simulado.`)}>
+          <Download aria-hidden="true" />
+        </button>
+      </span>
+    </li>
+  )
 }
 
 const SOLICITACOES_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
@@ -3341,9 +3392,11 @@ export function MinhasSolicitacoesPage() {
     setPage(1)
   }, [query, statusFilter, typeFilter, startDate, endDate, pageSize])
 
-  const total = minhasSolicitacoesData.length
+  const aberto = minhasSolicitacoesData.filter((s) => s.status === 'Aberto').length
   const emAndamento = minhasSolicitacoesData.filter((s) => s.status === 'Em andamento').length
-  const pendente = minhasSolicitacoesData.filter((s) => s.status === 'Pendente').length
+  const suspenso = minhasSolicitacoesData.filter((s) => s.status === 'Suspenso').length
+  const reativado = minhasSolicitacoesData.filter((s) => s.status === 'Reativado').length
+  const reaberto = minhasSolicitacoesData.filter((s) => s.status === 'Reaberto').length
   const concluida = minhasSolicitacoesData.filter((s) => s.status === 'Concluída').length
 
   return (
@@ -3355,26 +3408,36 @@ export function MinhasSolicitacoesPage() {
         </p>
       </div>
 
-      <section className="reimbursement-summary" aria-label="Resumo das solicitações">
+      <section className="reimbursement-summary reimbursement-summary-6" aria-label="Resumo das solicitações">
         <article>
-          <ClipboardList aria-hidden="true" />
-          <strong>{total}</strong>
-          <span>{pluralize(total, 'solicitação', 'solicitações')}</span>
+          <FileText aria-hidden="true" />
+          <strong>{aberto}</strong>
+          <span>Abertos</span>
         </article>
         <article>
-          <RotateCcw aria-hidden="true" />
+          <Activity aria-hidden="true" />
           <strong>{emAndamento}</strong>
-          <span>em andamento</span>
+          <span>Em andamento</span>
         </article>
         <article>
           <Clock aria-hidden="true" />
-          <strong>{pendente}</strong>
-          <span>{pluralize(pendente, 'pendente', 'pendentes')}</span>
+          <strong>{suspenso}</strong>
+          <span>Suspenso</span>
+        </article>
+        <article>
+          <RotateCcw aria-hidden="true" />
+          <strong>{reativado}</strong>
+          <span>Reativado</span>
+        </article>
+        <article>
+          <Undo2 aria-hidden="true" />
+          <strong>{reaberto}</strong>
+          <span>Reabertos</span>
         </article>
         <article>
           <BadgeCheck aria-hidden="true" />
           <strong>{concluida}</strong>
-          <span>{pluralize(concluida, 'concluída', 'concluídas')}</span>
+          <span>Concluídos</span>
         </article>
       </section>
 
@@ -3412,8 +3475,11 @@ export function MinhasSolicitacoesPage() {
               >
                 {[
                   ['Todas', 'Todas'],
+                  ['Aberto', 'Aberto'],
                   ['Em andamento', 'Em andamento'],
-                  ['Pendente', 'Pendente'],
+                  ['Suspenso', 'Suspenso'],
+                  ['Reativado', 'Reativado'],
+                  ['Reaberto', 'Reaberto'],
                   ['Concluída', 'Concluída'],
                 ].map(([value, label]) => (
                   <option value={value} key={value}>{label}</option>
@@ -3559,6 +3625,35 @@ const solicitacaoRatingLabels = ['Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelent
 export function SolicitacaoDetalhePage() {
   const { id } = useParams()
   const solicitacao = minhasSolicitacoesData.find((item) => item.id === id)
+  const [novaMensagem, setNovaMensagem] = useState('')
+  const [mensagensEnviadas, setMensagensEnviadas] = useState<MinhasSolicitacaoAtualizacao[]>([])
+  const [statusOverride, setStatusOverride] = useState<MinhasSolicitacaoStatus | null>(null)
+  const [showReopenModal, setShowReopenModal] = useState(false)
+  const [notice, setNotice] = useState('')
+  const statusAtual = statusOverride ?? solicitacao?.status ?? 'Aberto'
+
+  function formatDataHoraAtual() {
+    const agora = new Date()
+    const data = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`
+    const hora = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
+    return { data, hora }
+  }
+
+  function handleEnviarMensagem(event: FormEvent) {
+    event.preventDefault()
+    const texto = novaMensagem.trim()
+    if (!texto) return
+    const { data, hora } = formatDataHoraAtual()
+    setMensagensEnviadas((current) => [...current, { data, hora, titulo: 'Sua Mensagem', descricao: texto, autor: 'beneficiario' }])
+    setNovaMensagem('')
+  }
+
+  function handleConfirmarReabertura() {
+    const { data, hora } = formatDataHoraAtual()
+    setStatusOverride('Reaberto')
+    setMensagensEnviadas((current) => [...current, { data, hora, titulo: 'Chamado reaberto', descricao: 'Você reabriu esta solicitação. Nossa equipe retomará o atendimento em breve.' }])
+    setShowReopenModal(false)
+  }
 
   if (!solicitacao) {
     return (
@@ -3585,23 +3680,27 @@ export function SolicitacaoDetalhePage() {
       </div>
 
       <section className="reimbursement-card" aria-label="Resumo da solicitação">
-        <div className="service-protocol">
+        <div className="solicitacao-protocol-plain">
           <span>Nº do protocolo</span>
           <strong>{solicitacao.id}</strong>
         </div>
-        <dl className="service-review-grid">
-          <div className="service-review-row"><dt>Serviço</dt><dd>{solicitacao.tipo}</dd></div>
-          <div className="service-review-row"><dt>Assunto</dt><dd>{solicitacao.assunto}</dd></div>
-          <div className="service-review-row"><dt>Beneficiário</dt><dd>{solicitacao.beneficiario}</dd></div>
-          <div className="service-review-row"><dt>Data de abertura</dt><dd>{solicitacao.data}</dd></div>
-          <div className="service-review-row">
-            <dt>Situação</dt>
-            <dd><span className={solicitacaoStatusBadge(solicitacao.status)}>{solicitacaoStatusLabel(solicitacao.status)}</span></dd>
-          </div>
-        </dl>
-
         <div className="reimbursement-form-section">
-          <h3>O que foi solicitado</h3>
+          <dl className="service-review-grid">
+            <div className="service-review-row"><dt>Serviço</dt><dd>{solicitacao.tipo}</dd></div>
+            <div className="service-review-row"><dt>Assunto</dt><dd>{solicitacao.assunto}</dd></div>
+            <div className="service-review-row"><dt>Beneficiário</dt><dd>{solicitacao.beneficiario}</dd></div>
+            <div className="service-review-row"><dt>Data de abertura</dt><dd>{solicitacao.data}</dd></div>
+            <div className="service-review-row">
+              <dt>Situação</dt>
+              <dd><span className={solicitacaoStatusBadge(statusAtual)}>{solicitacaoStatusLabel(statusAtual)}</span></dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <div className="solicitacao-detail-stack">
+        <details className="solicitacao-accordion" open>
+          <summary>Detalhes da solicitação</summary>
           <dl className="service-review-grid">
             {solicitacao.formulario.map((field) => (
               <div className="service-review-row" key={field.label}>
@@ -3610,36 +3709,111 @@ export function SolicitacaoDetalhePage() {
               </div>
             ))}
           </dl>
-          {solicitacao.anexos.length > 0 && (
-            <div className="solicitacao-attachment-list">
-              <h4>Anexos</h4>
-              <ul>
-                {solicitacao.anexos.map((anexo) => (
-                  <li key={anexo}><FileText aria-hidden="true" /> {anexo}</li>
-                ))}
-              </ul>
-            </div>
+        </details>
+
+        <details className="solicitacao-accordion">
+          <summary>Anexos ({solicitacao.anexos.length})</summary>
+          {solicitacao.anexos.length > 0 ? (
+            <ul className="solicitacao-attachment-list">
+              {solicitacao.anexos.map((anexo) => (
+                <AnexoItem key={anexo} nome={anexo} onNotice={setNotice} />
+              ))}
+            </ul>
+          ) : (
+            <p className="page-subtitle">Nenhum arquivo anexado a esta solicitação.</p>
           )}
-        </div>
+        </details>
 
-        <div className="reimbursement-form-section">
-          <h3>Atualizações da solicitação</h3>
+        <section className="reimbursement-card solicitacao-detail-chat" aria-label="Atividade do chamado">
+          <h3>Atividade do chamado</h3>
           <ol className="solicitacao-timeline">
-            {solicitacao.atualizacoes.map((item, index) => (
-              <li key={`${item.data}-${item.titulo}`} className={index === 0 ? 'is-latest' : ''}>
-                <span className="solicitacao-timeline-marker" aria-hidden="true" />
-                <div>
-                  <strong>{item.titulo}</strong>
-                  <time>{item.data}</time>
-                  <p>{item.descricao}</p>
-                </div>
-              </li>
-            ))}
+            {(() => {
+              const historico = [...solicitacao.atualizacoes].reverse().concat(mensagensEnviadas)
+              return historico.map((item, index) => (
+                <li
+                  key={`${item.data}-${item.titulo}-${index}`}
+                  className={[
+                    index === historico.length - 1 ? 'is-latest' : '',
+                    item.autor === 'atendente' ? 'is-atendente' : '',
+                    item.autor === 'beneficiario' ? 'is-beneficiario' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <span className="solicitacao-timeline-marker" aria-hidden="true">
+                    {item.autor === 'atendente' ? (
+                      <Headphones aria-hidden="true" />
+                    ) : item.autor === 'beneficiario' ? (
+                      <UserRound aria-hidden="true" />
+                    ) : (
+                      <CheckCircle2 aria-hidden="true" />
+                    )}
+                  </span>
+                  <div>
+                    <div className="solicitacao-timeline-heading">
+                      <strong>{item.titulo}</strong>
+                      <time>{item.data}{item.hora ? ` ${item.hora}` : ''}</time>
+                    </div>
+                    <p>{item.descricao}</p>
+                    {item.anexos && item.anexos.length > 0 && (
+                      <ul className="solicitacao-attachment-list solicitacao-timeline-attachments">
+                        {item.anexos.map((anexo) => (
+                          <AnexoItem key={anexo} nome={anexo} onNotice={setNotice} />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))
+            })()}
           </ol>
-        </div>
-      </section>
 
-      {solicitacaoConcluida(solicitacao.status) && <SolicitacaoRating requestId={solicitacao.id} />}
+          {solicitacaoConcluida(statusAtual) ? (
+            <div className="solicitacao-reopen-action">
+              <button className="secondary-button" type="button" onClick={() => setShowReopenModal(true)}>
+                <RotateCcw aria-hidden="true" /> Reabrir chamado
+              </button>
+            </div>
+          ) : (
+            <form className="solicitacao-chat-compose" onSubmit={handleEnviarMensagem}>
+              <input
+                type="text"
+                placeholder="Escreva uma mensagem para o atendente..."
+                value={novaMensagem}
+                onChange={(event) => setNovaMensagem(event.target.value)}
+                aria-label="Mensagem para o atendente"
+              />
+              <button className="primary-button" type="submit">
+                <Send aria-hidden="true" /> Enviar
+              </button>
+            </form>
+          )}
+        </section>
+      </div>
+
+      {notice && <p className="action-notice" role="status">{notice}</p>}
+
+      {solicitacaoConcluida(statusAtual) && <SolicitacaoRating requestId={solicitacao.id} />}
+
+      {showReopenModal && (
+        <div className="go-modal-overlay" role="presentation" onClick={() => setShowReopenModal(false)}>
+          <div className="go-modal" role="dialog" aria-modal="true" aria-labelledby="reopen-modal-title" onClick={(event) => event.stopPropagation()}>
+            <div className="go-modal-header">
+              <h2 id="reopen-modal-title">Reabrir solicitação</h2>
+              <button className="go-modal-close" type="button" onClick={() => setShowReopenModal(false)} aria-label="Fechar">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Tem certeza que deseja reabrir esta solicitação? O atendimento será retomado e você poderá enviar novas mensagens ao atendente.</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" type="button" onClick={() => setShowReopenModal(false)}>Cancelar</button>
+                <button className="primary-button" type="button" onClick={handleConfirmarReabertura}>
+                  <RotateCcw aria-hidden="true" /> Reabrir chamado
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -3698,7 +3872,9 @@ function SolicitacaoRating({ requestId }: { requestId: string }) {
               onBlur={() => setHoverRating(0)}
               onClick={() => setRating(value)}
             >
-              <Star aria-hidden="true" />
+              <span className="solicitacao-rating-star-circle">
+                <Star aria-hidden="true" fill={value <= previewRating ? 'currentColor' : 'none'} />
+              </span>
               <span>{solicitacaoRatingLabels[value - 1]}</span>
             </button>
           ))}
