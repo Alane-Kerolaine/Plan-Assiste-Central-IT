@@ -98,8 +98,19 @@ import {
   type FavoriteState,
 } from '../utils/favorites'
 import { Combobox } from '../components/Combobox'
+import { ChatMessageComposer } from '../components/ChatMessageComposer'
 import { getStoredSession } from '../utils/session'
 import { pluralCount, pluralize } from '../utils/plural'
+import {
+  SOLICITACOES_PAGE_SIZE_OPTIONS,
+  solicitacaoConcluida,
+  solicitacaoRatingLabels,
+  solicitacaoStatusBadge,
+  solicitacaoStatusLabel,
+  type MinhasSolicitacaoAtualizacao,
+  type MinhasSolicitacaoFormField,
+  type MinhasSolicitacaoStatus,
+} from '../utils/solicitacoes'
 import { NewsCard } from './HomePage'
 import { NewsDateRangePicker } from './PublicPages'
 
@@ -3033,22 +3044,7 @@ export function NotificationsPage() {
 // Minhas Solicitações
 // ============================================================
 
-type MinhasSolicitacaoStatus = 'Aberto' | 'Em andamento' | 'Suspenso' | 'Reativado' | 'Reaberto' | 'Concluída'
 type MinhasSolicitacaoAssunto = 'Autorizações' | 'Cadastro' | 'Reembolso e auxílios' | 'Financeiro' | 'Documentos'
-
-type MinhasSolicitacaoFormField = {
-  label: string
-  value: string
-}
-
-type MinhasSolicitacaoAtualizacao = {
-  data: string
-  hora?: string
-  titulo: string
-  descricao: string
-  autor?: 'atendente' | 'beneficiario'
-  anexos?: string[]
-}
 
 type MinhasSolicitacao = {
   id: string
@@ -3060,10 +3056,6 @@ type MinhasSolicitacao = {
   formulario: MinhasSolicitacaoFormField[]
   anexos: string[]
   atualizacoes: MinhasSolicitacaoAtualizacao[]
-}
-
-function solicitacaoConcluida(status: MinhasSolicitacaoStatus) {
-  return status === 'Concluída'
 }
 
 const minhasSolicitacoesData: MinhasSolicitacao[] = [
@@ -3315,25 +3307,13 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
   },
 ]
 
-function solicitacaoStatusBadge(status: MinhasSolicitacaoStatus) {
-  if (status === 'Concluída') return 'go-badge approved'
-  if (status === 'Em andamento' || status === 'Reativado') return 'go-badge analysis'
-  if (status === 'Suspenso') return 'go-badge refused'
-  if (status === 'Reaberto') return 'go-badge warning'
-  return 'go-badge pending'
-}
-
-function solicitacaoStatusLabel(status: MinhasSolicitacaoStatus) {
-  return status
-}
-
 function anexoIcone(nome: string) {
   const extensao = nome.split('.').pop()?.toLowerCase() ?? ''
   if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extensao)) return <FileImage aria-hidden="true" />
   return <FileText aria-hidden="true" />
 }
 
-function AnexoItem({ nome, onNotice }: { nome: string, onNotice: (mensagem: string) => void }) {
+export function AnexoItem({ nome, onNotice }: { nome: string, onNotice: (mensagem: string) => void }) {
   return (
     <li>
       {anexoIcone(nome)}
@@ -3349,8 +3329,6 @@ function AnexoItem({ nome, onNotice }: { nome: string, onNotice: (mensagem: stri
     </li>
   )
 }
-
-const SOLICITACOES_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 export function MinhasSolicitacoesPage() {
   const [requestLauncherOpen, setRequestLauncherOpen] = useState(false)
@@ -3620,8 +3598,6 @@ export function MinhasSolicitacoesPage() {
 // Acompanhamento de uma solicitação
 // ============================================================
 
-const solicitacaoRatingLabels = ['Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
-
 export function SolicitacaoDetalhePage() {
   const { id } = useParams()
   const solicitacao = minhasSolicitacoesData.find((item) => item.id === id)
@@ -3773,18 +3749,7 @@ export function SolicitacaoDetalhePage() {
               </button>
             </div>
           ) : (
-            <form className="solicitacao-chat-compose" onSubmit={handleEnviarMensagem}>
-              <input
-                type="text"
-                placeholder="Escreva uma mensagem para o atendente..."
-                value={novaMensagem}
-                onChange={(event) => setNovaMensagem(event.target.value)}
-                aria-label="Mensagem para o atendente"
-              />
-              <button className="primary-button" type="submit">
-                <Send aria-hidden="true" /> Enviar
-              </button>
-            </form>
+            <ChatMessageComposer value={novaMensagem} onChange={setNovaMensagem} onSubmit={handleEnviarMensagem} />
           )}
         </section>
       </div>
@@ -3818,7 +3783,7 @@ export function SolicitacaoDetalhePage() {
   )
 }
 
-function SolicitacaoRating({ requestId }: { requestId: string }) {
+export function SolicitacaoRating({ requestId }: { requestId: string }) {
   const [favoriteState, setFavoriteState] = useState<FavoriteState>(() => getFavoriteState())
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)

@@ -24,13 +24,16 @@ export function initialValues(schema: ServiceFormSchema): Record<string, string>
   return values
 }
 
+export function isoDateToBr(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
+}
+
 export function formatReviewValue(field: ServiceField, value: string | undefined): string {
   if (field.type === 'checkbox') return value === 'true' ? 'Confirmado' : 'Não confirmado'
   if (!value?.trim()) return '–'
-  if (field.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const [year, month, day] = value.split('-')
-    return `${day}/${month}/${year}`
-  }
+  if (field.type === 'date') return isoDateToBr(value)
 
   return value
 }

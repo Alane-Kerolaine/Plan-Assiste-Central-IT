@@ -957,8 +957,11 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .solicitacao-timeline li p { margin: 0; color: var(--text-dark); }
 .solicitacao-chat-compose { display: flex; gap: 10px; margin-top: 20px; }
 .solicitacao-reopen-action { margin-top: 20px; }
-.solicitacao-chat-compose input { flex: 1; min-height: 50px; border: 1px solid var(--border); border-radius: 999px; background: var(--mint-soft); padding: 0 20px; color: var(--text); }
-.solicitacao-chat-compose button { flex: 0 0 auto; border-radius: 999px; }
+.solicitacao-chat-textarea-wrap { position: relative; flex: 1; }
+.solicitacao-chat-textarea-wrap textarea { box-sizing: border-box; width: 100%; min-height: 96px; max-height: 260px; resize: vertical; border: 1px solid var(--border); border-radius: 16px; background: var(--mint-soft); padding: 14px 20px 48px; color: var(--text); font-family: inherit; font-size: 1rem; line-height: 1.4; }
+.solicitacao-chat-char-count { position: absolute; left: 20px; bottom: 14px; font-size: 13px; color: var(--text-muted, #6b7280); pointer-events: none; }
+.solicitacao-chat-char-count.is-near-limit { color: #d6a323; }
+.solicitacao-chat-send { position: absolute; right: 16px; bottom: 14px; min-height: 38px; padding: 0 18px; border-radius: 999px; font-size: 0.95rem; }
 
 .solicitacao-detail-stack { display: grid; gap: 20px; margin-top: 24px; }
 .solicitacao-accordion { border: 1px solid var(--border); border-radius: 16px; background: white; padding: 18px 20px; box-shadow: 0 10px 24px rgba(16, 63, 58, .05); }

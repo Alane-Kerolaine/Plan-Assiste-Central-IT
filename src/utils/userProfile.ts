@@ -18,6 +18,8 @@ export type UserProfile = {
   email: string
   providerEmail?: string
   providerWhatsapp?: string
+  providerCnpj?: string
+  providerCode?: string
   phone: string
   whatsapp: string
   avatar?: string
@@ -37,6 +39,8 @@ export const defaultUserProfile: UserProfile = {
   email: 'ana.araujo@mpu.mp.br',
   providerEmail: 'contato@saudeevida.com.br',
   providerWhatsapp: '(61) 99876-4321',
+  providerCnpj: '12.345.678/0001-90',
+  providerCode: '004521',
   phone: '(61) 99876-4321',
   whatsapp: '',
   avatar: mockUser.avatar,

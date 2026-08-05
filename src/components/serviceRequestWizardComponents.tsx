@@ -12,7 +12,10 @@ export function BeneficiarySelect({
   value: string
   onChange: (beneficiaryId: string) => void
 }) {
-  const beneficiaryOptions = beneficiaries.map((beneficiary) => ({ value: beneficiary.id, label: `${beneficiary.name} (${beneficiary.relation})` }))
+  const beneficiaryOptions = beneficiaries.map((beneficiary) => ({
+    value: beneficiary.id,
+    label: `${beneficiary.name} (${beneficiary.relation === 'Titular' ? 'Titular' : 'Dependente'})`,
+  }))
   return (
     <label className="service-beneficiary-field">
       {field.label}{field.required ? ' *' : ''}

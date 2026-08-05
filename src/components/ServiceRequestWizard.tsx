@@ -12,6 +12,7 @@ import {
   DEFAULT_SUCCESS_SECONDARY_ACTION,
   formatReviewValue,
   initialValues,
+  isoDateToBr,
   renderField,
   type WizardStep,
 } from './serviceRequestWizardHelpers'
@@ -49,7 +50,7 @@ export function ServiceRequestWizard({
       beneficiarioId: beneficiaryId,
       nomeCompleto: beneficiary?.name ?? '',
       cpf: beneficiary?.cpf ?? '',
-      dataNascimento: beneficiary?.dataNascimento ?? '',
+      dataNascimento: beneficiary?.dataNascimento ? isoDateToBr(beneficiary.dataNascimento) : '',
       matricula: beneficiary?.matricula ?? '',
       email: beneficiary?.email ?? '',
       telefone: beneficiary?.telefone ?? '',
