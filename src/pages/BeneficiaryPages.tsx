@@ -2065,8 +2065,6 @@ export function FaqPage() {
 }
 
 const requestIconById: Record<string, LucideIcon> = {
-  'adesao-programa': BadgeCheck,
-  'atualizacao-cadastral': UserRound,
   'inclusao-dependentes': UserRound,
   'consulta-odontologica': Stethoscope,
   irpf: FileText,
@@ -2866,7 +2864,7 @@ export function DependentsPage() {
         <h2>Serviços para dependentes</h2>
         <div className="request-card-grid">
           {beneficiaryRequests
-            .filter((request) => ['inclusao-dependentes', 'atualizacao-cadastral', 'declaracoes', 'servico-desligamento'].includes(request.id))
+            .filter((request) => ['inclusao-dependentes', 'servico-atualizacao-dados-cadastrais', 'declaracoes', 'servico-desligamento'].includes(request.id))
             .map((request) => <RequestCard request={request} key={request.id} />)}
         </div>
       </section>

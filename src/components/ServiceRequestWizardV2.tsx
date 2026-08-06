@@ -9,10 +9,10 @@ import { ChecklistAnexos, type ChecklistAnexosDocumento } from './ChecklistAnexo
 import { Combobox } from './Combobox'
 import { BeneficiarySelect, WizardSteps } from './serviceRequestWizardComponents'
 import {
+  beneficiaryFieldValues,
   DEFAULT_SUCCESS_SECONDARY_ACTION,
   formatReviewValue,
   initialValues,
-  isoDateToBr,
   renderField,
   type WizardStep,
 } from './serviceRequestWizardHelpers'
@@ -68,20 +68,7 @@ export function ServiceRequestWizardV2({
 
   function handleBeneficiarioChange(beneficiaryId: string) {
     const beneficiary = beneficiaries.find((item) => item.id === beneficiaryId)
-    setValues((current) => ({
-      ...current,
-      beneficiarioId: beneficiaryId,
-      nomeCompleto: beneficiary?.name ?? '',
-      cpf: beneficiary?.cpf ?? '',
-      dataNascimento: beneficiary?.dataNascimento ? isoDateToBr(beneficiary.dataNascimento) : '',
-      matricula: beneficiary?.matricula ?? '',
-      email: beneficiary?.email ?? '',
-      telefone: beneficiary?.telefone ?? '',
-      localAtendimento: beneficiary?.localidade ?? '',
-      banco: beneficiary?.banco ?? '',
-      agencia: beneficiary?.agencia ?? '',
-      contaCorrente: beneficiary?.contaCorrente ?? '',
-    }))
+    setValues((current) => ({ ...current, beneficiarioId: beneficiaryId, ...beneficiaryFieldValues(beneficiary) }))
   }
 
   function handleCasoChange(nextCasoId: string) {

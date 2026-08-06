@@ -78,29 +78,40 @@ export type ServiceFormSchema = {
   avisoInicial?: AvisoInicialConfig
 }
 
-function identificationSection(localidadeLabel: string = 'Localidade da Matrícula'): ServiceFormSection {
+const RAMO_OPTIONS = ['CNMP', 'MPDFT', 'MPM', 'MPF', 'MPT']
+
+function identificationSection(localidadeLabel: string = 'Localidade da Matrícula', includeRamo: boolean = false): ServiceFormSection {
   const localidadeTravada = localidadeLabel === 'Localidade da Matrícula'
+  const fields: ServiceField[] = [
+    { id: 'beneficiarioId', label: 'Beneficiário', type: 'beneficiary', required: true },
+    { id: 'nomeCompleto', label: 'Nome completo', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+    { id: 'cpf', label: 'CPF', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+    { id: 'dataNascimento', label: 'Data de nascimento', type: 'date', disabled: true },
+    { id: 'matricula', label: 'Matrícula', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+  ]
+
+  if (includeRamo) {
+    fields.push({ id: 'ramo', label: 'Ramo', type: 'select', required: true, options: RAMO_OPTIONS })
+  }
+
+  fields.push(
+    { id: 'telefone', label: 'Telefone do beneficiário', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
+    { id: 'email', label: 'E-mail', type: 'text', disabled: true, columnSpan: includeRamo ? 2 : undefined, placeholder: 'Selecione um beneficiário' },
+    {
+      id: 'localAtendimento',
+      label: localidadeLabel,
+      type: 'text',
+      required: true,
+      disabled: localidadeTravada,
+      columnSpan: 2,
+      placeholder: localidadeTravada ? 'Selecione um beneficiário' : `Digite a ${localidadeLabel.toLowerCase()}`,
+    },
+  )
+
   return {
     id: 'identificacao',
     title: 'Identificação',
-    fields: [
-      { id: 'beneficiarioId', label: 'Beneficiário', type: 'beneficiary', required: true },
-      { id: 'nomeCompleto', label: 'Nome completo', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'cpf', label: 'CPF', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'dataNascimento', label: 'Data de nascimento', type: 'date', disabled: true },
-      { id: 'matricula', label: 'Matrícula', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'telefone', label: 'Telefone do beneficiário', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
-      { id: 'email', label: 'E-mail', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      {
-        id: 'localAtendimento',
-        label: localidadeLabel,
-        type: 'text',
-        required: true,
-        disabled: localidadeTravada,
-        columnSpan: 2,
-        placeholder: localidadeTravada ? 'Selecione um beneficiário' : `Digite a ${localidadeLabel.toLowerCase()}`,
-      },
-    ],
+    fields,
   }
 }
 
@@ -121,11 +132,11 @@ function detailsSection(): ServiceFormSection {
   }
 }
 
-function baseSchema(slug: string, title: string, extraSections: ServiceFormSection[] = [], localidadeLabel?: string): ServiceFormSchema {
+function baseSchema(slug: string, title: string, extraSections: ServiceFormSection[] = [], localidadeLabel?: string, includeRamo: boolean = false): ServiceFormSchema {
   return {
     slug,
     title,
-    sections: [identificationSection(localidadeLabel), ...extraSections, detailsSection()],
+    sections: [identificationSection(localidadeLabel, includeRamo), ...extraSections, detailsSection()],
   }
 }
 
@@ -218,6 +229,13 @@ const SLUGS_LOCALIDADE_PROCEDIMENTO = new Set([
   'auxilio-aquisicao-medicamentos',
 ])
 
+// Serviços da categoria Cadastro: a identificação exige a seleção do Ramo do MPU
+// (CNMP, MPDFT, MPM, MPF ou MPT), conforme a planilha de formulários.
+const SLUGS_CADASTRO_RAMO = new Set([
+  'cadastro-duvidas-informacoes', 'carteirinha-virtual', 'atualizacao-cadastral-periodica',
+  'abertura-solicitacoes-administrativas', 'reingresso-reativacao',
+])
+
 const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de Dados Cadastrais', [
   {
     id: 'dados-contato',
@@ -232,7 +250,6 @@ const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-d
       { id: 'endereco', label: 'Endereço', type: 'text', fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF' },
       { id: 'nomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, informe o nome social' },
       { id: 'cartao', label: 'Cartão', type: 'text', placeholder: 'Número do cartão' },
-      { id: 'ramo', label: 'Ramo', type: 'text', placeholder: 'Ex.: Judiciário, Executivo' },
       { id: 'estadoLotacao', label: 'Estado de lotação', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
       { id: 'sexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
     ],
@@ -252,7 +269,7 @@ const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-d
       { id: 'contaCorrente', label: 'Conta corrente ou mista', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     ],
   },
-]))
+], undefined, true))
 
 const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-carteira-temporaria', 'Emissão de Carteira Temporária', [
   {
@@ -262,9 +279,9 @@ const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-cartei
       { id: 'emailCarteiraTemp', label: 'E-mail', type: 'text', required: true, format: 'email', placeholder: 'nome@exemplo.com' },
     ],
   },
-]))
+], undefined, true))
 
-const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de Documentos e Comprovantes')
+const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de Documentos e Comprovantes', [], undefined, true)
 
 const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompanhamento de Protocolos e Processos', [
   {
@@ -281,7 +298,7 @@ const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompa
       },
     ],
   },
-])
+], undefined, true)
 
 const alteracaoEndereco = baseSchema('alteracao-de-endereco', 'Alteração de endereço', [
   {
@@ -320,7 +337,7 @@ const outrasSolicitacoes = baseSchema('outras-solicitacoes', 'Outras Solicitaç�
       { id: 'assuntoOutrasSolicitacoes', label: 'Assunto', type: 'select', required: true, fullWidth: true, options: ASSUNTO_OUTRAS_SOLICITACOES_OPTIONS },
     ],
   },
-])
+], undefined, true)
 
 const SITUACAO_FUNCIONAL_OPTIONS = ['Membro', 'Quadro', 'Requisitado', 'Contratado', 'Cedido', 'Pensionista Vitalício', 'Pensionista Filho']
 const DEPENDENTE_TIPO_OPTIONS = [
@@ -424,7 +441,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'especialFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome do pai ou responsável' },
     ],
   },
-])
+], undefined, true)
 
 const desligamento = baseSchema('desligamento', 'Desligamento', [
   {
@@ -504,7 +521,7 @@ const desligamento = baseSchema('desligamento', 'Desligamento', [
       },
     ],
   },
-])
+], undefined, true)
 
 const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudança de Tipo de Beneficiário', [
   {
@@ -569,7 +586,7 @@ const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudanç
       { id: 'mudancaDependenteNomeMae', label: 'Nome da mãe', type: 'text', placeholder: 'Nome completo da mãe' },
     ],
   },
-])
+], undefined, true)
 
 const processoAposentadoriaRetorno = withoutGenericEmail(baseSchema('processo-aposentadoria-retorno-orgao', 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem', [
   {
@@ -619,7 +636,7 @@ const processoAposentadoriaRetorno = withoutGenericEmail(baseSchema('processo-ap
       },
     ],
   },
-]))
+], undefined, true))
 
 const OPCAO_ENQUADRAMENTO_DEPENDENTE_ECONOMICO = 'Opção 1 - Pais Dependentes Econômicos (com fundamento no Requerimento de Atualização Cadastral - Dependência Econômica dos Pais, NC nº 34).'
 const OPCAO_ENQUADRAMENTO_NAO_DEPENDENTE_ECONOMICO = 'Opção 2 - Pais Não Dependentes Econômicos (com fundamento na Ficha de Inscrição de Beneficiários Especiais e Opção de Pais Não Dependentes Econômicos, NC nº 34/2023).'
@@ -647,7 +664,7 @@ const paisDependentes: ServiceFormSchema = {
         { id: 'nomeTitular', label: 'Nome do titular', type: 'text', required: true, fullWidth: true, placeholder: 'Nome completo do titular' },
         { id: 'matriculaTitular', label: 'Matrícula', type: 'text', required: true, placeholder: 'Número da matrícula' },
         { id: 'cpfTitular', label: 'CPF', type: 'text', required: true, format: 'cpf', placeholder: '000.000.000-00' },
-        { id: 'ramoTitular', label: 'Ramo (se houver)', type: 'text', placeholder: 'Ex.: Judiciário, Executivo' },
+        { id: 'ramoTitular', label: 'Ramo', type: 'select', required: true, options: RAMO_OPTIONS },
         { id: 'enderecoAtualTitular', label: 'Endereço atual (com CEP)', type: 'text', required: true, fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF e CEP' },
         { id: 'emailParticularTitular', label: 'E-mail particular', type: 'text', required: true, format: 'email', placeholder: 'nome@exemplo.com' },
         { id: 'celularTitular', label: 'Celular / WhatsApp (com DDD)', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
@@ -861,7 +878,13 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
   [paisDependentes.slug]: paisDependentes,
   [outrasSolicitacoes.slug]: outrasSolicitacoes,
   ...Object.fromEntries(SIMPLE_SERVICES.map(({ slug, title }) =>
-    [slug, baseSchema(slug, title, [], SLUGS_LOCALIDADE_PROCEDIMENTO.has(slug) ? LOCALIDADE_PROCEDIMENTO_LABEL : undefined)])),
+    [slug, baseSchema(
+      slug,
+      title,
+      [],
+      SLUGS_LOCALIDADE_PROCEDIMENTO.has(slug) ? LOCALIDADE_PROCEDIMENTO_LABEL : undefined,
+      SLUGS_CADASTRO_RAMO.has(slug),
+    )])),
   'autorizacao-cirurgia': authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
     { id: 'pedidoRelatorioMedico', label: 'Pedido ou relatório médico', required: true },
     { id: 'laudosExames', label: 'Laudos de exames', required: true },

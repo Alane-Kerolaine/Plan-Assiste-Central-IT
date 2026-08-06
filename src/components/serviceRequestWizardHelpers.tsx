@@ -1,4 +1,5 @@
 import { Info } from 'lucide-react'
+import { beneficiaries, type Beneficiary } from '../data/mock'
 import type { ServiceField, ServiceFormSchema } from '../data/serviceFormSchemas'
 import { maskCep, maskCpf, maskPhone } from '../utils/inputMasks'
 import { BrazilianDateInput } from './BrazilianDateInput'
@@ -14,6 +15,21 @@ export const WIZARD_STEPS: { id: WizardStep, label: string }[] = [
   { id: 'success', label: 'Solicitação enviada' },
 ]
 
+export function beneficiaryFieldValues(beneficiary: Beneficiary | undefined): Record<string, string> {
+  return {
+    nomeCompleto: beneficiary?.name ?? '',
+    cpf: beneficiary?.cpf ?? '',
+    dataNascimento: beneficiary?.dataNascimento ? isoDateToBr(beneficiary.dataNascimento) : '',
+    matricula: beneficiary?.matricula ?? '',
+    email: beneficiary?.email ?? '',
+    telefone: beneficiary?.telefone ?? '',
+    localAtendimento: beneficiary?.localidade ?? '',
+    banco: beneficiary?.banco ?? '',
+    agencia: beneficiary?.agencia ?? '',
+    contaCorrente: beneficiary?.contaCorrente ?? '',
+  }
+}
+
 export function initialValues(schema: ServiceFormSchema): Record<string, string> {
   const values: Record<string, string> = {}
   schema.sections.forEach((section) => {
@@ -21,6 +37,14 @@ export function initialValues(schema: ServiceFormSchema): Record<string, string>
       values[field.id] = field.defaultValue ?? ''
     })
   })
+
+  const hasBeneficiaryField = schema.sections.some((section) => section.fields.some((field) => field.type === 'beneficiary'))
+  const titular = hasBeneficiaryField ? beneficiaries.find((item) => item.relation === 'Titular') : undefined
+  if (titular) {
+    values.beneficiarioId = titular.id
+    Object.assign(values, beneficiaryFieldValues(titular))
+  }
+
   return values
 }
 
