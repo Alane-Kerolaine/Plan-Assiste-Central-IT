@@ -24,6 +24,7 @@ export function beneficiaryFieldValues(beneficiary: Beneficiary | undefined): Re
     email: beneficiary?.email ?? '',
     telefone: beneficiary?.telefone ?? '',
     localAtendimento: beneficiary?.localidade ?? '',
+    ramo: beneficiary?.ramo ?? '',
     banco: beneficiary?.banco ?? '',
     agencia: beneficiary?.agencia ?? '',
     contaCorrente: beneficiary?.contaCorrente ?? '',

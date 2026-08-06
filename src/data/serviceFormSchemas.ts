@@ -91,7 +91,7 @@ function identificationSection(localidadeLabel: string = 'Localidade da Matrícu
   ]
 
   if (includeRamo) {
-    fields.push({ id: 'ramo', label: 'Ramo', type: 'select', required: true, options: RAMO_OPTIONS })
+    fields.push({ id: 'ramo', label: 'Ramo', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' })
   }
 
   fields.push(
