@@ -174,7 +174,6 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'cadastro-duvidas-informacoes', title: 'Cadastro - Dúvidas, Informações e Esclarecimentos' },
   { slug: 'reembolso-duvidas', title: 'Reembolso (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'recurso-reembolso', title: 'Recurso de Reembolso - Livre Escolha' },
-  { slug: 'solicitacao-reembolso', title: 'Solicitação de Reembolso - Livre Escolha' },
   { slug: 'autorizacao-cirurgia', title: 'Autorização de Cirurgia Eletiva' },
   { slug: 'psicologia', title: 'Psicologia' },
   { slug: 'fonoaudiologia', title: 'Fonoaudiologia' },

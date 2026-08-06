@@ -84,6 +84,7 @@ import { FileAttachmentField } from '../components/FileAttachmentField'
 import { WizardSteps } from '../components/serviceRequestWizardComponents'
 import { DEFAULT_SUCCESS_SECONDARY_ACTION, type WizardStep } from '../components/serviceRequestWizardHelpers'
 import { generateProtocolNumber } from '../utils/protocol'
+import { maskCpfCnpj, maskCurrency } from '../utils/inputMasks'
 import {
   getStoredNotifications,
   markAllNotificationsRead,
@@ -595,7 +596,7 @@ export function RequestsPage() {
     .filter((request) => request.category !== 'Rede e atendimento')
     .filter((request) => category === 'Todos' || request.category === category)
     .filter((request) => !onlyFavorites || favoriteState.favoriteServiceIds.includes(request.id))
-    .filter((request) => !onlyRequestable || request.route?.includes('nova-solicitacao') || ['reembolso', 'remocao'].includes(request.id))
+    .filter((request) => !onlyRequestable || request.route?.includes('nova-solicitacao'))
     .filter((request) => {
       if (!normalizedQuery) return true
       const target = `${request.title} ${request.description} ${request.category} ${request.tags.join(' ')}`
@@ -921,13 +922,13 @@ export function BeneficiaryNovaReembolsoPage() {
     setStep('form')
   }
 
-  const catalogEntry = beneficiaryRequests.find((request) => request.id === 'reembolso')
+  const catalogEntry = beneficiaryRequests.find((request) => request.route === '/beneficiario/reembolso-procedimentos/nova-solicitacao')
 
   if (!showForm) {
     return (
       <div className="reimbursements-page">
         <div className="provider-page-heading">
-          <h1>{catalogEntry?.title ?? 'Reembolso de Livre Escolha'}</h1>
+          <h1>{catalogEntry?.title ?? 'Reembolso de Procedimentos (Livre Escolha)'}</h1>
           {catalogEntry?.description && <p className="page-subtitle">{catalogEntry.description}</p>}
         </div>
         <section className="reimbursement-card">
@@ -1100,6 +1101,7 @@ export function BeneficiaryNovaReembolsoPage() {
         <WizardSteps current={step} />
         <form className="reimbursement-form" onSubmit={handleContinue}>
           <section className="reimbursement-card">
+            <h2>Formulário</h2>
             <div className="reimbursement-form-section">
               <h3>Identificação do(a) titular</h3>
               <div className="reimbursement-grid reimbursement-grid-two-columns">
@@ -1132,24 +1134,26 @@ export function BeneficiaryNovaReembolsoPage() {
               <h3>Dados da solicitação</h3>
               <div className="reimbursement-grid">
                 <label>
-                  Tipo de reembolso
-                  <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)}>
-                    <option value="">Selecione o tipo</option>
-                    {reimbursementTypes.map((item) => <option key={item}>{item}</option>)}
-                  </select>
-                </label>
-                <label>
                   Beneficiário atendido
                   <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
                     {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
                   </select>
                 </label>
-                <label>Tipo de dependente<input value={draft.dependentType} disabled /></label>
+                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
+                <label>
+                  <span className="service-field-label-text">Tipo de reembolso</span>
+                  <Combobox
+                    value={draft.type}
+                    options={reimbursementTypes.map((item) => ({ value: item, label: item }))}
+                    onSelect={(value) => updateDraft('type', value)}
+                    placeholder="Selecione o tipo"
+                  />
+                </label>
                 <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
                 <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
-                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
-                <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', event.target.value)} placeholder="R$ 0,00" /></label>
-                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} placeholder="Se aplicável" /></label>
+                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
+                <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
+                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value.replace(/\D/g, ''))} placeholder="Se aplicável" /></label>
                 <label className="responsibility-term wide">
                   <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
                   Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
@@ -1186,11 +1190,11 @@ export function BeneficiaryNovaReembolsoPage() {
             </div>
 
             <div className="reimbursement-actions">
-              <button type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
+              <button className="secondary-button" type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
             </div>
 
             {items.length > 0 && (
-              <div className="reimbursement-table-wrap">
+              <div className="reimbursement-table-wrap reimbursement-items-table">
                 <table className="reimbursement-table">
                   <thead>
                     <tr>
@@ -2065,8 +2069,6 @@ const requestIconById: Record<string, LucideIcon> = {
   'atualizacao-cadastral': UserRound,
   'inclusao-dependentes': UserRound,
   'consulta-odontologica': Stethoscope,
-  reembolso: HandCoins,
-  remocao: Stethoscope,
   irpf: FileText,
   'extrato-mes': FileText,
   carteirinhas: IdCard,

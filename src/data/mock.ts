@@ -721,16 +721,6 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/plan-assiste/beneficiarios/autorizacoes#tratamento-odontologico',
   },
   {
-    id: 'reembolso',
-    title: 'Reembolso de Livre Escolha',
-    category: 'Reembolso e auxílios',
-    description: 'Solicite, acompanhe, recorra ou tire dúvidas sobre reembolso de livre escolha.',
-    tags: ['Livre escolha', 'Recurso', 'Dúvidas'],
-    action: 'Acessar serviço',
-    route: '/beneficiario/reembolsos',
-    featured: true,
-  },
-  {
     id: 'irpf',
     title: 'IRPF',
     category: 'Financeiro',
@@ -947,12 +937,12 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-solicitacao-reembolso',
-    title: 'Solicitação de Reembolso - Livre Escolha',
+    title: 'Reembolso de Procedimentos (Livre Escolha)',
     category: 'Reembolso e auxílios',
     description: 'Solicite reembolso de despesas realizadas em livre escolha.',
     tags: ['Reembolso', 'Livre escolha'],
     action: 'Solicitar reembolso',
-    route: '/beneficiario/servicos/solicitacao-reembolso/nova-solicitacao',
+    route: '/beneficiario/reembolso-procedimentos/nova-solicitacao',
   },
   {
     id: 'servico-autorizacao-cirurgia',

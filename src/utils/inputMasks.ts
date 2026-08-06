@@ -19,3 +19,21 @@ export function maskCep(value: string): string {
   if (digits.length <= 5) return digits
   return `${digits.slice(0, 5)}-${digits.slice(5)}`
 }
+
+export function maskCpfCnpj(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 14)
+  if (digits.length <= 11) return maskCpf(digits)
+  if (digits.length <= 5) return digits
+  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2)}`
+  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`
+}
+
+export function maskCurrency(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return ''
+  const cents = digits.replace(/^0+(?=\d)/, '').padStart(3, '0')
+  const integerPart = cents.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const decimalPart = cents.slice(-2)
+  return `R$ ${integerPart},${decimalPart}`
+}

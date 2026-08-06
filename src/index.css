@@ -749,6 +749,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-result-actions button { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 9px; background: var(--brand-primary); color: white; padding: 0 14px; font-weight: var(--fw-semibold); }
 .reimbursement-result-actions svg { width: 20px; height: 20px; }
 .reimbursement-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+.reimbursement-items-table { margin-top: 20px; }
 .reimbursement-table { width: 100%; min-width: 1400px; border-collapse: collapse; background: white; }
 .reimbursement-table th, .reimbursement-table td { border-bottom: 1px solid var(--border); padding: 12px 14px; text-align: left; vertical-align: top; }
 .reimbursement-table th { background: var(--mint-soft); color: var(--text-dark); font-size: 18px; font-weight: var(--fw-semibold); }
