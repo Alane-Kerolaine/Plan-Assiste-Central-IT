@@ -78,8 +78,6 @@ export type ServiceFormSchema = {
   avisoInicial?: AvisoInicialConfig
 }
 
-const RAMO_OPTIONS = ['CNMP', 'MPDFT', 'MPM', 'MPF', 'MPT']
-
 function identificationSection(localidadeLabel: string = 'Localidade da Matrícula', includeRamo: boolean = false): ServiceFormSection {
   const localidadeTravada = localidadeLabel === 'Localidade da Matrícula'
   const fields: ServiceField[] = [
@@ -661,13 +659,13 @@ const paisDependentes: ServiceFormSchema = {
       id: 'identificacao-titular',
       title: 'Identificação do titular',
       fields: [
-        { id: 'nomeTitular', label: 'Nome do titular', type: 'text', required: true, fullWidth: true, placeholder: 'Nome completo do titular' },
-        { id: 'matriculaTitular', label: 'Matrícula', type: 'text', required: true, placeholder: 'Número da matrícula' },
-        { id: 'cpfTitular', label: 'CPF', type: 'text', required: true, format: 'cpf', placeholder: '000.000.000-00' },
-        { id: 'ramoTitular', label: 'Ramo', type: 'select', required: true, options: RAMO_OPTIONS },
-        { id: 'enderecoAtualTitular', label: 'Endereço atual (com CEP)', type: 'text', required: true, fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF e CEP' },
+        { id: 'nomeTitular', label: 'Nome do titular', type: 'text', disabled: true, fullWidth: true, defaultValue: 'Ana Maria de Araújo' },
+        { id: 'matriculaTitular', label: 'Matrícula', type: 'text', disabled: true, defaultValue: '30003387' },
+        { id: 'cpfTitular', label: 'CPF', type: 'text', disabled: true, defaultValue: '123.456.789-00' },
+        { id: 'ramoTitular', label: 'Ramo', type: 'text', disabled: true, defaultValue: 'MPF' },
+        { id: 'enderecoAtualTitular', label: 'Endereço atual (com CEP)', type: 'text', disabled: true, fullWidth: true, defaultValue: 'SQS 205, Bloco B, Apartamento 302, Asa Sul, Brasília/DF, 70000-000' },
         { id: 'emailParticularTitular', label: 'E-mail particular', type: 'text', required: true, format: 'email', placeholder: 'nome@exemplo.com' },
-        { id: 'celularTitular', label: 'Celular / WhatsApp (com DDD)', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
+        { id: 'celularTitular', label: 'Celular/WhatsApp (DDD)', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
       ],
     },
     {
