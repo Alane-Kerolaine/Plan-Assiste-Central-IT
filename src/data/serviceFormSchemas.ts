@@ -172,10 +172,7 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'acesso-sistemas-integrados', title: 'Acesso a Sistemas Institucionais Integrados' },
   { slug: 'reingresso-reativacao', title: 'Reingresso / Reativação' },
   { slug: 'cadastro-duvidas-informacoes', title: 'Cadastro - Dúvidas, Informações e Esclarecimentos' },
-  { slug: 'medicamentos-uso-continuo', title: 'Medicamentos de Uso Contínuo' },
-  { slug: 'medicamentos-alto-custo', title: 'Medicamentos de Alto Custo' },
-  { slug: 'reembolso-livre-escolha-duvidas', title: 'Reembolso Livre Escolha - Dúvidas e Orientações' },
-  { slug: 'auxilio-medicamentos-duvidas', title: 'Auxílio de Medicamentos - Dúvidas e Orientações' },
+  { slug: 'reembolso-duvidas', title: 'Reembolso (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'recurso-reembolso', title: 'Recurso de Reembolso - Livre Escolha' },
   { slug: 'solicitacao-reembolso', title: 'Solicitação de Reembolso - Livre Escolha' },
   { slug: 'autorizacao-cirurgia', title: 'Autorização de Cirurgia Eletiva' },
@@ -187,24 +184,39 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'pilates', title: 'Pilates' },
   { slug: 'rpg', title: 'RPG' },
   { slug: 'hidroterapia', title: 'Hidroterapia' },
-  { slug: 'acompanhamento-autorizacoes-demandas', title: 'Acompanhamento de Autorizações e Demandas' },
   { slug: 'abertura-solicitacoes-administrativas', title: 'Abertura de Solicitações Administrativas' },
-  { slug: 'autorizacao-opme', title: 'Autorização de OPME' },
   { slug: 'autorizacao-exame', title: 'Autorização de Exame' },
+  { slug: 'autorizacao-opme', title: 'Autorização de OPME' },
   { slug: 'autorizacao-outros', title: 'Autorização de Procedimentos (Outros)' },
-  { slug: 'tratamentos-seriados', title: 'Tratamentos Seriados' },
-  { slug: 'autorizacao-procedimentos', title: 'Autorização de Procedimentos - Orientações Gerais' },
+  { slug: 'autorizacao-procedimentos', title: 'Autorização (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'auxilio-duvidas-informacoes', title: 'Auxílio (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'carteirinha-virtual', title: 'Carteirinha Virtual' },
+  { slug: 'atualizacao-cadastral-periodica', title: 'Atualização Cadastral Periódica' },
+  { slug: 'cobertura-duvidas', title: 'Cobertura (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'inclusao-ampliacao-cobertura', title: 'Inclusão / Ampliação do Rol de Cobertura' },
+  { slug: 'autorizacao-portais-unimed', title: 'Autorização Portais Unimeds' },
+  { slug: 'assistencia-domiciliar', title: 'Assistência Domiciliar' },
+  { slug: 'tratamento-odontologico-duvidas', title: 'Tratamento Odontológico (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'auxilio-materiais-saude', title: 'Auxílio de Materiais de Saúde' },
+  { slug: 'transporte-tratamento-fora-domicilio', title: 'Transporte de Paciente em Tratamento Fora do Domicílio' },
+  { slug: 'despesas-saude-duvidas', title: 'Atendimento - Despesas de Saúde (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'recurso-informacoes-financeiras', title: 'Recurso / Contestação de Informações Financeiras' },
+  { slug: 'acompanhamento-denuncia-reclamacao', title: 'Acompanhamento de Registros de Denúncia / Reclamação' },
+  { slug: 'atualizacao-site', title: 'Atualização do Site' },
+  { slug: 'site-app-duvidas', title: 'Site / App (Dúvidas, Informações e Esclarecimentos)' },
+  { slug: 'problemas-acesso-site-app', title: 'Problemas de Acesso do Site / App' },
+  { slug: 'indisponibilidade-site-app', title: 'Indisponibilidade do Site / App' },
+  { slug: 'erro-funcionalidades-site-app', title: 'Ocorrência de Erro em Funcionalidades do Site / App' },
 ]
 
 const LOCALIDADE_PROCEDIMENTO_LABEL = 'Localidade do Procedimento'
 // Grupo de terapias/autorizações: a planilha pede "Localidade do Procedimento" em vez do padrão
 // "Localidade da Matrícula". Aplicado tanto aos slugs simples (baseSchema) quanto aos que têm
-// documentos nomeados (authorizationSchema) — atendimento-auxilio-medicamentos fica de fora porque,
-// segundo a planilha, ele usa "Localidade da Matrícula" mesmo sendo um authorizationSchema.
+// documentos nomeados (authorizationSchema).
 const SLUGS_LOCALIDADE_PROCEDIMENTO = new Set([
   'autorizacao-cirurgia', 'psicologia', 'fonoaudiologia', 'terapia-ocupacional', 'fisioterapia',
   'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-opme', 'autorizacao-outros',
-  'tratamentos-seriados', 'auxilio-aquisicao-medicamentos', 'autorizacao-procedimentos',
+  'auxilio-aquisicao-medicamentos',
 ])
 
 const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de Dados Cadastrais', [
@@ -291,7 +303,8 @@ const alteracaoEndereco = baseSchema('alteracao-de-endereco', 'Alteração de en
 
 const ASSUNTO_OUTRAS_SOLICITACOES_OPTIONS = [
   'Autorização',
-  'Auxílio e assistência',
+  'Auxílio',
+  'Benefício',
   'Cadastro',
   'Cobertura',
   'Financeiro',
@@ -313,11 +326,11 @@ const outrasSolicitacoes = baseSchema('outras-solicitacoes', 'Outras Solicitaç�
 const SITUACAO_FUNCIONAL_OPTIONS = ['Membro', 'Quadro', 'Requisitado', 'Contratado', 'Cedido', 'Pensionista Vitalício', 'Pensionista Filho']
 const DEPENDENTE_TIPO_OPTIONS = [
   'Cônjuge',
-  'Companheiro(a)',
+  'Companheiro (a)',
   'Pai, Mãe, Padrasto ou Madrasta',
   'Filho ou enteado até 21 anos',
   'Filho/enteado estudante (21 a 24 anos)',
-  'Pessoa sob guarda ou tutela (até 18 anos)',
+  'Pessoa sob guarda ou tutela (até 18 anos), dependente perante a legislação tributária',
 ]
 const BENEFICIARIO_ESPECIAL_TIPO_OPTIONS = [
   'Filhos e enteados entre 21 e 38 anos, desde que solteiros',
@@ -485,7 +498,7 @@ const desligamento = baseSchema('desligamento', 'Desligamento', [
       {
         id: 'cienciaCarencia',
         label:
-          'Estou ciente que, após o desligamento, titular e/ou dependente só poderão retornar ao Programa após 6 meses, contados da data de desligamento, e mediante o cumprimento dos períodos de carência (Norma Complementar nº 34/2023, art. 12, §5º).',
+          'Estou ciente que após o desligamento, titular e/ou dependente só poderão retornar ao Programa após 6 meses, contados da data de desligamento e mediante o cumprimento dos períodos de carência. Vide trecho da Norma Complementar n° 34/2023. § 5º O reingresso no Programa dos beneficiários elencados neste artigo somente será autorizado após transcorridos no mínimo seis meses da data do desligamento, aplicando-se os prazos de carência previstos no art. 12 do Regulamento Geral, observado o disposto no §2º do mesmo artigo.',
         type: 'checkbox',
         required: true,
         fullWidth: true,
@@ -724,36 +737,6 @@ const paisDependentes: ServiceFormSchema = {
   ],
 }
 
-const CASOS_AUXILIO_MEDICAMENTOS_DUVIDAS: CasoInstrucaoServico[] = [
-  {
-    id: 'medicamento_geral',
-    titulo: 'Medicamento de uso geral',
-    documentos: [
-      { id: 'receitaMedica', label: 'Receita médica', obrigatorio: true },
-      { id: 'relatorioMedico', label: 'Relatório médico', obrigatorio: true },
-      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
-    ],
-  },
-  {
-    id: 'somatropina',
-    titulo: 'Somatropina',
-    documentos: [
-      { id: 'comprovanteDesabastecimento', label: 'Comprovante de desabastecimento na rede pública', obrigatorio: true },
-      { id: 'relatorioMedico', label: 'Relatório médico', obrigatorio: true },
-      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
-    ],
-  },
-  {
-    id: 'obesidade',
-    titulo: 'Obesidade',
-    documentos: [
-      { id: 'relatorioMedicoImc', label: 'Relatório médico detalhado com IMC', obrigatorio: true },
-      { id: 'receitaMedica', label: 'Receita médica', obrigatorio: true },
-      { id: 'notaFiscal', label: 'Nota fiscal', obrigatorio: true },
-    ],
-  },
-]
-
 // [PLACEHOLDER] Conteúdo provisório — substituir pelos documentos e casos reais do documento
 // INSTRUÇÕES_PARA_ABERTURA_DE_TICKET_V2 assim que ele for compartilhado. Não usar em produção sem revisão.
 const CASOS_ATUALIZACAO_DADOS_CADASTRAIS: CasoInstrucaoServico[] = [
@@ -820,11 +803,6 @@ const AVISO_INICIAL_EMISSAO_DOCUMENTOS: AvisoInicialConfig = {
   conteudo: 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.',
 }
 
-const AVISO_INICIAL_AUXILIO_MEDICAMENTOS: AvisoInicialConfig = {
-  titulo: 'Antes de começar',
-  conteudo: 'Caso o medicamento seja vitaminas, complexos vitamínicos ou alimentares, a princípio o plano não oferece cobertura, mas a solicitação pode ser realizada no Portal do Beneficiário. Deverá ser anexado os relatórios médicos e exames laboratoriais.',
-}
-
 // Cada caso sincroniza o campo legado "tipoSolicitacaoAposentadoria", que continua controlando
 // a visibilidade da seção "Declarações" já existente — preservando as declarações reais aprovadas
 // sem duplicar a pergunta "aposentadoria vs. retorno" na tela.
@@ -885,13 +863,6 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
   [outrasSolicitacoes.slug]: outrasSolicitacoes,
   ...Object.fromEntries(SIMPLE_SERVICES.map(({ slug, title }) =>
     [slug, baseSchema(slug, title, [], SLUGS_LOCALIDADE_PROCEDIMENTO.has(slug) ? LOCALIDADE_PROCEDIMENTO_LABEL : undefined)])),
-  'auxilio-medicamentos-duvidas': {
-    ...baseSchema('auxilio-medicamentos-duvidas', 'Auxílio de Medicamentos - Dúvidas e Orientações'),
-    perguntaChave: {
-      enunciado: 'Sua dúvida é sobre qual tipo de medicamento?',
-      casos: CASOS_AUXILIO_MEDICAMENTOS_DUVIDAS,
-    },
-  },
   'autorizacao-cirurgia': authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
     { id: 'pedidoRelatorioMedico', label: 'Pedido ou relatório médico', required: true },
     { id: 'laudosExames', label: 'Laudos de exames', required: true },
@@ -929,14 +900,6 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     { id: 'pedidoMedico', label: 'Pedido médico', required: true },
     { id: 'relatorioTerapiaOcupacional', label: 'Relatório de terapia ocupacional', required: true },
   ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  'atendimento-auxilio-medicamentos': {
-    ...authorizationSchema('atendimento-auxilio-medicamentos', 'Atendimento para Auxílio de Medicamentos', [
-      { id: 'receitaMedica', label: 'Receita médica', required: true },
-      { id: 'relatorioMedico', label: 'Relatório médico', required: true },
-      { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },
-    ]),
-    avisoInicial: AVISO_INICIAL_AUXILIO_MEDICAMENTOS,
-  },
   'auxilio-aquisicao-medicamentos': authorizationSchema('auxilio-aquisicao-medicamentos', 'Auxílio para Aquisição de Medicamentos', [
     { id: 'receitaMedica', label: 'Receita médica', required: true },
     { id: 'relatorioMedico', label: 'Relatório médico', required: true },

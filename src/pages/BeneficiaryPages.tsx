@@ -2,11 +2,13 @@ import { Fragment, useEffect, useRef, useState, type ChangeEvent, type FormEvent
 import {
   Accessibility,
   Activity,
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Bell,
   Brain,
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -30,12 +32,14 @@ import {
   Headphones,
   HelpCircle,
   IdCard,
+  MonitorCheck,
   PersonStanding,
   Plus,
   RotateCcw,
   Save,
   Search,
   Send,
+  ShieldCheck,
   Smartphone,
   Speech,
   Star,
@@ -558,7 +562,7 @@ function CriticalNotificationDialog({
   )
 }
 
-const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Financeiro', 'Documentos', 'Orientações e canais']
+const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Financeiro', 'Documentos', 'Orientações e canais', 'Cobertura', 'Fale Conosco']
 const requestCategoryLabel: Record<string, string> = {
   'Orientações e canais': 'Orientações',
 }
@@ -2085,10 +2089,7 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-mudanca-tipo-beneficiario': UserRound,
   'servico-pais-dependentes': UserRound,
   'servico-cadastro-duvidas-informacoes': HelpCircle,
-  'servico-medicamentos-uso-continuo': CircleDollarSign,
-  'servico-medicamentos-alto-custo': CircleDollarSign,
-  'servico-reembolso-livre-escolha-duvidas': HelpCircle,
-  'servico-auxilio-medicamentos-duvidas': HelpCircle,
+  'servico-reembolso-duvidas': HelpCircle,
   'servico-recurso-reembolso': ClipboardList,
   'servico-solicitacao-reembolso': HandCoins,
   'servico-autorizacao-cirurgia': ClipboardCheck,
@@ -2101,11 +2102,28 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-rpg': Stethoscope,
   'servico-hidroterapia': Stethoscope,
   'servico-autorizacao-outros': ClipboardCheck,
-  'servico-autorizacao-medicamentos': CircleDollarSign,
-  'servico-acompanhamento-autorizacoes-demandas': ClipboardList,
+  'servico-autorizacao-duvidas': HelpCircle,
+  'servico-auxilio-duvidas-informacoes': HelpCircle,
   'servico-abertura-solicitacoes-administrativas': ClipboardList,
   'servico-autorizacao-opme': Stethoscope,
   'servico-processo-aposentadoria-retorno': WalletCards,
+  'servico-carteirinha-virtual': IdCard,
+  'servico-atualizacao-cadastral-periodica': UserRound,
+  'servico-cobertura-duvidas': ShieldCheck,
+  'servico-inclusao-ampliacao-cobertura': ShieldCheck,
+  'servico-autorizacao-portais-unimed': Building2,
+  'servico-assistencia-domiciliar': HeartPulse,
+  'servico-tratamento-odontologico-duvidas': Stethoscope,
+  'servico-auxilio-materiais-saude': HandCoins,
+  'servico-transporte-tratamento-fora-domicilio': MapPin,
+  'servico-despesas-saude-duvidas': CircleDollarSign,
+  'servico-recurso-informacoes-financeiras': WalletCards,
+  'servico-acompanhamento-denuncia-reclamacao': ClipboardList,
+  'servico-atualizacao-site': MonitorCheck,
+  'servico-site-app-duvidas': MonitorCheck,
+  'servico-problemas-acesso-site-app': AlertTriangle,
+  'servico-indisponibilidade-site-app': AlertTriangle,
+  'servico-erro-funcionalidades-site-app': AlertTriangle,
 }
 
 function RequestCard({
@@ -3871,6 +3889,8 @@ const requestIconByCategory: Record<BeneficiaryRequest['category'], LucideIcon> 
   'Rede e atendimento': Stethoscope,
   Documentos: FileText,
   'Orientações e canais': HelpCircle,
+  Cobertura: ShieldCheck,
+  'Fale Conosco': MessageCircle,
 }
 
 const novaSolicitacaoTypes = beneficiaryRequests
