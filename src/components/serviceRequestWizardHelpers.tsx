@@ -1,7 +1,7 @@
 import { Info } from 'lucide-react'
 import { beneficiaries, type Beneficiary } from '../data/mock'
 import type { ServiceField, ServiceFormSchema } from '../data/serviceFormSchemas'
-import { maskCep, maskCpf, maskPhone } from '../utils/inputMasks'
+import { maskCep, maskCpf, maskCpfCnpj, maskPhone } from '../utils/inputMasks'
 import { BrazilianDateInput } from './BrazilianDateInput'
 import { Combobox } from './Combobox'
 
@@ -143,10 +143,10 @@ export function renderField(field: ServiceField, value: string, onChange: (value
     )
   }
 
-  const fieldMask = field.format === 'phone' ? maskPhone : field.format === 'cpf' ? maskCpf : field.format === 'cep' ? maskCep : undefined
+  const fieldMask = field.format === 'phone' ? maskPhone : field.format === 'cpf' ? maskCpf : field.format === 'cpfCnpj' ? maskCpfCnpj : field.format === 'cep' ? maskCep : undefined
   const inputType = field.format === 'email' ? 'email' : 'text'
   const inputMode = fieldMask ? 'numeric' : undefined
-  const maxLength = field.format === 'phone' ? 15 : field.format === 'cpf' ? 14 : field.format === 'cep' ? 9 : undefined
+  const maxLength = field.format === 'phone' ? 15 : field.format === 'cpf' ? 14 : field.format === 'cpfCnpj' ? 18 : field.format === 'cep' ? 9 : undefined
 
   return (
     <label className={labelClassName} key={field.id}>

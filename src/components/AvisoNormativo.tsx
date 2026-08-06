@@ -4,14 +4,15 @@ import type { AvisoNormativoConfig } from '../data/serviceFormSchemas'
 type AvisoNormativoProps = AvisoNormativoConfig & {
   confirmado: boolean
   onConfirmar: (confirmado: boolean) => void
+  tone?: 'aviso' | 'informativo'
 }
 
-export function AvisoNormativo({ titulo, conteudo, baseLegal, exigeConfirmacao, confirmado, onConfirmar }: AvisoNormativoProps) {
+export function AvisoNormativo({ titulo, conteudo, baseLegal, exigeConfirmacao, confirmado, onConfirmar, tone = 'aviso' }: AvisoNormativoProps) {
   const headingId = useId()
   const paragraphs = conteudo.split('\n\n').filter((paragraph) => paragraph.trim().length > 0)
 
   return (
-    <section aria-labelledby={headingId} className="aviso-normativo">
+    <section aria-labelledby={headingId} className={`aviso-normativo${tone === 'informativo' ? ' tone-informativo' : ''}`}>
       <h3 id={headingId}>{titulo}</h3>
       {paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
       {baseLegal && (

@@ -1,3 +1,5 @@
+import { beneficiaries } from './mock'
+
 export type ServiceFieldType = 'text' | 'textarea' | 'date' | 'select' | 'combobox' | 'checkbox' | 'file' | 'beneficiary' | 'note' | 'radio'
 
 export type ServiceFieldCondition = {
@@ -5,7 +7,7 @@ export type ServiceFieldCondition = {
   equals: string
 }
 
-export type ServiceFieldFormat = 'phone' | 'cpf' | 'cep' | 'email'
+export type ServiceFieldFormat = 'phone' | 'cpf' | 'cpfCnpj' | 'cep' | 'email'
 
 export type ServiceField = {
   id: string
@@ -68,6 +70,8 @@ export type PerguntaChaveConfig = {
 export type AvisoInicialConfig = {
   titulo: string
   conteudo: string
+  tone?: 'aviso' | 'informativo'
+  posicao?: 'inicio' | 'apos-detalhes'
 }
 
 export type ServiceFormSchema = {
@@ -81,7 +85,7 @@ export type ServiceFormSchema = {
 function identificationSection(localidadeLabel: string = 'Localidade da Matrícula', includeRamo: boolean = false): ServiceFormSection {
   const localidadeTravada = localidadeLabel === 'Localidade da Matrícula'
   const fields: ServiceField[] = [
-    { id: 'beneficiarioId', label: 'Beneficiário', type: 'beneficiary', required: true },
+    { id: 'beneficiarioId', label: 'Beneficiário do Atendimento', type: 'beneficiary', required: true },
     { id: 'nomeCompleto', label: 'Nome completo', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     { id: 'cpf', label: 'CPF', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     { id: 'dataNascimento', label: 'Data de nascimento', type: 'date', disabled: true },
@@ -113,6 +117,32 @@ function identificationSection(localidadeLabel: string = 'Localidade da Matrícu
   }
 }
 
+// Formulários de autorização: dados de contato do(a) titular, travados (exceto o telefone),
+// exibidos logo abaixo do título — independente de qual beneficiário está sendo atendido.
+function dadosParaContatoSection(): ServiceFormSection {
+  const titular = beneficiaries.find((beneficiary) => beneficiary.relation === 'Titular')
+  return {
+    id: 'dados-contato',
+    title: 'Dados para Contato',
+    fields: [
+      { id: 'contatoTitularNome', label: 'Titular', type: 'text', disabled: true, columnSpan: 3, defaultValue: titular?.name },
+      { id: 'contatoTitularMatricula', label: 'Matrícula', type: 'text', disabled: true, defaultValue: titular?.matricula },
+      { id: 'contatoTitularEmail', label: 'E-mail', type: 'text', disabled: true, defaultValue: titular?.email },
+      { id: 'contatoTitularRamo', label: 'Ramo', type: 'text', disabled: true, defaultValue: titular?.ramo },
+      { id: 'contatoTitularTelefone', label: 'Telefone', type: 'text', required: true, format: 'phone', columnSpan: 2, defaultValue: titular?.telefone, placeholder: '(00) 00000-0000' },
+    ],
+  }
+}
+
+// Formulários de autorização de tratamento: dados do prestador que realizará o procedimento,
+// exibidos logo abaixo do card de avisos da seção de pedido/detalhes.
+const PRESTADOR_FIELDS: ServiceField[] = [
+  { id: 'dataPrevista', label: 'Data prevista', type: 'date' },
+  { id: 'nomePrestador', label: 'Nome Prestador', type: 'text', required: true, columnSpan: 2, placeholder: 'Nome completo do prestador' },
+  { id: 'telefonePrestador', label: 'Telefone Prestador', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
+  { id: 'cpfCnpjPrestador', label: 'CPF/CNPJ Prestador', type: 'text', format: 'cpfCnpj', columnSpan: 2, placeholder: '000.000.000-00 ou 00.000.000/0000-00' },
+]
+
 function detailsSection(): ServiceFormSection {
   return {
     id: 'detalhes',
@@ -138,23 +168,27 @@ function baseSchema(slug: string, title: string, extraSections: ServiceFormSecti
   }
 }
 
-function authorizationSchema(slug: string, title: string, documents: Array<{ id: string, label: string, required?: boolean }>, localidadeLabel?: string): ServiceFormSchema {
+function authorizationSchema(slug: string, title: string, documents: Array<{ id: string, label: string, required?: boolean }>, localidadeLabel?: string, comDadosContato: boolean = false, comDadosPrestador: boolean = false): ServiceFormSchema {
+  const sections: ServiceFormSection[] = [
+    identificationSection(localidadeLabel),
+    {
+      id: 'detalhes',
+      title: 'Informações do pedido',
+      fields: [
+        ...(comDadosPrestador ? PRESTADOR_FIELDS : []),
+        { id: 'descricao', label: 'Descrição', type: 'textarea', fullWidth: true, placeholder: 'Inclua informações que ajudem na análise da solicitação' },
+      ],
+    },
+    {
+      id: 'documentos',
+      title: 'Documentos',
+      fields: documents.map((document) => ({ ...document, type: 'file', fullWidth: true, helpText: 'Selecione um ou mais arquivos em PDF, JPG ou PNG, com até 10 MB cada.' })),
+    },
+  ]
   return {
     slug,
     title,
-    sections: [
-      identificationSection(localidadeLabel),
-      {
-        id: 'detalhes',
-        title: 'Informações do pedido',
-        fields: [{ id: 'descricao', label: 'Descrição', type: 'textarea', fullWidth: true, placeholder: 'Inclua informações que ajudem na análise da solicitação' }],
-      },
-      {
-        id: 'documentos',
-        title: 'Documentos',
-        fields: documents.map((document) => ({ ...document, type: 'file', fullWidth: true, helpText: 'Selecione um ou mais arquivos em PDF, JPG ou PNG, com até 10 MB cada.' })),
-      },
-    ],
+    sections: comDadosContato ? [dadosParaContatoSection(), ...sections] : sections,
   }
 }
 
@@ -168,6 +202,13 @@ function withoutGenericEmail(schema: ServiceFormSchema): ServiceFormSchema {
         ? { ...section, fields: section.fields.filter((field) => field.id !== 'email') }
         : section
     )),
+  }
+}
+
+function withSectionTitle(schema: ServiceFormSchema, sectionId: string, title: string): ServiceFormSchema {
+  return {
+    ...schema,
+    sections: schema.sections.map((section) => (section.id === sectionId ? { ...section, title } : section)),
   }
 }
 
@@ -195,7 +236,6 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'abertura-solicitacoes-administrativas', title: 'Abertura de Solicitações Administrativas' },
   { slug: 'autorizacao-exame', title: 'Autorização de Exame' },
   { slug: 'autorizacao-opme', title: 'Autorização de OPME' },
-  { slug: 'autorizacao-outros', title: 'Autorização de Procedimentos (Outros)' },
   { slug: 'autorizacao-procedimentos', title: 'Autorização (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'auxilio-duvidas-informacoes', title: 'Auxílio (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'carteirinha-virtual', title: 'Carteirinha Virtual' },
@@ -223,7 +263,7 @@ const LOCALIDADE_PROCEDIMENTO_LABEL = 'Localidade do Procedimento'
 // documentos nomeados (authorizationSchema).
 const SLUGS_LOCALIDADE_PROCEDIMENTO = new Set([
   'autorizacao-cirurgia', 'psicologia', 'fonoaudiologia', 'terapia-ocupacional', 'fisioterapia',
-  'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-opme', 'autorizacao-outros',
+  'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-opme',
   'auxilio-aquisicao-medicamentos',
 ])
 
@@ -817,6 +857,120 @@ const AVISO_INICIAL_EMISSAO_DOCUMENTOS: AvisoInicialConfig = {
   conteudo: 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.',
 }
 
+const AVISO_INICIAL_ACUPUNTURA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, o tratamento de acupuntura ficará limitado a 40 (quarenta) sessões por ano civil, realizadas por profissionais médicos habilitados, mediante indicação médica ou odontológica, restrito à sua área de atuação. Será exigida perícia quando o número de sessões semanais ultrapassar os limites estabelecidos em norma complementar.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_CIRURGIA_ELETIVA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de cirurgias eletivas poderá levar até 8 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização do procedimento cirúrgico será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado. Esta deverá ser entregue ao hospital a ser realizado o procedimento, juntamente com o relatório médico, para as providências de cotação dos materiais, se for o caso, e agendamento da cirurgia.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_FISIOTERAPIA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana ou quando houver solicitação de 2 (dois) ou mais códigos no mesmo tratamento, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação.',
+    'Acima deste limite, deverão ser anexados, para avaliação pericial, laudos de exames e relatório do terapeuta, indicando a necessidade de continuidade do tratamento.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_FONOAUDIOLOGIA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação.',
+    'Acima deste limite, deverão ser anexados, para avaliação pericial, relatório emitido pelo próprio fonoaudiólogo e/ou pelo médico ou odontólogo assistente, do qual deve constar o diagnóstico e o tempo de tratamento.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_PILATES: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido nas Normas Complementares nº 32, de 15/02/2023 será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por sub-especialidade como hidroterapia e RPG.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_PSICOLOGIA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação.',
+    'Acima deste limite, deverá ser anexado para avaliação pericial, relatório psicológico contendo o diagnóstico e o tempo de tratamento com as sessões semanais.',
+    'Abaixo deste limite, não há necessidade de autorização prévia do Plan-Assiste, visto que, o próprio prestador emitirá a autorização.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_RPG: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por sub-especialidade como hidroterapia e RPG.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_HIDROTERAPIA: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por sub-especialidade como hidroterapia e RPG.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_TERAPIA_OCUPACIONAL: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'O processo de autorização de procedimentos eletivos poderá levar até 4 dias úteis para ser concluído.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+    'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação.',
+    'Acima deste limite, deverão ser anexados, para avaliação pericial, Relatório/Pedido médico, indicando a necessidade de continuidade do tratamento.',
+  ].join('\n\n'),
+}
+
+const AVISO_INICIAL_AUTORIZACAO_OUTROS: AvisoInicialConfig = {
+  titulo: 'Atenção',
+  tone: 'informativo',
+  posicao: 'apos-detalhes',
+  conteudo: [
+    'De acordo com a Norma Complementar Nº 32, de 15/02/2023, os procedimentos de quimioterapia, radioterapia, medicamentos, hemodiálise, exame de genética e procedimentos para os quais está prevista diretriz de utilização (DUT) pela ANS, ou que não constem na cobertura do Programa, necessitam de realização de perícia técnica no âmbito do Programa de Saúde e Assistência Social do MPU.',
+    'O pedido médico e laudos de exames complementares devem ser anexados para avaliação pericial.',
+    'Após a autorização do procedimento solicitado, a guia de autorização será emitida pelo Plan-Assiste/MPU e encaminhada para o e-mail informado.',
+  ].join('\n\n'),
+}
+
 // Cada caso sincroniza o campo legado "tipoSolicitacaoAposentadoria", que continua controlando
 // a visibilidade da seção "Declarações" já existente — preservando as declarações reais aprovadas
 // sem duplicar a pergunta "aposentadoria vs. retorno" na tela.
@@ -883,43 +1037,85 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
       SLUGS_LOCALIDADE_PROCEDIMENTO.has(slug) ? LOCALIDADE_PROCEDIMENTO_LABEL : undefined,
       SLUGS_CADASTRO_RAMO.has(slug),
     )])),
-  'autorizacao-cirurgia': authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
-    { id: 'pedidoRelatorioMedico', label: 'Pedido ou relatório médico', required: true },
-    { id: 'laudosExames', label: 'Laudos de exames', required: true },
-    { id: 'documentosAdicionais', label: 'Documentos adicionais relacionados ao diagnóstico' },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  fisioterapia: authorizationSchema('fisioterapia', 'Fisioterapia', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  fonoaudiologia: authorizationSchema('fonoaudiologia', 'Fonoaudiologia', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioFonoaudiologico', label: 'Relatório fonoaudiológico com diagnóstico e tempo de tratamento', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  pilates: authorizationSchema('pilates', 'Pilates', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  psicologia: authorizationSchema('psicologia', 'Psicologia', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioPsicologico', label: 'Relatório psicológico', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  rpg: authorizationSchema('rpg', 'RPG', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  acupuntura: authorizationSchema('acupuntura', 'Acupuntura', [
-    { id: 'pedidoMedicoOdontologico', label: 'Pedido médico ou odontológico', required: true },
-    { id: 'documentosAdicionais', label: 'Documentos adicionais' },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  hidroterapia: authorizationSchema('hidroterapia', 'Hidroterapia', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioFisioterapico', label: 'Relatório fisioterápico', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
-  'terapia-ocupacional': authorizationSchema('terapia-ocupacional', 'Terapia Ocupacional', [
-    { id: 'pedidoMedico', label: 'Pedido médico', required: true },
-    { id: 'relatorioTerapiaOcupacional', label: 'Relatório de terapia ocupacional', required: true },
-  ], LOCALIDADE_PROCEDIMENTO_LABEL),
+  'autorizacao-cirurgia': {
+    ...authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames', required: true },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_CIRURGIA_ELETIVA,
+  },
+  fisioterapia: {
+    ...authorizationSchema('fisioterapia', 'Fisioterapia', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_FISIOTERAPIA,
+  },
+  fonoaudiologia: {
+    ...authorizationSchema('fonoaudiologia', 'Fonoaudiologia', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_FONOAUDIOLOGIA,
+  },
+  pilates: {
+    ...authorizationSchema('pilates', 'Pilates', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames', required: true },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_PILATES,
+  },
+  psicologia: {
+    ...authorizationSchema('psicologia', 'Psicologia', [
+      { id: 'relatorioPsicologico', label: 'Relatório psicológico', required: true },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_PSICOLOGIA,
+  },
+  rpg: {
+    ...authorizationSchema('rpg', 'RPG', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_RPG,
+  },
+  acupuntura: {
+    ...withSectionTitle(authorizationSchema('acupuntura', 'Acupuntura', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, false, true), 'detalhes', 'Dados da Solicitação'),
+    avisoInicial: AVISO_INICIAL_ACUPUNTURA,
+  },
+  hidroterapia: {
+    ...authorizationSchema('hidroterapia', 'Hidroterapia', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_HIDROTERAPIA,
+  },
+  'terapia-ocupacional': {
+    ...authorizationSchema('terapia-ocupacional', 'Terapia Ocupacional', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames' },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_TERAPIA_OCUPACIONAL,
+  },
+  'autorizacao-outros': {
+    ...authorizationSchema('autorizacao-outros', 'Autorização de Procedimentos (Outros)', [
+      { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+      { id: 'laudosExames', label: 'Laudos de Exames', required: true },
+      { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+    avisoInicial: AVISO_INICIAL_AUTORIZACAO_OUTROS,
+  },
   'auxilio-aquisicao-medicamentos': authorizationSchema('auxilio-aquisicao-medicamentos', 'Auxílio para Aquisição de Medicamentos', [
     { id: 'receitaMedica', label: 'Receita médica', required: true },
     { id: 'relatorioMedico', label: 'Relatório médico', required: true },

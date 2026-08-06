@@ -4,7 +4,6 @@ import { ArrowRight, CheckCircle2, ChevronLeft, Copy, RotateCcw, Send } from 'lu
 import { beneficiaries } from '../data/mock'
 import { isFieldVisible, type ServiceFormSchema } from '../data/serviceFormSchemas'
 import { generateProtocolNumber } from '../utils/protocol'
-import { isFeatureInstrucoesCondicionaisEnabled } from '../utils/featureFlags'
 import { AvisoNormativo } from './AvisoNormativo'
 import { FileAttachmentField } from './FileAttachmentField'
 import { BeneficiarySelect, WizardSteps } from './serviceRequestWizardComponents'
@@ -187,13 +186,14 @@ export function ServiceRequestWizard({
       <form className="reimbursement-form" onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
         <section className="reimbursement-card">
           <h2>Formulário</h2>
-          {isFeatureInstrucoesCondicionaisEnabled() && schema.avisoInicial && (
+          {schema.avisoInicial && (!schema.avisoInicial.posicao || schema.avisoInicial.posicao === 'inicio') && (
             <AvisoNormativo
               confirmado={false}
               conteudo={schema.avisoInicial.conteudo}
               exigeConfirmacao={false}
               onConfirmar={() => {}}
               titulo={schema.avisoInicial.titulo}
+              tone={schema.avisoInicial.tone}
             />
           )}
           {visibleSections.map((section) => {
@@ -202,6 +202,16 @@ export function ServiceRequestWizard({
             return (
               <div className="reimbursement-form-section" key={section.id}>
                 <h3>{section.title}</h3>
+                {schema.avisoInicial?.posicao === 'apos-detalhes' && section.id === 'detalhes' && (
+                  <AvisoNormativo
+                    confirmado={false}
+                    conteudo={schema.avisoInicial.conteudo}
+                    exigeConfirmacao={false}
+                    onConfirmar={() => {}}
+                    titulo={schema.avisoInicial.titulo}
+                    tone={schema.avisoInicial.tone}
+                  />
+                )}
                 {beneficiaryField && (
                   <div className="service-beneficiary-row">
                     <BeneficiarySelect

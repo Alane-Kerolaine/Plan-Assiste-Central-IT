@@ -249,13 +249,14 @@ export function ServiceRequestWizardV2({
       <form className="reimbursement-form" onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
         <section className="reimbursement-card">
           <h2>Formulário</h2>
-          {schema.avisoInicial && (
+          {schema.avisoInicial && (!schema.avisoInicial.posicao || schema.avisoInicial.posicao === 'inicio') && (
             <AvisoNormativo
               confirmado={false}
               conteudo={schema.avisoInicial.conteudo}
               exigeConfirmacao={false}
               onConfirmar={() => {}}
               titulo={schema.avisoInicial.titulo}
+              tone={schema.avisoInicial.tone}
             />
           )}
           {visibleSections.map((section) => {
@@ -264,6 +265,16 @@ export function ServiceRequestWizardV2({
             return (
               <div className="reimbursement-form-section" key={section.id}>
                 <h3>{section.title}</h3>
+                {schema.avisoInicial?.posicao === 'apos-detalhes' && section.id === 'detalhes' && (
+                  <AvisoNormativo
+                    confirmado={false}
+                    conteudo={schema.avisoInicial.conteudo}
+                    exigeConfirmacao={false}
+                    onConfirmar={() => {}}
+                    titulo={schema.avisoInicial.titulo}
+                    tone={schema.avisoInicial.tone}
+                  />
+                )}
                 {beneficiaryField && (
                   <div className="service-beneficiary-row">
                     <BeneficiarySelect

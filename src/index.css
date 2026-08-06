@@ -890,7 +890,8 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .checklist-anexos-item-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .checklist-anexos-item-label { color: var(--text-dark); font-weight: var(--fw-semibold); }
 .checklist-anexos-arquivos-mantidos { display: grid; gap: 4px; margin: 0; padding-left: 20px; color: var(--text); font-size: 14px; }
-.aviso-normativo { display: grid; gap: 12px; border: 1px solid var(--border); border-left-width: 4px; border-left-color: var(--warning); border-radius: 10px; background: #fff8e0; padding: 16px 18px; }
+.aviso-normativo { display: grid; gap: 12px; border: 1px solid var(--border); border-left-width: 4px; border-left-color: var(--warning); border-radius: 10px; background: #fff8e0; padding: 16px 18px; margin-bottom: 20px; }
+.aviso-normativo.tone-informativo { border-left-color: var(--blue); background: #f1f8fb; }
 .aviso-normativo h3 { margin: 0; color: var(--text-dark); font-size: 18px; }
 .aviso-normativo p { margin: 0; color: var(--text-dark); line-height: 1.5; }
 .aviso-normativo-base-legal a { color: var(--brand-strong); font-weight: var(--fw-semibold); }
