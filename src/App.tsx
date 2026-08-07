@@ -31,6 +31,7 @@ import {
   AccountAreaPage,
   BeneficiaryLayout,
   BeneficiaryNovaReembolsoPage,
+  BeneficiaryNovaBeneficioMedicamentosPage,
   BeneficiaryAuthorizationsPage,
   CardsPage,
   DependentsPage,
@@ -334,6 +335,7 @@ function App() {
           <Route path="minhas-solicitacoes" element={<Navigate to="/beneficiario/solicitacoes" replace />} />
           <Route path="nova-solicitacao" element={<NovaSolicitacaoPage />} />
           <Route path="reembolso-procedimentos/nova-solicitacao" element={<BeneficiaryNovaReembolsoPage />} />
+          <Route path="beneficio-medicamentos/nova-solicitacao" element={<BeneficiaryNovaBeneficioMedicamentosPage />} />
           <Route path="inscricao-dependente/nova-solicitacao" element={<NovaInscricaoDependentePage />} />
           <Route path="autorizacao-procedimentos/nova-solicitacao" element={<NovaAutorizacaoPage />} />
           <Route path="servicos/:slug/nova-solicitacao" element={<ServiceRequestPage />} />

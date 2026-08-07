@@ -30,7 +30,7 @@ export type Service = {
 export type BeneficiaryRequest = {
   id: string
   title: string
-  category: 'Cadastro' | 'Autorizações' | 'Reembolso e auxílios' | 'Financeiro' | 'Rede e atendimento' | 'Documentos' | 'Orientações e canais' | 'Cobertura' | 'Fale Conosco'
+  category: 'Cadastro' | 'Autorizações' | 'Reembolso e auxílios' | 'Benefícios' | 'Financeiro' | 'Rede e atendimento' | 'Documentos' | 'Orientações e canais' | 'Cobertura' | 'Fale Conosco'
   description: string
   tags: string[]
   action: string
@@ -943,6 +943,15 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     tags: ['Reembolso', 'Livre escolha'],
     action: 'Solicitar reembolso',
     route: '/beneficiario/reembolso-procedimentos/nova-solicitacao',
+  },
+  {
+    id: 'servico-beneficio-medicamentos',
+    title: 'Benefício para Aquisição de Medicamentos',
+    category: 'Benefícios',
+    description: 'Solicite o benefício de assistência farmacológica para medicamentos de alto custo ou de uso contínuo.',
+    tags: ['Benefícios', 'Medicamentos'],
+    action: 'Solicitar benefício',
+    route: '/beneficiario/beneficio-medicamentos/nova-solicitacao',
   },
   {
     id: 'servico-autorizacao-cirurgia',

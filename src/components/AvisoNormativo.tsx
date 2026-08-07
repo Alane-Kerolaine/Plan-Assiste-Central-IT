@@ -8,11 +8,16 @@ type AvisoNormativoProps = AvisoNormativoConfig & {
 }
 
 function renderWithBold(text: string) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((segment, index) => (
-    segment.startsWith('**') && segment.endsWith('**')
-      ? <strong key={index}>{segment.slice(2, -2)}</strong>
-      : <Fragment key={index}>{segment}</Fragment>
-  ))
+  return text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g).map((segment, index) => {
+    if (segment.startsWith('**') && segment.endsWith('**')) {
+      return <strong key={index}>{segment.slice(2, -2)}</strong>
+    }
+    const linkMatch = segment.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+    if (linkMatch) {
+      return <a href={linkMatch[2]} key={index} rel="noreferrer" target="_blank">{linkMatch[1]}</a>
+    }
+    return <Fragment key={index}>{segment}</Fragment>
+  })
 }
 
 export function AvisoNormativo({ titulo, conteudo, baseLegal, exigeConfirmacao, confirmado, onConfirmar, tone = 'aviso' }: AvisoNormativoProps) {

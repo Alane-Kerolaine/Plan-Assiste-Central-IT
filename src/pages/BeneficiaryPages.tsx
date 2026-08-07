@@ -33,7 +33,10 @@ import {
   HelpCircle,
   IdCard,
   MonitorCheck,
+  Paperclip,
+  Pencil,
   PersonStanding,
+  Pill,
   Plus,
   RotateCcw,
   Save,
@@ -44,6 +47,7 @@ import {
   Speech,
   Star,
   Stethoscope,
+  Trash2,
   Undo2,
   UserPlus,
   UserRound,
@@ -255,13 +259,18 @@ export function BeneficiaryLayout({ onLogout }: { onLogout: () => void }) {
 
   const relativePath = location.pathname.replace(/^\/beneficiario\/?/, '')
   const slug = relativePath.split('/')[0] || 'beneficiario'
+  const matchingService = beneficiaryRequests.find((request) => request.route === location.pathname)
 
   return (
     <>
       <Header loggedIn onLogout={onLogout} />
       <MainMenu loggedIn />
       <div className="container">
-        <Breadcrumb current={pageNames[slug] || 'Beneficiários'} />
+        <Breadcrumb
+          current={matchingService ? 'Catálogo de serviços' : (pageNames[slug] || 'Beneficiários')}
+          currentTo="/beneficiario/servicos"
+          extra={matchingService?.title}
+        />
         <div className="beneficiary-grid beneficiary-workspace">
           <Sidebar onLogout={onLogout} />
           <main className="beneficiary-main">
@@ -553,7 +562,7 @@ function CriticalNotificationDialog({
   )
 }
 
-const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Financeiro', 'Documentos', 'Orientações e canais', 'Cobertura', 'Fale Conosco']
+const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Benefícios', 'Financeiro', 'Documentos', 'Orientações e canais', 'Cobertura', 'Fale Conosco']
 const requestCategoryLabel: Record<string, string> = {
   'Orientações e canais': 'Orientações',
 }
@@ -723,6 +732,8 @@ type ReimbursementDraft = {
   isPriorityCare: boolean
   notes: string
 }
+
+type ReimbursementItem = ReimbursementDraft & { id: string }
 
 const reimbursementRecords: ReimbursementRecord[] = [
   {
@@ -1141,12 +1152,19 @@ export function BeneficiaryNovaReembolsoPage() {
   const [showForm, setShowForm] = useState(false)
   const [step, setStep] = useState<WizardStep>('form')
   const [draft, setDraft] = useState<ReimbursementDraft>(initialReimbursementDraft)
-  const [items, setItems] = useState<ReimbursementDraft[]>([])
+  const [items, setItems] = useState<ReimbursementItem[]>([])
   const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File[]>>({})
-  const [acceptedTerm, setAcceptedTerm] = useState(false)
+  const [itemAttachments, setItemAttachments] = useState<Record<string, Record<string, File[]>>>({})
+  const [formAcceptedTerm, setFormAcceptedTerm] = useState(false)
   const [notice, setNotice] = useState('')
   const [protocol, setProtocol] = useState('')
   const [copied, setCopied] = useState(false)
+  const [attachmentsModalItemId, setAttachmentsModalItemId] = useState<string | null>(null)
+  const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
+  const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
+  const [editItem, setEditItem] = useState<ReimbursementItem | null>(null)
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const nextItemId = useRef(1)
 
   useEffect(() => {
     if (!copied) return
@@ -1163,8 +1181,17 @@ export function BeneficiaryNovaReembolsoPage() {
       setNotice('Preencha tipo de reembolso, nota/recibo, data, CPF/CNPJ do credenciado e valor para adicionar a solicitação.')
       return
     }
-    setItems((current) => [...current, draft])
+    const missingDocuments = reimbursementAttachments(draft.type, draft.isPriorityCare)
+      .filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
+    if (missingDocuments.length > 0) {
+      setNotice(`Anexe o(s) documento(s) obrigatório(s) antes de adicionar a solicitação: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
+      return
+    }
+    const id = `reembolso-${nextItemId.current++}`
+    setItems((current) => [...current, { ...draft, id }])
+    setItemAttachments((current) => ({ ...current, [id]: attachmentFiles }))
     setDraft({ ...initialReimbursementDraft, beneficiary: draft.beneficiary, dependentType: draft.dependentType })
+    setAttachmentFiles({})
     setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
   }
 
@@ -1182,10 +1209,73 @@ export function BeneficiaryNovaReembolsoPage() {
     setAttachmentFiles((current) => ({ ...current, [label]: (current[label] ?? []).filter((_, fileIndex) => fileIndex !== index) }))
   }
 
+  const attachmentsModalItem = items.find((item) => item.id === attachmentsModalItemId) ?? null
+
+  function closeAttachmentsModal() {
+    setAttachmentsModalItemId(null)
+    setAttachmentsModalReadOnly(false)
+    setAddAnexoCategoria('')
+  }
+
+  function addItemAttachmentFiles(itemId: string, categoria: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: [...(current[itemId]?.[categoria] ?? []), ...newFiles] },
+    }))
+    setAddAnexoCategoria('')
+  }
+
+  function removeItemAttachmentFile(itemId: string, categoria: string, index: number) {
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: (current[itemId]?.[categoria] ?? []).filter((_, fileIndex) => fileIndex !== index) },
+    }))
+  }
+
+  function downloadAttachmentFile(file: File) {
+    const url = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = file.name
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function updateEditItem<Key extends keyof ReimbursementItem>(key: Key, value: ReimbursementItem[Key]) {
+    setEditItem((current) => (current ? { ...current, [key]: value } : current))
+  }
+
+  function saveEditedItem() {
+    if (!editItem) return
+    setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
+    setEditItem(null)
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemId) return
+    setItems((current) => current.filter((item) => item.id !== deleteItemId))
+    setItemAttachments((current) => {
+      const next = { ...current }
+      delete next[deleteItemId]
+      return next
+    })
+    setDeleteItemId(null)
+  }
+
   function handleContinue(event: FormEvent) {
     event.preventDefault()
     if (items.length === 0) {
       setNotice('Adicione pelo menos uma solicitação antes de continuar.')
+      return
+    }
+    if (!formAcceptedTerm) {
+      setNotice('Aceite o termo de responsabilidade para continuar.')
       return
     }
     setNotice('')
@@ -1193,11 +1283,6 @@ export function BeneficiaryNovaReembolsoPage() {
   }
 
   function handleConfirm() {
-    if (!acceptedTerm) {
-      setNotice('Aceite o termo de responsabilidade para concluir o envio.')
-      return
-    }
-    setNotice('')
     setProtocol(generateProtocolNumber())
     setStep('success')
   }
@@ -1206,7 +1291,8 @@ export function BeneficiaryNovaReembolsoPage() {
     setDraft(initialReimbursementDraft)
     setItems([])
     setAttachmentFiles({})
-    setAcceptedTerm(false)
+    setItemAttachments({})
+    setFormAcceptedTerm(false)
     setNotice('')
     setProtocol('')
     setStep('form')
@@ -1257,6 +1343,81 @@ export function BeneficiaryNovaReembolsoPage() {
     </div>
   )
 
+  const attachmentsModal = attachmentsModalItem && (
+    <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
+      <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+        <div className="go-modal-header">
+          <h2 id="anexos-modal-title">Anexos da solicitação: {attachmentsModalItem.type} — {attachmentsModalItem.beneficiary}</h2>
+          <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
+            <X aria-hidden="true" />
+          </button>
+        </div>
+        <div className="go-modal-body">
+          {(() => {
+            const categorias = reimbursementAttachments(attachmentsModalItem.type, attachmentsModalItem.isPriorityCare)
+            const anexosDoItem = itemAttachments[attachmentsModalItem.id] ?? {}
+            const linhas = categorias.flatMap((categoria) => (
+              (anexosDoItem[categoria.label] ?? []).map((file, index) => ({ categoria: categoria.label, file, index }))
+            ))
+            return linhas.length > 0 ? (
+              <table className="anexos-modal-table">
+                <thead>
+                  <tr><th>Nome</th><th>Categoria</th><th>Tamanho</th><th aria-label="Ações" /></tr>
+                </thead>
+                <tbody>
+                  {linhas.map(({ categoria, file, index }) => (
+                    <tr key={`${categoria}-${index}-${file.name}`}>
+                      <td>{file.name}</td>
+                      <td>{categoria}</td>
+                      <td>{(file.size / 1024).toFixed(1)} KB</td>
+                      <td>
+                        <div className="anexos-modal-table-actions">
+                          <button aria-label={`Baixar ${file.name}`} onClick={() => downloadAttachmentFile(file)} type="button">
+                            <Download aria-hidden="true" />
+                          </button>
+                          {!attachmentsModalReadOnly && (
+                            <button aria-label={`Remover ${file.name}`} className="anexos-modal-table-remove" onClick={() => removeItemAttachmentFile(attachmentsModalItem.id, categoria, index)} type="button">
+                              <X aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="anexos-modal-empty">Nenhum anexo enviado ainda.</p>
+            )
+          })()}
+
+          {!attachmentsModalReadOnly && (
+            <div className="anexos-modal-add">
+              <label>
+                <span className="service-field-label-text">Tipo arquivo</span>
+                <Combobox
+                  onSelect={setAddAnexoCategoria}
+                  options={reimbursementAttachments(attachmentsModalItem.type, attachmentsModalItem.isPriorityCare).map((documento) => ({ value: documento.label, label: documento.label }))}
+                  placeholder="Selecione a categoria"
+                  value={addAnexoCategoria}
+                />
+              </label>
+              {addAnexoCategoria && (
+                <FileAttachmentField
+                  files={[]}
+                  hideLabel
+                  label={addAnexoCategoria}
+                  onAdd={(files) => addItemAttachmentFiles(attachmentsModalItem.id, addAnexoCategoria, files)}
+                  onRemove={() => {}}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
   if (step === 'success') {
     return (
       <div className="reimbursements-page">
@@ -1295,7 +1456,6 @@ export function BeneficiaryNovaReembolsoPage() {
   }
 
   if (step === 'review') {
-    const attachedEntries = Object.entries(attachmentFiles).filter(([, files]) => files.length > 0)
     return (
       <div className="reimbursements-page">
         {heading}
@@ -1334,39 +1494,26 @@ export function BeneficiaryNovaReembolsoPage() {
                     <tr>
                       <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
                       <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                      <th aria-label="Ações" />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={`${item.receiptNumber}-${index}`}>
+                    {items.map((item) => (
+                      <tr key={item.id}>
                         <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.providerDocument}</td><td>{item.type}</td>
                         <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(true) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-
-            <div className="reimbursement-form-section">
-              <h3>Anexos</h3>
-              <dl className="service-review-grid">
-                {attachedEntries.length > 0
-                  ? attachedEntries.map(([label, files]) => (
-                    <div className="service-review-row" key={label}>
-                      <dt>{label}</dt>
-                      <dd>{files.map((file) => file.name).join(', ')}</dd>
-                    </div>
-                  ))
-                  : <div className="service-review-row"><dt>Documentos</dt><dd>–</dd></div>}
-              </dl>
-            </div>
-
-            <label className="responsibility-term">
-              <input type="checkbox" checked={acceptedTerm} onChange={(event) => setAcceptedTerm(event.target.checked)} />
-              Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o Regulamento Geral do Plan-Assiste e as Normas Complementares que disciplinam a matéria. Declaro que li e concordo com os termos.
-            </label>
 
             {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
 
@@ -1380,6 +1527,8 @@ export function BeneficiaryNovaReembolsoPage() {
             </div>
           </div>
         </div>
+
+        {attachmentsModal}
       </div>
     )
   }
@@ -1503,16 +1652,32 @@ export function BeneficiaryNovaReembolsoPage() {
                 <table className="reimbursement-table">
                   <thead>
                     <tr>
-                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
-                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                      <th>Beneficiário</th><th>Portador de TEA, SD ou PC</th><th>Nº nota/recibo</th><th>Data</th>
+                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Observações</th><th>Valor</th>
+                      <th aria-label="Ações" />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={`${item.receiptNumber}-${index}`}>
-                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.beneficiary}</td>
+                        <td>{item.isPriorityCare ? 'Sim' : 'Não'}</td>
+                        <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.providerDocument}</td><td>{item.type}</td>
-                        <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                        <td>{item.sessions || '-'}</td>
+                        <td>{item.notes || '-'}</td>
+                        <td>{item.value}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(false) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                          <button aria-label="Editar solicitação" onClick={() => setEditItem(item)} type="button">
+                            <Pencil aria-hidden="true" />
+                          </button>
+                          <button aria-label="Excluir solicitação" className="reimbursement-item-delete" onClick={() => setDeleteItemId(item.id)} type="button">
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1520,15 +1685,733 @@ export function BeneficiaryNovaReembolsoPage() {
               </div>
             )}
 
+            <label className="responsibility-term">
+              <input checked={formAcceptedTerm} onChange={(event) => setFormAcceptedTerm(event.target.checked)} type="checkbox" />
+              <span>
+                Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o{' '}
+                <a href="/assets/normas/regimento-interno-plan-assiste.pdf" rel="noreferrer" target="_blank">Regulamento Geral do Plan-Assiste</a>
+                {' '}e as Normas Complementares que disciplinam a matéria.
+              </span>
+            </label>
+
             {notice && <p className="action-notice" role="status">{notice}</p>}
 
             <div className="reimbursement-actions">
-              <button className="primary-button" type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
-              <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAttachmentFiles({}); setAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
+              <button className="primary-button" disabled={!formAcceptedTerm} type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
+              <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAttachmentFiles({}); setItemAttachments({}); setFormAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
             </div>
           </section>
         </form>
       </div>
+
+      {attachmentsModal}
+
+      {editItem && (
+        <div className="go-modal-overlay" onClick={() => setEditItem(null)} role="presentation">
+          <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="edit-modal-title">Editar solicitação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setEditItem(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Beneficiário atendido<input disabled value={editItem.beneficiary} /></label>
+                <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
+                <label>Tipo de reembolso<input disabled value={editItem.type} /></label>
+                <label className="responsibility-term wide">
+                  <input checked={editItem.isPriorityCare} onChange={(event) => updateEditItem('isPriorityCare', event.target.checked)} type="checkbox" />
+                  Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
+                </label>
+                <label>Nº nota fiscal/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
+                <label>Data da nota fiscal/recibo *<BrazilianDateInput onChangeValue={(value) => updateEditItem('receiptDate', value)} value={editItem.receiptDate} /></label>
+                <label>CPF/CNPJ credenciado *<input maxLength={18} onChange={(event) => updateEditItem('providerDocument', maskCpfCnpj(event.target.value))} value={editItem.providerDocument} /></label>
+                <label>Valor *<input onChange={(event) => updateEditItem('value', maskCurrency(event.target.value))} value={editItem.value} /></label>
+                {!isCampoReembolsoOculto(editItem.type, 'sessions') && (
+                  <label>Quantidade de sessões *<input onChange={(event) => updateEditItem('sessions', event.target.value.replace(/\D/g, ''))} value={editItem.sessions} /></label>
+                )}
+                <label className="wide">Observações<textarea onChange={(event) => updateEditItem('notes', event.target.value)} rows={4} value={editItem.notes} /></label>
+              </div>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setEditItem(null)} type="button">Fechar</button>
+                <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteItemId && (
+        <div className="go-modal-overlay" onClick={() => setDeleteItemId(null)} role="presentation">
+          <div aria-labelledby="delete-modal-title" aria-modal="true" className="go-modal go-modal-small" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="delete-modal-title">Confirmação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setDeleteItemId(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Confirma excluir a solicitação?</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setDeleteItemId(null)} type="button">Não</button>
+                <button className="primary-button" onClick={confirmDeleteItem} type="button">Sim</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+type MedicamentoDraft = {
+  beneficiary: string
+  dependentType: string
+  receiptNumber: string
+  receiptDate: string
+  unitValue: string
+  quantity: string
+  description: string
+}
+
+type MedicamentoItem = MedicamentoDraft & { id: string }
+
+const initialMedicamentoDraft: MedicamentoDraft = {
+  beneficiary: beneficiaries[0].name,
+  dependentType: beneficiaries[0].relation,
+  receiptNumber: '',
+  receiptDate: '',
+  unitValue: '',
+  quantity: '',
+  description: '',
+}
+
+type MedicamentoDocumento = { label: string, required: boolean }
+
+const MEDICAMENTO_DOCUMENTOS: MedicamentoDocumento[] = [
+  { label: 'Nota ou Cupom Fiscal', required: true },
+  { label: 'Receita Médica ou Odontológica', required: true },
+  { label: 'Documentos Adicionais', required: false },
+]
+
+function medicamentoTotalValue(unitValue: string, quantity: string): string {
+  const unitCents = Number(unitValue.replace(/\D/g, '')) || 0
+  const quantityNumber = Number(quantity.replace(/\D/g, '')) || 0
+  return maskCurrency(String(unitCents * quantityNumber))
+}
+
+const MEDICAMENTO_INSTRUCTIONS = [
+  'Preencha todos os campos solicitados e revise os dados bancários antes de enviar.',
+  'Anexe a Nota ou Cupom Fiscal e a Receita Médica ou Odontológica referente à medicação.',
+  'Caso necessário, inclua relatório médico ou outros documentos na opção Documentos Adicionais.',
+  'Guarde o número de protocolo gerado para acompanhar sua solicitação.',
+]
+
+const MEDICAMENTO_FAQ = [
+  {
+    question: 'O que é o benefício de Assistência Farmacológica?',
+    answer: 'É o benefício para aquisição de medicamentos de alto custo e o auxílio para medicamentos de uso contínuo, regulamentados pela Norma Complementar nº 29, de 27/07/2023.',
+  },
+  {
+    question: 'Quais documentos preciso anexar?',
+    answer: 'É necessário anexar a Nota ou Cupom Fiscal e a Receita Médica ou Odontológica referente à medicação. Relatório médico ou outros documentos complementares devem ser incluídos na opção Documentos Adicionais.',
+  },
+  {
+    question: 'O que são medicamentos de alto custo e de uso contínuo?',
+    answer: 'Medicamentos de alto custo são aqueles cujo valor da quantidade prescrita para uso no mês seja igual ou superior a um salário-mínimo, com reembolso de 50% sobre o valor que exceder esse limite. Medicamentos de uso contínuo são os empregados no tratamento de doenças crônicas e/ou degenerativas, indicados em receituário e atestados pela perícia médica do Plan-Assiste.',
+  },
+]
+
+const MEDICAMENTO_ORIENTACOES = [
+  'Trata-se do benefício de **Assistência Farmacológica** para aquisição de medicamentos de alto custo e de **auxílio para medicamentos de uso contínuo**, regulamentados pela [Norma Complementar nº 29, de 27/07/2023](/assets/normas/normas-complementares/nc-29.pdf).',
+  'Deverão ser preenchidos todos os campos solicitados e revisados os **dados bancários**.',
+  'Deverão ser anexados a **Nota ou Cupom Fiscal** e a **Receita Médica ou Odontológica** referente às medicações objeto da solicitação.',
+  'Caso seja necessária a apresentação de Relatório Médico ou outros documentos, estes deverão ser incluídos na opção **Anexar Documentos Adicionais**.',
+  'Caso o princípio ativo do medicamento conste na Relação Nacional de Medicamentos Essenciais – [RENAME](https://www.gov.br/saude/pt-br/composicao/sectics/rename), é preciso primeiramente solicitar ao SUS e ter o pedido deferido. Caso o medicamento esteja comprovadamente em falta na rede pública, o respectivo documento deve ser juntado ao pedido e o medicamento poderá ser reembolsado na forma prevista na NC nº 29/2023, pelo período em que a dispensação estiver comprometida.',
+  '**Medicamentos de alto custo**: são aqueles cujo valor da quantidade prescrita para uso no mês seja igual ou superior a 01 (um) salário-mínimo. O percentual de reembolso será de 50% (cinquenta por cento) sobre o valor total da despesa mensal de cada beneficiário que exceder um salário mínimo, calculada até o limite dos valores indicados nas tabelas de referência adotadas pelo Plan-Assiste.',
+  '**Medicamentos de uso contínuo**: aqueles empregados no tratamento de doenças crônicas e/ou degenerativas, assim indicados em receituário pelo médico assistente e atestado pela perícia médica do Plan-Assiste. Os beneficiários que solicitarem auxílio para aquisição de medicamentos de uso contínuo ressarcirão integralmente o Plan-Assiste das despesas efetuadas.',
+  'Dúvidas no telefone 61 3212-8587 e [seplan-reembolso@mpu.mp.br](mailto:seplan-reembolso@mpu.mp.br).',
+].join('\n\n')
+
+export function BeneficiaryNovaBeneficioMedicamentosPage() {
+  const profile = getStoredUserProfile()
+  const [showForm, setShowForm] = useState(false)
+  const [step, setStep] = useState<WizardStep>('form')
+  const [draft, setDraft] = useState<MedicamentoDraft>(initialMedicamentoDraft)
+  const [items, setItems] = useState<MedicamentoItem[]>([])
+  const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File[]>>({})
+  const [itemAttachments, setItemAttachments] = useState<Record<string, Record<string, File[]>>>({})
+  const [formAcceptedTerm, setFormAcceptedTerm] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [protocol, setProtocol] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [attachmentsModalItemId, setAttachmentsModalItemId] = useState<string | null>(null)
+  const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
+  const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
+  const [editItem, setEditItem] = useState<MedicamentoItem | null>(null)
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const nextItemId = useRef(1)
+
+  useEffect(() => {
+    if (!copied) return
+    const id = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(id)
+  }, [copied])
+
+  function updateDraft<Key extends keyof MedicamentoDraft>(key: Key, value: MedicamentoDraft[Key]) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function addMedicamentoItem() {
+    if (!draft.receiptNumber || !draft.receiptDate || !draft.unitValue || !draft.quantity) {
+      setNotice('Preencha nota/recibo, data, valor unitário e quantidade para adicionar a solicitação.')
+      return
+    }
+    const missingDocuments = MEDICAMENTO_DOCUMENTOS.filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
+    if (missingDocuments.length > 0) {
+      setNotice(`Anexe o(s) documento(s) obrigatório(s) antes de adicionar a solicitação: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
+      return
+    }
+    const id = `medicamento-${nextItemId.current++}`
+    setItems((current) => [...current, { ...draft, id }])
+    setItemAttachments((current) => ({ ...current, [id]: attachmentFiles }))
+    setDraft({ ...initialMedicamentoDraft, beneficiary: draft.beneficiary, dependentType: draft.dependentType })
+    setAttachmentFiles({})
+    setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
+  }
+
+  function addAttachmentFiles(label: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setAttachmentFiles((current) => ({ ...current, [label]: [...(current[label] ?? []), ...newFiles] }))
+  }
+
+  function removeAttachmentFile(label: string, index: number) {
+    setAttachmentFiles((current) => ({ ...current, [label]: (current[label] ?? []).filter((_, fileIndex) => fileIndex !== index) }))
+  }
+
+  const attachmentsModalItem = items.find((item) => item.id === attachmentsModalItemId) ?? null
+
+  function closeAttachmentsModal() {
+    setAttachmentsModalItemId(null)
+    setAttachmentsModalReadOnly(false)
+    setAddAnexoCategoria('')
+  }
+
+  function addItemAttachmentFiles(itemId: string, categoria: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: [...(current[itemId]?.[categoria] ?? []), ...newFiles] },
+    }))
+    setAddAnexoCategoria('')
+  }
+
+  function removeItemAttachmentFile(itemId: string, categoria: string, index: number) {
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: (current[itemId]?.[categoria] ?? []).filter((_, fileIndex) => fileIndex !== index) },
+    }))
+  }
+
+  function downloadAttachmentFile(file: File) {
+    const url = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = file.name
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function updateEditItem<Key extends keyof MedicamentoItem>(key: Key, value: MedicamentoItem[Key]) {
+    setEditItem((current) => (current ? { ...current, [key]: value } : current))
+  }
+
+  function saveEditedItem() {
+    if (!editItem) return
+    setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
+    setEditItem(null)
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemId) return
+    setItems((current) => current.filter((item) => item.id !== deleteItemId))
+    setItemAttachments((current) => {
+      const next = { ...current }
+      delete next[deleteItemId]
+      return next
+    })
+    setDeleteItemId(null)
+  }
+
+  function handleContinue(event: FormEvent) {
+    event.preventDefault()
+    if (items.length === 0) {
+      setNotice('Adicione pelo menos uma solicitação antes de continuar.')
+      return
+    }
+    if (!formAcceptedTerm) {
+      setNotice('Aceite o termo de responsabilidade para continuar.')
+      return
+    }
+    setNotice('')
+    setStep('review')
+  }
+
+  function handleConfirm() {
+    setProtocol(generateProtocolNumber())
+    setStep('success')
+  }
+
+  function handleReset() {
+    setDraft(initialMedicamentoDraft)
+    setItems([])
+    setAttachmentFiles({})
+    setItemAttachments({})
+    setFormAcceptedTerm(false)
+    setNotice('')
+    setProtocol('')
+    setStep('form')
+  }
+
+  const catalogEntry = beneficiaryRequests.find((request) => request.route === '/beneficiario/beneficio-medicamentos/nova-solicitacao')
+
+  if (!showForm) {
+    return (
+      <div className="reimbursements-page">
+        <div className="provider-page-heading">
+          <h1>{catalogEntry?.title ?? 'Benefício para Aquisição de Medicamentos'}</h1>
+          {catalogEntry?.description && <p className="page-subtitle">{catalogEntry.description}</p>}
+        </div>
+        <section className="reimbursement-card">
+          <div className="service-intro-faq">
+            {MEDICAMENTO_FAQ.map((item) => (
+              <div key={item.question}>
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </div>
+            ))}
+          </div>
+          <div className="service-success-followup">
+            <h3>Instruções</h3>
+            <ol>
+              {MEDICAMENTO_INSTRUCTIONS.map((instruction, index) => (
+                <li key={instruction}>
+                  <span className="service-followup-index">{index + 1}</span> {instruction}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="reimbursement-actions">
+            <button className="primary-button" onClick={() => setShowForm(true)} type="button">
+              Iniciar solicitação <ArrowRight aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  const heading = (
+    <div className="provider-page-heading">
+      <h1>Nova solicitação de benefício</h1>
+      <p className="page-subtitle">Preencha os dados da aquisição de medicamentos e anexe os documentos digitalizados.</p>
+    </div>
+  )
+
+  const attachmentsModal = attachmentsModalItem && (
+    <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
+      <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+        <div className="go-modal-header">
+          <h2 id="anexos-modal-title">Anexos da solicitação: Nº {attachmentsModalItem.receiptNumber} — {attachmentsModalItem.beneficiary}</h2>
+          <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
+            <X aria-hidden="true" />
+          </button>
+        </div>
+        <div className="go-modal-body">
+          {(() => {
+            const anexosDoItem = itemAttachments[attachmentsModalItem.id] ?? {}
+            const linhas = MEDICAMENTO_DOCUMENTOS.flatMap((categoria) => (
+              (anexosDoItem[categoria.label] ?? []).map((file, index) => ({ categoria: categoria.label, file, index }))
+            ))
+            return linhas.length > 0 ? (
+              <table className="anexos-modal-table">
+                <thead>
+                  <tr><th>Nome</th><th>Categoria</th><th>Tamanho</th><th aria-label="Ações" /></tr>
+                </thead>
+                <tbody>
+                  {linhas.map(({ categoria, file, index }) => (
+                    <tr key={`${categoria}-${index}-${file.name}`}>
+                      <td>{file.name}</td>
+                      <td>{categoria}</td>
+                      <td>{(file.size / 1024).toFixed(1)} KB</td>
+                      <td>
+                        <div className="anexos-modal-table-actions">
+                          <button aria-label={`Baixar ${file.name}`} onClick={() => downloadAttachmentFile(file)} type="button">
+                            <Download aria-hidden="true" />
+                          </button>
+                          {!attachmentsModalReadOnly && (
+                            <button aria-label={`Remover ${file.name}`} className="anexos-modal-table-remove" onClick={() => removeItemAttachmentFile(attachmentsModalItem.id, categoria, index)} type="button">
+                              <X aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="anexos-modal-empty">Nenhum anexo enviado ainda.</p>
+            )
+          })()}
+
+          {!attachmentsModalReadOnly && (
+            <div className="anexos-modal-add">
+              <label>
+                <span className="service-field-label-text">Tipo arquivo</span>
+                <Combobox
+                  onSelect={setAddAnexoCategoria}
+                  options={MEDICAMENTO_DOCUMENTOS.map((documento) => ({ value: documento.label, label: documento.label }))}
+                  placeholder="Selecione a categoria"
+                  value={addAnexoCategoria}
+                />
+              </label>
+              {addAnexoCategoria && (
+                <FileAttachmentField
+                  files={[]}
+                  hideLabel
+                  label={addAnexoCategoria}
+                  onAdd={(files) => addItemAttachmentFiles(attachmentsModalItem.id, addAnexoCategoria, files)}
+                  onRemove={() => {}}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  if (step === 'success') {
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="service-success">
+            <CheckCircle2 aria-hidden="true" className="service-success-icon" />
+            <h2>Solicitação criada com sucesso!</h2>
+            <p>Sua solicitação foi registrada para análise.</p>
+            <div className="service-protocol">
+              <span>Número do protocolo</span>
+              <strong>{protocol}</strong>
+              <button type="button" onClick={() => { navigator.clipboard.writeText(protocol); setCopied(true) }}>
+                <Copy aria-hidden="true" /> {copied ? 'Copiado!' : 'Copiar protocolo'}
+              </button>
+            </div>
+            <div className="service-success-followup">
+              <h3>Como acompanhar?</h3>
+              <ol>
+                <li><span className="service-followup-index">1</span> Acesse o menu Minhas Solicitações</li>
+                <li><span className="service-followup-index">2</span> Localize o protocolo informado</li>
+                <li><span className="service-followup-index">3</span> Verifique o status e atualizações</li>
+              </ol>
+            </div>
+            <div className="service-success-actions">
+              <button className="primary-button" type="button" onClick={handleReset}>
+                <RotateCcw aria-hidden="true" /> Registrar nova solicitação
+              </button>
+              <Link className="secondary-button" to={DEFAULT_SUCCESS_SECONDARY_ACTION.to}>{DEFAULT_SUCCESS_SECONDARY_ACTION.label}</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'review') {
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="reimbursement-card service-review">
+            <h2>Revise sua solicitação</h2>
+            <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
+
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Titular</dt><dd>Ana Maria de Araújo</dd></div>
+                <div className="service-review-row"><dt>Matrícula</dt><dd>30003387</dd></div>
+                <div className="service-review-row"><dt>Ramo</dt><dd>MPDFT</dd></div>
+                <div className="service-review-row"><dt>E-mail</dt><dd>{profile.email}</dd></div>
+                <div className="service-review-row"><dt>Telefone com DDD</dt><dd>{profile.phone}</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Banco</dt><dd>Banco do Brasil - Nº 001</dd></div>
+                <div className="service-review-row"><dt>Agência</dt><dd>3085-6</dd></div>
+                <div className="service-review-row"><dt>Conta</dt><dd>19865</dd></div>
+                <div className="service-review-row"><dt>DV conta</dt><dd>X</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Solicitações</h3>
+              <div className="reimbursement-table-wrap">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data N.F/Recibo</th>
+                      <th>Observações</th><th>Valor unitário</th><th>Quantidade</th><th>Valor total</th>
+                      <th aria-label="Ações" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.description || '-'}</td><td>{item.unitValue}</td><td>{item.quantity}</td>
+                        <td>{medicamentoTotalValue(item.unitValue, item.quantity)}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(true) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="secondary-button" type="button" onClick={() => setStep('form')}>
+                <ChevronLeft aria-hidden="true" /> Voltar e editar
+              </button>
+              <button className="primary-button" type="button" onClick={handleConfirm}>
+                <Send aria-hidden="true" /> Confirmar e enviar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {attachmentsModal}
+      </div>
+    )
+  }
+
+  const currentTotalValue = medicamentoTotalValue(draft.unitValue, draft.quantity)
+
+  return (
+    <div className="reimbursements-page">
+      {heading}
+      <div className="service-wizard">
+        <WizardSteps current={step} />
+        <form className="reimbursement-form" onSubmit={handleContinue}>
+          <section className="reimbursement-card">
+            <h2>Formulário</h2>
+
+            <AvisoNormativo
+              confirmado={false}
+              conteudo={MEDICAMENTO_ORIENTACOES}
+              exigeConfirmacao={false}
+              onConfirmar={() => {}}
+              titulo="Orientações Importantes"
+              tone="informativo"
+            />
+
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
+                <label>Matrícula<input value="30003387" disabled /></label>
+                <label>Ramo<input value="MPDFT" disabled /></label>
+                <label>E-mail<input value={profile.email} disabled /></label>
+                <label>Telefone com DDD<input value={profile.phone} disabled /></label>
+              </div>
+              <p className="service-field-hint reimbursement-profile-hint">
+                E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+              </p>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Banco<input value="Banco do Brasil - Nº 001" disabled /></label>
+                <label>Agência<input value="3085-6" disabled /></label>
+                <label>Conta<input value="19865" disabled /></label>
+                <label>DV conta<input value="X" disabled /></label>
+              </div>
+              <p className="reimbursement-warning">
+                Os dados bancários são obtidos a partir do cadastro do beneficiário titular no Plan-Assiste. Os créditos do benefício são obrigatoriamente creditados na conta de recebimento do salário do beneficiário titular.
+                Caso os dados cadastrados refiram-se à conta diversa ou exclusiva para recebimento da remuneração, encaminhe um e-mail para <a href="mailto:seplan-cadastro@mpu.mp.br">seplan-cadastro@mpu.mp.br</a>, informando a matrícula e os novos dados bancários.
+              </p>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados da solicitação</h3>
+              <div className="reimbursement-grid">
+                <label>
+                  Beneficiário atendido
+                  <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                  </select>
+                </label>
+                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
+                <label>Nº nota/recibo *<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
+                <label>Data da nota/recibo *<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
+                <label>Valor unitário *<input value={draft.unitValue} onChange={(event) => updateDraft('unitValue', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
+                <label>Quantidade *<input value={draft.quantity} onChange={(event) => updateDraft('quantity', event.target.value.replace(/\D/g, ''))} placeholder="Digite a quantidade" /></label>
+                <label>Valor total<input disabled value={currentTotalValue} /></label>
+                <label className="wide">Descrição do medicamento<textarea value={draft.description} onChange={(event) => updateDraft('description', event.target.value)} rows={4} placeholder="Descreva o(s) medicamento(s) objeto da solicitação" /></label>
+              </div>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Anexos</h3>
+              <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
+              <div className="checklist-anexos">
+                {MEDICAMENTO_DOCUMENTOS.map(({ label, required }) => (
+                  <FileAttachmentField
+                    fullWidth
+                    files={attachmentFiles[label] ?? []}
+                    key={label}
+                    label={label}
+                    onAdd={(files) => addAttachmentFiles(label, files)}
+                    onRemove={(index) => removeAttachmentFile(label, index)}
+                    required={required}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="reimbursement-actions">
+              <button className="secondary-button" type="button" onClick={addMedicamentoItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
+            </div>
+
+            {items.length > 0 && (
+              <div className="reimbursement-table-wrap reimbursement-items-table">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data N.F/Recibo</th>
+                      <th>Observações</th><th>Valor unitário</th><th>Quantidade</th><th>Valor total</th>
+                      <th aria-label="Ações" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.beneficiary}</td>
+                        <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.description || '-'}</td>
+                        <td>{item.unitValue}</td><td>{item.quantity}</td>
+                        <td>{medicamentoTotalValue(item.unitValue, item.quantity)}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(false) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                          <button aria-label="Editar solicitação" onClick={() => setEditItem(item)} type="button">
+                            <Pencil aria-hidden="true" />
+                          </button>
+                          <button aria-label="Excluir solicitação" className="reimbursement-item-delete" onClick={() => setDeleteItemId(item.id)} type="button">
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <label className="responsibility-term">
+              <input checked={formAcceptedTerm} onChange={(event) => setFormAcceptedTerm(event.target.checked)} type="checkbox" />
+              <span>
+                Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o{' '}
+                <a href="/assets/normas/regimento-interno-plan-assiste.pdf" rel="noreferrer" target="_blank">Regulamento Geral do Plan-Assiste</a>
+                {' '}e as Normas Complementares que disciplinam a matéria.
+              </span>
+            </label>
+
+            {notice && <p className="action-notice" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="primary-button" disabled={!formAcceptedTerm} type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
+              <button type="button" onClick={() => { setDraft(initialMedicamentoDraft); setItems([]); setAttachmentFiles({}); setItemAttachments({}); setFormAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
+            </div>
+          </section>
+        </form>
+      </div>
+
+      {attachmentsModal}
+
+      {editItem && (
+        <div className="go-modal-overlay" onClick={() => setEditItem(null)} role="presentation">
+          <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="edit-modal-title">Editar solicitação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setEditItem(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Beneficiário atendido<input disabled value={editItem.beneficiary} /></label>
+                <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
+                <label>Nº nota/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
+                <label>Data da nota/recibo *<BrazilianDateInput onChangeValue={(value) => updateEditItem('receiptDate', value)} value={editItem.receiptDate} /></label>
+                <label>Valor unitário *<input onChange={(event) => updateEditItem('unitValue', maskCurrency(event.target.value))} value={editItem.unitValue} /></label>
+                <label>Quantidade *<input onChange={(event) => updateEditItem('quantity', event.target.value.replace(/\D/g, ''))} value={editItem.quantity} /></label>
+                <label>Valor total<input disabled value={medicamentoTotalValue(editItem.unitValue, editItem.quantity)} /></label>
+                <label className="wide">Descrição do medicamento<textarea onChange={(event) => updateEditItem('description', event.target.value)} rows={4} value={editItem.description} /></label>
+              </div>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setEditItem(null)} type="button">Fechar</button>
+                <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteItemId && (
+        <div className="go-modal-overlay" onClick={() => setDeleteItemId(null)} role="presentation">
+          <div aria-labelledby="delete-modal-title" aria-modal="true" className="go-modal go-modal-small" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="delete-modal-title">Confirmação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setDeleteItemId(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Confirma excluir a solicitação?</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setDeleteItemId(null)} type="button">Não</button>
+                <button className="primary-button" onClick={confirmDeleteItem} type="button">Sim</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2397,6 +3280,7 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-reembolso-duvidas': HelpCircle,
   'servico-recurso-reembolso': ClipboardList,
   'servico-solicitacao-reembolso': HandCoins,
+  'servico-beneficio-medicamentos': Pill,
   'servico-autorizacao-cirurgia': ClipboardCheck,
   'servico-psicologia': Stethoscope,
   'servico-fonoaudiologia': Stethoscope,
@@ -4189,6 +5073,7 @@ const requestIconByCategory: Record<BeneficiaryRequest['category'], LucideIcon> 
   Cadastro: UserPlus,
   Autorizações: ClipboardCheck,
   'Reembolso e auxílios': HandCoins,
+  Benefícios: Pill,
   Financeiro: WalletCards,
   'Rede e atendimento': Stethoscope,
   Documentos: FileText,

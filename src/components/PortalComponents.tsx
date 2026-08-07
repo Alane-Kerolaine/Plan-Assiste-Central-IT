@@ -756,7 +756,7 @@ export function Sidebar({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-export function Breadcrumb({ current }: { current: string }) {
+export function Breadcrumb({ current, currentTo, extra }: { current: string, currentTo?: string, extra?: string }) {
   const isBeneficiaryRoot = current === 'Beneficiário' || current === 'Beneficiários'
 
   return (
@@ -767,7 +767,12 @@ export function Breadcrumb({ current }: { current: string }) {
       ) : (
         <>
           <Link to="/beneficiario">Beneficiário</Link><ArrowRight />
-          <span>{current}</span>
+          {extra && currentTo ? <Link to={currentTo}>{current}</Link> : <span>{current}</span>}
+          {extra && (
+            <>
+              <ArrowRight /><span>{extra}</span>
+            </>
+          )}
         </>
       )}
     </nav>

@@ -213,6 +213,7 @@ strong, b { font-weight: var(--fw-semibold); }
 .hero-dots button.is-active { width: 34px; border-color: rgba(8, 119, 101, .7); background: rgba(8, 119, 101, .62); opacity: .86; }
 .hero-pause { margin-left: 8px; }
 .primary-button { border: 0; display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 48px; background: var(--brand-strong); color: white; border-radius: 9px; padding: 0 32px; font-weight: var(--fw-semibold); transition: background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.primary-button:disabled { opacity: .5; cursor: not-allowed; }
 .primary-button:hover { background: #075f53; box-shadow: 0 10px 20px rgba(8, 119, 101, .2); transform: translateY(-2px); }
 button.primary-button:hover:not(:disabled), a.primary-button:hover { border-color: var(--brand-strong); background: var(--brand-strong); color: #fff; }
 .secondary-button { border: 1px solid var(--border); display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 48px; background: white; color: var(--brand-strong); border-radius: 9px; padding: 0 32px; font-weight: var(--fw-semibold); transition: border-color .2s ease, background .2s ease; }
@@ -754,6 +755,12 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-table th, .reimbursement-table td { border-bottom: 1px solid var(--border); padding: 12px 14px; text-align: left; vertical-align: top; }
 .reimbursement-table th { background: var(--mint-soft); color: var(--text-dark); font-size: 18px; font-weight: var(--fw-semibold); }
 .reimbursement-table td { color: var(--text); font-size: 17px; }
+.reimbursement-item-actions { display: flex; gap: 6px; white-space: nowrap; }
+.reimbursement-item-actions button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--brand-dark); cursor: pointer; }
+.reimbursement-item-actions button:hover { background: var(--mint-bg); }
+.reimbursement-item-actions button.reimbursement-item-delete { color: var(--danger-strong); }
+.reimbursement-item-actions button.reimbursement-item-delete:hover { background: #fff1f4; }
+.reimbursement-item-actions button svg { width: 16px; height: 16px; }
 .requests-table-wrap {
   position: relative;
   background: linear-gradient(to left, white 30px, rgba(255, 255, 255, 0) 30px) right, linear-gradient(to left, rgba(16, 63, 58, .18), rgba(16, 63, 58, 0) 14px) right;
@@ -803,6 +810,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-actions svg { width: 18px; }
 .responsibility-term { display: flex !important; flex-direction: row !important; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 16px; margin-top: 16px; color: var(--text-dark); font-weight: var(--fw-semibold); }
 .responsibility-term input { margin-top: 3px; flex-shrink: 0; }
+.responsibility-term a { color: var(--brand-strong); text-decoration: underline; white-space: nowrap; }
 .service-field-note { border-left: 4px solid var(--brand-primary); border-radius: 8px; background: var(--mint-soft); color: var(--text-dark); padding: 12px 14px; margin: 0; font-size: 14px; }
 .service-field-label-text { display: inline-flex; align-items: center; }
 .field-info-icon { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 17px; height: 17px; margin-left: 5px; border-radius: 50%; background: var(--mint-soft); color: var(--brand-strong); cursor: help; }
@@ -896,6 +904,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .aviso-normativo.tone-informativo { border-left-color: var(--blue); background: #f1f8fb; }
 .aviso-normativo h3 { margin: 0; color: var(--text-dark); font-size: 18px; }
 .aviso-normativo p { margin: 0; color: var(--text-dark); line-height: 1.5; }
+.aviso-normativo p a { color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: underline; }
 .aviso-normativo-base-legal a { color: var(--brand-strong); font-weight: var(--fw-semibold); }
 .aviso-normativo .responsibility-term { margin-top: 4px; }
 .captcha-field { display: grid; gap: 12px; margin-top: 8px; max-width: 360px; }
@@ -4019,13 +4028,28 @@ button.filter-clear-button:hover { border-color: var(--brand-primary); backgroun
 
 /* Modal */
 .go-modal-overlay { position: fixed; inset: 0; background: rgba(16, 63, 58, .45); display: grid; place-items: start center; z-index: 1000; padding: 40px 24px; overflow-y: auto; }
-.go-modal { background: white; border-radius: 20px; box-shadow: 0 24px 64px rgba(16, 63, 58, .22); width: 100%; max-width: 700px; display: flex; flex-direction: column; overflow: hidden; }
+.go-modal { background: white; border-radius: 20px; box-shadow: 0 24px 64px rgba(16, 63, 58, .22); width: 100%; max-width: 700px; display: flex; flex-direction: column; overflow: visible; }
 .go-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 32px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .go-modal-header h2 { font-size: 20px; margin: 0; color: var(--text-dark); }
 .go-modal-close { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--brand-dark); transition: background .18s ease; flex-shrink: 0; }
 .go-modal-close:hover { background: var(--mint-bg); }
 .go-modal-close svg { width: 20px; height: 20px; }
-.go-modal-body { padding: 24px 32px 32px; overflow-y: auto; }
+.go-modal-body { padding: 24px 32px 32px; overflow: visible; }
+.go-modal-small { max-width: 420px; }
+
+.anexos-modal-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.anexos-modal-table th, .anexos-modal-table td { border-bottom: 1px solid var(--border); padding: 10px 8px; text-align: left; vertical-align: top; font-size: 14px; color: var(--text); }
+.anexos-modal-table th { color: var(--text-dark); font-weight: var(--fw-semibold); }
+.anexos-modal-table td:last-child { text-align: right; }
+.anexos-modal-table-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.anexos-modal-table button { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--brand-dark); cursor: pointer; }
+.anexos-modal-table button:hover { background: var(--mint-bg); }
+.anexos-modal-table button svg { width: 16px; height: 16px; }
+.anexos-modal-table button.anexos-modal-table-remove { color: var(--danger-strong); }
+.anexos-modal-table button.anexos-modal-table-remove:hover { background: #fff1f4; }
+.anexos-modal-empty { color: var(--text); font-size: 14px; margin-bottom: 20px; }
+.anexos-modal-add { display: grid; gap: 12px; max-width: 320px; }
+.anexos-modal-add .cms-combobox input { width: 100%; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background-color: white; color: var(--text); }
 
 /* Responsivo: formulários em coluna única abaixo de 640px */
 @media (max-width: 640px) {
