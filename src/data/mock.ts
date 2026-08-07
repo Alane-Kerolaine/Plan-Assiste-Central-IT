@@ -1062,15 +1062,6 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/autorizacao-outros/nova-solicitacao',
   },
   {
-    id: 'servico-autorizacao-opme',
-    title: 'Autorização de OPME',
-    category: 'Autorizações',
-    description: 'Solicite autorização para órteses, próteses e materiais especiais (OPME).',
-    tags: ['OPME', 'Órteses', 'Próteses'],
-    action: 'Solicitar autorização',
-    route: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
-  },
-  {
     id: 'servico-processo-aposentadoria-retorno',
     title: 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem',
     category: 'Cadastro',
@@ -1295,8 +1286,8 @@ export type Beneficiary = {
 
 export const beneficiaries: Beneficiary[] = [
   { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', email: 'ana.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'andre', name: 'André Luiz Araújo', relation: 'Menores sob guarda', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteados', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'andre', name: 'André Luiz Araújo', relation: 'Filho(a)', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteado(a)', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
 ]
 
 export const quickAccess: Service[] = [

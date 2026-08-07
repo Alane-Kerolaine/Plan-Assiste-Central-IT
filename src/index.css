@@ -790,6 +790,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-form-section h3 { margin-bottom: 16px; }
 .reimbursement-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .reimbursement-grid-two-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.reimbursement-grid-three-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .reimbursement-grid .wide { grid-column: 1 / -1; }
 .reimbursement-grid .half-width { grid-column: span 2; }
 .reimbursement-grid .span-3 { grid-column: span 3; }
@@ -891,6 +892,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .checklist-anexos-item-label { color: var(--text-dark); font-weight: var(--fw-semibold); }
 .checklist-anexos-arquivos-mantidos { display: grid; gap: 4px; margin: 0; padding-left: 20px; color: var(--text); font-size: 14px; }
 .aviso-normativo { display: grid; gap: 12px; border: 1px solid var(--border); border-left-width: 4px; border-left-color: var(--warning); border-radius: 10px; background: #fff8e0; padding: 16px 18px; margin-bottom: 20px; }
+.reimbursement-grid + .aviso-normativo { margin-top: 20px; }
 .aviso-normativo.tone-informativo { border-left-color: var(--blue); background: #f1f8fb; }
 .aviso-normativo h3 { margin: 0; color: var(--text-dark); font-size: 18px; }
 .aviso-normativo p { margin: 0; color: var(--text-dark); line-height: 1.5; }

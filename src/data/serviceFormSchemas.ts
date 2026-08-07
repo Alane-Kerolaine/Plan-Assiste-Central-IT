@@ -28,9 +28,10 @@ export type ServiceField = {
 
 export type ServiceFormSection = {
   id: string
-  title: string
+  title?: string
   fields: ServiceField[]
   showIf?: ServiceFieldCondition
+  columns?: 2 | 3
 }
 
 export type CasoInstrucaoDocumento = {
@@ -235,7 +236,6 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'hidroterapia', title: 'Hidroterapia' },
   { slug: 'abertura-solicitacoes-administrativas', title: 'Abertura de Solicitações Administrativas' },
   { slug: 'autorizacao-exame', title: 'Autorização de Exame' },
-  { slug: 'autorizacao-opme', title: 'Autorização de OPME' },
   { slug: 'autorizacao-procedimentos', title: 'Autorização (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'auxilio-duvidas-informacoes', title: 'Auxílio (Dúvidas, Informações e Esclarecimentos)' },
   { slug: 'carteirinha-virtual', title: 'Carteirinha Virtual' },
@@ -263,7 +263,7 @@ const LOCALIDADE_PROCEDIMENTO_LABEL = 'Localidade do Procedimento'
 // documentos nomeados (authorizationSchema).
 const SLUGS_LOCALIDADE_PROCEDIMENTO = new Set([
   'autorizacao-cirurgia', 'psicologia', 'fonoaudiologia', 'terapia-ocupacional', 'fisioterapia',
-  'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-opme',
+  'acupuntura', 'pilates', 'rpg', 'hidroterapia',
   'auxilio-aquisicao-medicamentos',
 ])
 
@@ -397,7 +397,6 @@ const BENEFICIARIO_ESPECIAL_TIPO_OPTIONS = [
 const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', [
   {
     id: 'tipo-beneficiario',
-    title: 'Tipo de beneficiário',
     fields: [
       {
         id: 'tipoBeneficiario',
@@ -410,15 +409,14 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     ],
   },
   {
-    id: 'inscricao-titular',
-    title: 'Inscrição do titular',
+    id: 'inscricao-titular-pessoais',
+    title: 'Dados pessoais',
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
+    columns: 3,
     fields: [
       { id: 'titularNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver', infoText: 'Conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'titularSituacaoFuncional', label: 'Situação funcional', type: 'select', options: SITUACAO_FUNCIONAL_OPTIONS },
       { id: 'titularAtividade', label: 'Atividade', type: 'select', options: ['Ativo', 'Inativo'] },
-      { id: 'titularFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome do pai ou responsável' },
-      { id: 'titularFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome da mãe', infoText: 'Preferencialmente o nome da mãe' },
       { id: 'titularSexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
       { id: 'titularEstadoCivil', label: 'Estado civil', type: 'text', placeholder: 'Ex.: Solteiro(a), Casado(a)' },
       { id: 'titularNacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Ex.: Brasileira' },
@@ -426,16 +424,42 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'titularUf', label: 'UF', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
       { id: 'titularIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'titularOrgaoEmissor', label: 'Órgão emissor', type: 'text', placeholder: 'Ex.: SSP/UF' },
+      { id: 'titularFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Digite o nome do(a) responsável' },
+      { id: 'titularFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Digite o nome do(a) responsável', infoText: 'Preferencialmente o nome da mãe' },
+      { id: 'titularLotacao', label: 'Lotação', type: 'text', placeholder: 'Setor ou unidade de lotação' },
+    ],
+  },
+  {
+    id: 'inscricao-titular-endereco',
+    title: 'Endereço',
+    showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
+    columns: 3,
+    fields: [
+      { id: 'titularCep', label: 'CEP', type: 'text', format: 'cep', placeholder: '00000-000', infoText: 'Ao digitar o CEP, o endereço é preenchido automaticamente' },
       { id: 'titularEndereco', label: 'Endereço', type: 'text', fullWidth: true, placeholder: 'Rua, número, complemento' },
       { id: 'titularBairro', label: 'Bairro', type: 'text', placeholder: 'Nome do bairro' },
       { id: 'titularCidade', label: 'Cidade', type: 'text', placeholder: 'Nome da cidade' },
-      { id: 'titularCep', label: 'CEP', type: 'text', format: 'cep', placeholder: '00000-000' },
       { id: 'titularUfCidade', label: 'UF (cidade)', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
+    ],
+  },
+  {
+    id: 'inscricao-titular-contato',
+    title: 'Contato',
+    showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
+    columns: 3,
+    fields: [
       { id: 'titularTelefoneResidencial', label: 'Telefone residencial', type: 'text', format: 'phone', placeholder: '(00) 0000-0000' },
       { id: 'titularTelefoneCelular', label: 'Telefone celular', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'titularTelefoneComercial', label: 'Telefone comercial', type: 'text', format: 'phone', placeholder: '(00) 0000-0000' },
-      { id: 'titularLotacao', label: 'Lotação', type: 'text', placeholder: 'Setor ou unidade de lotação' },
       { id: 'titularEmail', label: 'Endereço eletrônico (e-mail)', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
+    ],
+  },
+  {
+    id: 'inscricao-titular-bancarios',
+    title: 'Dados bancários',
+    showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
+    columns: 3,
+    fields: [
       { id: 'titularBanco', label: 'Banco', type: 'text', placeholder: 'Ex.: Banco do Brasil' },
       { id: 'titularAgencia', label: 'Agência', type: 'text', placeholder: 'Número da agência' },
       { id: 'titularContaCorrente', label: 'Conta corrente', type: 'text', placeholder: 'Número da conta' },
@@ -445,6 +469,7 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     id: 'inscricao-dependente',
     title: 'Inscrição de dependente',
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Dependente' },
+    columns: 3,
     fields: [
       { id: 'dependenteNome', label: 'Nome do dependente', type: 'text', required: true, placeholder: 'Nome completo do dependente' },
       { id: 'dependenteNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver', infoText: 'Conforme Portaria PGR/MPU nº 7/2018' },
@@ -454,17 +479,18 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'dependenteEstadoCivil', label: 'Estado civil', type: 'text', placeholder: 'Ex.: Solteiro(a), Casado(a)' },
       { id: 'dependenteIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'dependenteOrgaoEmissorUf', label: 'Órgão emissor / UF', type: 'text', placeholder: 'Ex.: SSP/UF' },
-      { id: 'dependenteFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome do pai ou responsável' },
-      { id: 'dependenteFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome da mãe', infoText: 'Preferencialmente o nome da mãe' },
+      { id: 'dependenteFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Digite o nome do(a) responsável' },
+      { id: 'dependenteFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Digite o nome do(a) responsável', infoText: 'Preferencialmente o nome da mãe' },
     ],
   },
   {
     id: 'inscricao-beneficiario-especial',
     title: 'Beneficiário especial',
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Beneficiário Especial' },
+    columns: 3,
     fields: [
       { id: 'especialTitularEmailParticular', label: 'E-mail particular do(a) titular', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
-      { id: 'especialTitularCelular', label: 'Celular ou WhatsApp do(a) titular (com DDD)', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
+      { id: 'especialTitularCelular', label: 'Celular ou WhatsApp do(a) titular', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'especialNome', label: 'Nome completo do beneficiário', type: 'text', required: true, placeholder: 'Nome completo do beneficiário especial' },
       { id: 'especialNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver', infoText: 'Conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'especialTipo', label: 'Tipo de dependência', type: 'select', required: true, options: BENEFICIARIO_ESPECIAL_TIPO_OPTIONS },
@@ -475,8 +501,8 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
       { id: 'especialCpf', label: 'CPF', type: 'text', format: 'cpf', placeholder: '000.000.000-00' },
       { id: 'especialIdentidade', label: 'Identidade', type: 'text', placeholder: 'Número do RG' },
       { id: 'especialOrgaoEmissorUf', label: 'Órgão emissor / UF', type: 'text', placeholder: 'Ex.: SSP/UF' },
-      { id: 'especialFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Nome da mãe', infoText: 'Preferencialmente o nome da mãe' },
-      { id: 'especialFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Nome do pai ou responsável' },
+      { id: 'especialFiliacao1', label: 'Filiação 1', type: 'text', placeholder: 'Digite o nome do(a) responsável', infoText: 'Preferencialmente o nome da mãe' },
+      { id: 'especialFiliacao2', label: 'Filiação 2', type: 'text', placeholder: 'Digite o nome do(a) responsável' },
     ],
   },
 ], undefined, true)

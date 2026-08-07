@@ -102,6 +102,7 @@ import {
   toggleFavoriteService,
   type FavoriteState,
 } from '../utils/favorites'
+import { AvisoNormativo } from '../components/AvisoNormativo'
 import { Combobox } from '../components/Combobox'
 import { ChatMessageComposer } from '../components/ChatMessageComposer'
 import { getStoredSession } from '../utils/session'
@@ -241,17 +242,6 @@ const beneficiaryAuthorizationGroups = [
       { title: 'Pilates', text: 'Solicite o tratamento indicado por profissional habilitado e envie a documentação clínica necessária.', to: '/beneficiario/servicos/pilates/nova-solicitacao', icon: PersonStanding },
       { title: 'Hidroterapia', text: 'Informe a frequência indicada e envie a documentação clínica. Alguns pedidos podem exigir perícia.', to: '/beneficiario/servicos/hidroterapia/nova-solicitacao', icon: Waves },
       { title: 'RPG', text: 'Informe a frequência indicada e envie a documentação clínica. Alguns pedidos podem exigir perícia.', to: '/beneficiario/servicos/rpg/nova-solicitacao', icon: Accessibility },
-    ],
-  },
-  {
-    title: 'Órteses, próteses e materiais (OPME)',
-    cards: [
-      {
-        title: 'Autorização de OPME',
-        text: 'Solicite autorização para órteses, próteses e materiais especiais indicados em procedimento.',
-        to: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
-        icon: Stethoscope,
-      },
     ],
   },
 ]
@@ -797,16 +787,316 @@ const reimbursementTypes = [
   'Radioterapia', 'RPG', 'Terapia ocupacional',
 ]
 
+// Aviso informativo exibido após a escolha do tipo de reembolso, com regras específicas do
+// procedimento. Por ora só temos o texto oficial da Acupuntura (teste); os demais tipos
+// entram aqui conforme forem recebidos.
+const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }> = {
+  Acupuntura: {
+    titulo: 'Acupuntura',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, o tratamento de acupuntura ficará limitado a 40 (quarenta) sessões por ano civil, realizadas por profissionais médicos habilitados, mediante indicação médica ou odontológica, restrito à sua área de atuação. Será exigida perícia quando o número de sessões anuais ultrapassar os limites estabelecidos em norma complementar.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Acompanhamento nutricional': {
+    titulo: 'Acompanhamento nutricional',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Cirurgia com internação': {
+    titulo: 'Cirurgia com internação',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Cirurgia sem internação': {
+    titulo: 'Cirurgia sem internação',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Fisioterapia: {
+    titulo: 'Fisioterapia',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 30, de 27/07/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana e/ou 40 (quarenta) sessões por ano civil.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Fonoaudiologia: {
+    titulo: 'Fonoaudiologia',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Hidroterapia: {
+    titulo: 'Hidroterapia',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG. Nesses casos, a perícia deverá ser agendada junto ao serviço médico, e apresentado o parecer do médico solicitante.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Honorários individuais': {
+    titulo: 'Honorários individuais',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Internação sem cirurgia': {
+    titulo: 'Internação sem cirurgia',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Medicamentos ambulatoriais': {
+    titulo: 'Medicamentos ambulatoriais',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Musicoterapia: {
+    titulo: 'Musicoterapia',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Odontologia: {
+    titulo: 'Odontologia',
+    conteudo: 'Solicitações de reembolso de procedimentos odontológicos que necessitam de perícia devem ser realizadas após orçadas e periciadas, sob pena de não serem ressarcidas. Nesses casos, deverá ser providenciado o agendamento junto ao setor de odontologia de cada ramo. O formulário de orçamento deverá ser preenchido pelo dentista consultado para apresentação no momento da perícia.',
+  },
+  Pilates: {
+    titulo: 'Pilates',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido nas Normas Complementares nº 32, de 15/02/2023, e nº 30, de 27/07/2023, será exigida perícia inicial para as sessões de Pilates. Quando autorizadas pela perícia, deverão ser realizadas por fisioterapeuta devidamente habilitado e serão limitadas a 40 (quarenta) por ano civil, vedada qualquer prorrogação. Para solicitar a perícia, basta encaminhar e-mail, com parecer do médico solicitante, para o setor de autorizações da sua localidade. Após, anexar a perícia ao pedido de reembolso.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicologia: {
+    titulo: 'Psicologia',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicomotricidade: {
+    titulo: 'Psicomotricidade',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicopedagogia: {
+    titulo: 'Psicopedagogia',
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Quimioterapia: {
+    titulo: 'Quimioterapia',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Radioterapia: {
+    titulo: 'Radioterapia',
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  RPG: {
+    titulo: 'RPG',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Terapia ocupacional': {
+    titulo: 'Terapia Ocupacional',
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+}
+
+type ReembolsoDocumento = { label: string, required: boolean }
+
+// Documentos exigidos por tipo de reembolso, conforme o sistema legado de referência (campos em
+// vermelho lá = obrigatórios aqui). Tipos ainda não conferidos usam a heurística genérica abaixo.
+const REEMBOLSO_TIPO_DOCUMENTOS: Record<string, ReembolsoDocumento[]> = {
+  'Acompanhamento nutricional': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Acupuntura: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Cirurgia com internação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Cirurgia sem internação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Consulta/Avaliação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+  ],
+  Exames: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+  ],
+  Fisioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Fonoaudiologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Hidroterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Honorários individuais': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Internação sem cirurgia': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Medicamentos ambulatoriais': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Musicoterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Odontologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Orçamento Odontológico', required: true },
+    { label: 'Perícia', required: false },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Parto: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Pilates: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicomotricidade: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicopedagogia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Quimioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Radioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  RPG: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Terapia ocupacional': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+}
+
+type ReembolsoCampoBase = 'sessions'
+type ReembolsoCampoConfig = { oculto?: boolean }
+
+// Conferido com zoom nos 23 tipos disponíveis no sistema legado de referência: todo campo da
+// linha "Dados da solicitação" que existe para o tipo vem sempre obrigatório (borda vermelha) —
+// não há variação de obrigatoriedade por tipo. A única coisa que varia é se o campo "Quantidade
+// de sessões" chega a existir no formulário daquele tipo (ex.: cirurgias não têm esse campo).
+const REEMBOLSO_TIPO_CAMPOS: Record<string, Partial<Record<ReembolsoCampoBase, ReembolsoCampoConfig>>> = {
+  'Acompanhamento nutricional': {},
+  Acupuntura: {},
+  'Cirurgia com internação': { sessions: { oculto: true } },
+  'Cirurgia sem internação': { sessions: { oculto: true } },
+  'Consulta/Avaliação': { sessions: { oculto: true } },
+  Exames: { sessions: { oculto: true } },
+  Fisioterapia: {},
+  Fonoaudiologia: {},
+  Hidroterapia: {},
+  'Honorários individuais': { sessions: { oculto: true } },
+  'Internação sem cirurgia': { sessions: { oculto: true } },
+  'Medicamentos ambulatoriais': { sessions: { oculto: true } },
+  Musicoterapia: {},
+  Odontologia: { sessions: { oculto: true } },
+  Parto: { sessions: { oculto: true } },
+  Pilates: {},
+  Psicologia: {},
+  Psicomotricidade: {},
+  Psicopedagogia: {},
+  Quimioterapia: { sessions: { oculto: true } },
+  Radioterapia: { sessions: { oculto: true } },
+  RPG: {},
+  'Terapia ocupacional': {},
+}
+
+function isCampoReembolsoOculto(type: string, campo: ReembolsoCampoBase): boolean {
+  return REEMBOLSO_TIPO_CAMPOS[type]?.[campo]?.oculto ?? false
+}
+
 const medicalDocumentTypes = new Set(reimbursementTypes.filter((type) => !['Acompanhamento nutricional', 'Consulta/Avaliação'].includes(type)))
 const expertiseTypes = new Set(['Cirurgia com internação', 'Cirurgia sem internação', 'Honorários individuais', 'Odontologia', 'Pilates', 'Quimioterapia', 'Radioterapia'])
 
-function reimbursementAttachments(type: string, priorityCare: boolean) {
+function reimbursementAttachments(type: string, priorityCare: boolean): ReembolsoDocumento[] {
   if (!type) return []
-  const attachments = ['Nota fiscal/recibo']
-  if (medicalDocumentTypes.has(type)) attachments.push('Pedido ou relatório médico')
-  if (expertiseTypes.has(type) || priorityCare) attachments.push('Perícia')
-  if (type === 'Odontologia') attachments.push('Orçamento odontológico')
-  attachments.push('Documentos adicionais')
+  if (REEMBOLSO_TIPO_DOCUMENTOS[type]) return REEMBOLSO_TIPO_DOCUMENTOS[type]
+  const attachments: ReembolsoDocumento[] = [{ label: 'Nota fiscal/recibo', required: true }]
+  if (medicalDocumentTypes.has(type)) attachments.push({ label: 'Pedido ou relatório médico', required: true })
+  if (expertiseTypes.has(type) || priorityCare) attachments.push({ label: 'Perícia', required: true })
+  if (type === 'Odontologia') attachments.push({ label: 'Orçamento odontológico', required: true })
+  attachments.push({ label: 'Documentos adicionais', required: false })
   return attachments
 }
 
@@ -1134,13 +1424,6 @@ export function BeneficiaryNovaReembolsoPage() {
               <h3>Dados da solicitação</h3>
               <div className="reimbursement-grid">
                 <label>
-                  Beneficiário atendido
-                  <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
-                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
-                  </select>
-                </label>
-                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
-                <label>
                   <span className="service-field-label-text">Tipo de reembolso</span>
                   <Combobox
                     value={draft.type}
@@ -1149,11 +1432,32 @@ export function BeneficiaryNovaReembolsoPage() {
                     placeholder="Selecione o tipo"
                   />
                 </label>
-                <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
-                <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
-                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
-                <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
-                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value.replace(/\D/g, ''))} placeholder="Se aplicável" /></label>
+              </div>
+              {draft.type && REEMBOLSO_TIPO_AVISOS[draft.type] && (
+                <AvisoNormativo
+                  confirmado={false}
+                  conteudo={REEMBOLSO_TIPO_AVISOS[draft.type].conteudo}
+                  exigeConfirmacao={false}
+                  onConfirmar={() => {}}
+                  titulo={REEMBOLSO_TIPO_AVISOS[draft.type].titulo}
+                  tone="informativo"
+                />
+              )}
+              <div className="reimbursement-grid">
+                <label>
+                  Beneficiário atendido
+                  <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                  </select>
+                </label>
+                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
+                <label>Nº nota fiscal/recibo *<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
+                <label>Data da nota fiscal/recibo *<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
+                <label>CPF/CNPJ credenciado *<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
+                <label>Valor *<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
+                {!isCampoReembolsoOculto(draft.type, 'sessions') && (
+                  <label>Quantidade de sessões *<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value.replace(/\D/g, ''))} placeholder="Digite a quantidade" /></label>
+                )}
                 <label className="responsibility-term wide">
                   <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
                   Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
@@ -1167,7 +1471,7 @@ export function BeneficiaryNovaReembolsoPage() {
               <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
               {draft.type ? (
                 <div className="checklist-anexos">
-                  {reimbursementAttachments(draft.type, draft.isPriorityCare).map((label) => (
+                  {reimbursementAttachments(draft.type, draft.isPriorityCare).map(({ label, required }) => (
                     <div key={label}>
                       {label === 'Orçamento odontológico' && (
                         <p className="service-field-hint">
@@ -1180,6 +1484,7 @@ export function BeneficiaryNovaReembolsoPage() {
                         label={label}
                         onAdd={(files) => addAttachmentFiles(label, files)}
                         onRemove={(index) => removeAttachmentFile(label, index)}
+                        required={required}
                       />
                     </div>
                   ))}
@@ -2105,7 +2410,6 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-autorizacao-duvidas': HelpCircle,
   'servico-auxilio-duvidas-informacoes': HelpCircle,
   'servico-abertura-solicitacoes-administrativas': ClipboardList,
-  'servico-autorizacao-opme': Stethoscope,
   'servico-processo-aposentadoria-retorno': WalletCards,
   'servico-carteirinha-virtual': IdCard,
   'servico-atualizacao-cadastral-periodica': UserRound,

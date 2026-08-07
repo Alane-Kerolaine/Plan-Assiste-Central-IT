@@ -147,7 +147,7 @@ export function ServiceRequestWizard({
           <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
           {visibleSections.map((section) => (
             <div className="reimbursement-form-section" key={section.id}>
-              <h3>{section.title}</h3>
+              {section.title && <h3>{section.title}</h3>}
               <dl className="service-review-grid">
                 {section.fields.filter((field) => field.type !== 'note').map((field) => (
                   <div className="service-review-row" key={field.id}>
@@ -201,7 +201,7 @@ export function ServiceRequestWizard({
             const otherFields = section.fields.filter((field) => field.type !== 'beneficiary')
             return (
               <div className="reimbursement-form-section" key={section.id}>
-                <h3>{section.title}</h3>
+                {section.title && <h3>{section.title}</h3>}
                 {schema.avisoInicial?.posicao === 'apos-detalhes' && section.id === 'detalhes' && (
                   <AvisoNormativo
                     confirmado={false}
@@ -221,7 +221,7 @@ export function ServiceRequestWizard({
                     />
                   </div>
                 )}
-                <div className="reimbursement-grid">
+                <div className={`reimbursement-grid${section.columns === 3 ? ' reimbursement-grid-three-columns' : section.columns === 2 ? ' reimbursement-grid-two-columns' : ''}`}>
                   {otherFields.map((field) => (
                     field.type === 'file'
                       ? (
