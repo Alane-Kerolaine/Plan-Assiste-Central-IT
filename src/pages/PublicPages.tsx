@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
-  ClipboardList,
   Copy,
   Download,
   Dumbbell,
@@ -4032,7 +4031,6 @@ const providerSidebarGroups: AreaSidebarGroup[] = [
     items: [
       { label: 'Autorizações', to: '/credenciado/autorizacoes', icon: ClipboardCheck },
       { label: 'Faturamento', to: '/credenciado/faturamento', icon: FileText },
-      { label: 'Minhas solicitações', to: '/credenciado/minhas-solicitacoes', icon: ClipboardList },
       { label: 'Renovar credenciamento', to: '/plan-assiste/como-se-credenciar-ou-renovar', icon: Building2, external: true },
     ],
   },

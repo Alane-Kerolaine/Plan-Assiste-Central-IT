@@ -878,7 +878,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .service-file-field .service-file-select:hover { border-color: var(--brand-primary); background: #e3f7f1; }
 .service-file-select input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .service-file-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.service-file-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px; background: white; padding: 10px 12px; }
+.service-file-item { display: flex; align-items: center; gap: 10px; min-width: 0; border: 1px solid var(--border); border-radius: 10px; background: white; padding: 10px 12px; }
 .service-file-item > svg:first-child { width: 18px; height: 18px; color: var(--brand-dark); flex-shrink: 0; }
 .service-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-regular); color: var(--text-dark); }
 .service-file-size { color: var(--brand-dark); font-size: 16px; font-weight: 400; flex-shrink: 0; }

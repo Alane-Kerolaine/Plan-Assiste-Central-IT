@@ -394,6 +394,8 @@ const BENEFICIARIO_ESPECIAL_TIPO_OPTIONS = [
   'Pais não dependentes econômicos, inscritos há pelo menos 5 anos',
 ]
 
+const titularInscricaoAdesao = beneficiaries.find((beneficiary) => beneficiary.relation === 'Titular')
+
 const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', [
   {
     id: 'tipo-beneficiario',
@@ -414,6 +416,8 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Titular' },
     columns: 3,
     fields: [
+      { id: 'titularNome', label: 'Nome completo', type: 'text', required: true, placeholder: 'Nome completo do titular' },
+      { id: 'titularMatricula', label: 'Matrícula', type: 'text', required: true, placeholder: 'Número da matrícula' },
       { id: 'titularNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver', infoText: 'Conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'titularSituacaoFuncional', label: 'Situação funcional', type: 'select', options: SITUACAO_FUNCIONAL_OPTIONS },
       { id: 'titularAtividade', label: 'Atividade', type: 'select', options: ['Ativo', 'Inativo'] },
@@ -471,6 +475,8 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Dependente' },
     columns: 3,
     fields: [
+      { id: 'dependenteTitularNome', label: 'Nome completo do(a) titular', type: 'text', disabled: true, defaultValue: titularInscricaoAdesao?.name },
+      { id: 'dependenteTitularMatricula', label: 'Matrícula', type: 'text', disabled: true, defaultValue: titularInscricaoAdesao?.matricula },
       { id: 'dependenteNome', label: 'Nome do dependente', type: 'text', required: true, placeholder: 'Nome completo do dependente' },
       { id: 'dependenteNomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver', infoText: 'Conforme Portaria PGR/MPU nº 7/2018' },
       { id: 'dependenteTipo', label: 'Tipo de dependência', type: 'select', required: true, options: DEPENDENTE_TIPO_OPTIONS },
@@ -489,6 +495,8 @@ const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', 
     showIf: { fieldId: 'tipoBeneficiario', equals: 'Beneficiário Especial' },
     columns: 3,
     fields: [
+      { id: 'especialTitularNome', label: 'Nome completo do(a) titular', type: 'text', disabled: true, defaultValue: titularInscricaoAdesao?.name },
+      { id: 'especialTitularMatricula', label: 'Matrícula', type: 'text', disabled: true, defaultValue: titularInscricaoAdesao?.matricula },
       { id: 'especialTitularEmailParticular', label: 'E-mail particular do(a) titular', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
       { id: 'especialTitularCelular', label: 'Celular ou WhatsApp do(a) titular', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'especialNome', label: 'Nome completo do beneficiário', type: 'text', required: true, placeholder: 'Nome completo do beneficiário especial' },
@@ -824,23 +832,23 @@ const CASOS_ATUALIZACAO_DADOS_CADASTRAIS: CasoInstrucaoServico[] = [
     id: 'titular',
     titulo: 'Titular',
     documentos: [
-      { id: 'documentoIdentificacaoTitular', label: '[PLACEHOLDER] Documento de identificação do titular', obrigatorio: true },
+      { id: 'documentoIdentificacaoTitular', label: 'Documento de identificação do titular', obrigatorio: true },
     ],
   },
   {
     id: 'dependente',
     titulo: 'Dependente',
     documentos: [
-      { id: 'documentoIdentificacaoDependente', label: '[PLACEHOLDER] Documento de identificação do dependente', obrigatorio: true },
-      { id: 'comprovanteVinculoDependente', label: '[PLACEHOLDER] Comprovante de vínculo com o titular', obrigatorio: true },
+      { id: 'documentoIdentificacaoDependente', label: 'Documento de identificação do dependente', obrigatorio: true },
+      { id: 'comprovanteVinculoDependente', label: 'Comprovante de vínculo com o titular', obrigatorio: true },
     ],
   },
   {
     id: 'terceiro',
     titulo: 'Terceiro',
     documentos: [
-      { id: 'procuracaoTerceiro', label: '[PLACEHOLDER] Procuração ou documento de representação', obrigatorio: true },
-      { id: 'documentoIdentificacaoTerceiro', label: '[PLACEHOLDER] Documento de identificação do terceiro', obrigatorio: true },
+      { id: 'procuracaoTerceiro', label: 'Procuração ou documento de representação', obrigatorio: true },
+      { id: 'documentoIdentificacaoTerceiro', label: 'Documento de identificação do terceiro', obrigatorio: true },
     ],
   },
 ]
@@ -852,28 +860,28 @@ const CASOS_EMISSAO_DOCUMENTOS: CasoInstrucaoServico[] = [
     id: 'carteira_unimed',
     titulo: 'Carteira Unimed',
     documentos: [
-      { id: 'placeholderCarteiraUnimed', label: '[PLACEHOLDER] Documento exigido para emissão da carteira Unimed', obrigatorio: true },
+      { id: 'placeholderCarteiraUnimed', label: 'Documento exigido para emissão da carteira Unimed', obrigatorio: true },
     ],
   },
   {
     id: 'carteira_uniodonto',
     titulo: 'Carteira UniOdonto',
     documentos: [
-      { id: 'placeholderCarteiraUniodonto', label: '[PLACEHOLDER] Documento exigido para emissão da carteira UniOdonto', obrigatorio: true },
+      { id: 'placeholderCarteiraUniodonto', label: 'Documento exigido para emissão da carteira UniOdonto', obrigatorio: true },
     ],
   },
   {
     id: 'carta_permanencia',
     titulo: 'Carta de Permanência',
     documentos: [
-      { id: 'placeholderCartaPermanencia', label: '[PLACEHOLDER] Documento exigido para emissão da carta de permanência', obrigatorio: true },
+      { id: 'placeholderCartaPermanencia', label: 'Documento exigido para emissão da carta de permanência', obrigatorio: true },
     ],
   },
   {
     id: 'documento_acerto_financeiro',
     titulo: 'Documento de Acerto Financeiro',
     documentos: [
-      { id: 'placeholderDocAcertoFinanceiro', label: '[PLACEHOLDER] Documento exigido para o documento de acerto financeiro', obrigatorio: true },
+      { id: 'placeholderDocAcertoFinanceiro', label: 'Documento exigido para o documento de acerto financeiro', obrigatorio: true },
     ],
   },
 ]
@@ -1005,7 +1013,7 @@ const CASOS_APOSENTADORIA_RETORNO: CasoInstrucaoServico[] = [
     id: 'aposentadoria',
     titulo: 'Aposentadoria',
     documentos: [
-      { id: 'placeholderDocAposentadoria', label: '[PLACEHOLDER] Documento exigido para início do processo de aposentadoria', obrigatorio: true },
+      { id: 'placeholderDocAposentadoria', label: 'Documento exigido para início do processo de aposentadoria', obrigatorio: true },
     ],
     sincronizarCampos: { tipoSolicitacaoAposentadoria: 'Início do Processo de Aposentadoria' },
   },
@@ -1013,7 +1021,7 @@ const CASOS_APOSENTADORIA_RETORNO: CasoInstrucaoServico[] = [
     id: 'retorno_orgao_origem',
     titulo: 'Retorno ao órgão de origem',
     documentos: [
-      { id: 'placeholderDocRetornoOrgao', label: '[PLACEHOLDER] Documento exigido para retorno ao órgão de origem', obrigatorio: true },
+      { id: 'placeholderDocRetornoOrgao', label: 'Documento exigido para retorno ao órgão de origem', obrigatorio: true },
     ],
     avisoNormativo: {
       titulo: 'Norma Complementar nº 34/2023',

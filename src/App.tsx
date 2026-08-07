@@ -69,11 +69,6 @@ import {
   PublicProviderDetailsPage,
   PublicProviderNetworkPage,
 } from './pages/ProviderNetworkPages'
-import {
-  ProviderMinhasSolicitacoesPage,
-  ProviderNovaSolicitacaoPage,
-  ProviderSolicitacaoDetalhePage,
-} from './pages/ProviderRequestsPages'
 import { placeholderPages } from './data/mock'
 import { MockupPage } from './pages/MockupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -237,30 +232,6 @@ function App() {
           element={
             <RequireAuth session={session} profile="provider">
               <ProviderPublicProfilePage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/minhas-solicitacoes"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderMinhasSolicitacoesPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/minhas-solicitacoes/nova-solicitacao/:serviceId"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderNovaSolicitacaoPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/minhas-solicitacoes/:id"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderSolicitacaoDetalhePage loggedIn={loggedIn} onLogout={logout} />
             </RequireAuth>
           }
         />
