@@ -1351,7 +1351,7 @@ export function BeneficiaryNovaReembolsoPage() {
 
   const heading = (
     <div className="provider-page-heading">
-      <h1>Nova solicitação de reembolso</h1>
+      <h1>Reembolso de procedimentos (livre escolha)</h1>
       <p className="page-subtitle">Preencha os dados do procedimento e anexe os documentos digitalizados.</p>
     </div>
   )
