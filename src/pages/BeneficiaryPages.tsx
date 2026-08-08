@@ -2024,7 +2024,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
 
   const heading = (
     <div className="provider-page-heading">
-      <h1>Nova solicitação de benefício</h1>
+      <h1>Benefício para aquisição de medicamentos</h1>
       <p className="page-subtitle">Preencha os dados da aquisição de medicamentos e anexe os documentos digitalizados.</p>
     </div>
   )

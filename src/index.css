@@ -801,6 +801,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-grid .wide { grid-column: 1 / -1; }
 .reimbursement-grid .half-width { grid-column: span 2; }
 .reimbursement-grid .span-3 { grid-column: span 3; }
+.reimbursement-grid + .reimbursement-grid { margin-top: 20px; }
 .reimbursement-grid input:disabled { background: #f4faf8; color: var(--brand-dark); cursor: not-allowed; }
 .reimbursement-profile-hint { margin: 12px 0 0; }
 .reimbursement-profile-hint a { color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: underline; }

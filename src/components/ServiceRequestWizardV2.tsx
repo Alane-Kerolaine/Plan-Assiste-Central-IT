@@ -68,7 +68,7 @@ export function ServiceRequestWizardV2({
 
   function handleBeneficiarioChange(beneficiaryId: string) {
     const beneficiary = beneficiaries.find((item) => item.id === beneficiaryId)
-    setValues((current) => ({ ...current, beneficiarioId: beneficiaryId, ...beneficiaryFieldValues(beneficiary) }))
+    setValues((current) => ({ ...current, beneficiarioId: beneficiaryId, ...beneficiaryFieldValues(beneficiary, schema) }))
   }
 
   function handleCasoChange(nextCasoId: string) {
@@ -284,9 +284,9 @@ export function ServiceRequestWizardV2({
                     />
                   </div>
                 )}
-                <div className={`reimbursement-grid${section.columns === 3 ? ' reimbursement-grid-three-columns' : section.columns === 2 ? ' reimbursement-grid-two-columns' : ''}`}>
-                  {section.id === 'detalhes' && (
-                    <label className="wide" key="pergunta-chave-combobox">
+                {section.id === (perguntaChave.secaoAncora ?? 'detalhes') && (
+                  <div className="reimbursement-grid">
+                    <label className={perguntaChave.colunas === 2 ? 'half-width' : 'wide'} key="pergunta-chave-combobox">
                       {perguntaChave.enunciado}
                       <Combobox
                         onSelect={handleCasoChange}
@@ -295,7 +295,9 @@ export function ServiceRequestWizardV2({
                         value={casoId}
                       />
                     </label>
-                  )}
+                  </div>
+                )}
+                <div className={`reimbursement-grid${section.columns === 3 ? ' reimbursement-grid-three-columns' : section.columns === 2 ? ' reimbursement-grid-two-columns' : ''}`}>
                   {otherFields.map((field) => renderField(field, values[field.id], (value) => updateValue(field.id, value)))}
                 </div>
               </div>

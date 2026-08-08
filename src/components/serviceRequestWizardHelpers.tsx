@@ -15,20 +15,28 @@ export const WIZARD_STEPS: { id: WizardStep, label: string }[] = [
   { id: 'success', label: 'Solicitação enviada' },
 ]
 
-export function beneficiaryFieldValues(beneficiary: Beneficiary | undefined): Record<string, string> {
-  return {
+export function beneficiaryFieldValues(beneficiary: Beneficiary | undefined, schema: ServiceFormSchema): Record<string, string> {
+  const values: Record<string, string> = {
     nomeCompleto: beneficiary?.name ?? '',
     cpf: beneficiary?.cpf ?? '',
     dataNascimento: beneficiary?.dataNascimento ? isoDateToBr(beneficiary.dataNascimento) : '',
     matricula: beneficiary?.matricula ?? '',
     email: beneficiary?.email ?? '',
     telefone: beneficiary?.telefone ?? '',
-    localAtendimento: beneficiary?.localidade ?? '',
     ramo: beneficiary?.ramo ?? '',
     banco: beneficiary?.banco ?? '',
     agencia: beneficiary?.agencia ?? '',
     contaCorrente: beneficiary?.contaCorrente ?? '',
   }
+
+  // "Localidade do Procedimento" é digitada livremente pelo usuário a cada solicitação;
+  // só "Localidade da Matrícula" deve vir travada com o dado cadastrado do beneficiário.
+  const localidadeField = schema.sections.flatMap((section) => section.fields).find((field) => field.id === 'localAtendimento')
+  if (localidadeField?.disabled) {
+    values.localAtendimento = beneficiary?.localidade ?? ''
+  }
+
+  return values
 }
 
 export function initialValues(schema: ServiceFormSchema): Record<string, string> {
@@ -43,7 +51,7 @@ export function initialValues(schema: ServiceFormSchema): Record<string, string>
   const titular = hasBeneficiaryField ? beneficiaries.find((item) => item.relation === 'Titular') : undefined
   if (titular) {
     values.beneficiarioId = titular.id
-    Object.assign(values, beneficiaryFieldValues(titular))
+    Object.assign(values, beneficiaryFieldValues(titular, schema))
   }
 
   return values

@@ -66,6 +66,11 @@ export type CasoInstrucaoServico = {
 export type PerguntaChaveConfig = {
   enunciado: string
   casos: CasoInstrucaoServico[]
+  // Id da seção abaixo de cuja qual o seletor de casos deve ser renderizado. Por padrão
+  // aparece na última seção ("detalhes"); usado para reposicioná-lo quando necessário.
+  secaoAncora?: string
+  // Largura do seletor no grid da seção: 2 colunas ou largura total (padrão).
+  colunas?: 2
 }
 
 export type AvisoInicialConfig = {
@@ -220,41 +225,41 @@ const UF_OPTIONS = [
 ]
 
 const SIMPLE_SERVICES: { slug: string, title: string }[] = [
-  { slug: 'acesso-sistemas-integrados', title: 'Acesso a Sistemas Institucionais Integrados' },
-  { slug: 'reingresso-reativacao', title: 'Reingresso / Reativação' },
-  { slug: 'cadastro-duvidas-informacoes', title: 'Cadastro - Dúvidas, Informações e Esclarecimentos' },
-  { slug: 'reembolso-duvidas', title: 'Reembolso (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'recurso-reembolso', title: 'Recurso de Reembolso - Livre Escolha' },
-  { slug: 'autorizacao-cirurgia', title: 'Autorização de Cirurgia Eletiva' },
+  { slug: 'acesso-sistemas-integrados', title: 'Acesso a sistemas institucionais integrados' },
+  { slug: 'reingresso-reativacao', title: 'Reingresso / reativação' },
+  { slug: 'cadastro-duvidas-informacoes', title: 'Cadastro - dúvidas, informações e esclarecimentos' },
+  { slug: 'reembolso-duvidas', title: 'Reembolso (dúvidas, informações e esclarecimentos)' },
+  { slug: 'recurso-reembolso', title: 'Recurso de reembolso - livre escolha' },
+  { slug: 'autorizacao-cirurgia', title: 'Autorização de cirurgia eletiva' },
   { slug: 'psicologia', title: 'Psicologia' },
   { slug: 'fonoaudiologia', title: 'Fonoaudiologia' },
-  { slug: 'terapia-ocupacional', title: 'Terapia Ocupacional' },
+  { slug: 'terapia-ocupacional', title: 'Terapia ocupacional' },
   { slug: 'fisioterapia', title: 'Fisioterapia' },
   { slug: 'acupuntura', title: 'Acupuntura' },
   { slug: 'pilates', title: 'Pilates' },
   { slug: 'rpg', title: 'RPG' },
   { slug: 'hidroterapia', title: 'Hidroterapia' },
-  { slug: 'abertura-solicitacoes-administrativas', title: 'Abertura de Solicitações Administrativas' },
-  { slug: 'autorizacao-exame', title: 'Autorização de Exame' },
-  { slug: 'autorizacao-procedimentos', title: 'Autorização (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'auxilio-duvidas-informacoes', title: 'Auxílio (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'carteirinha-virtual', title: 'Carteirinha Virtual' },
-  { slug: 'atualizacao-cadastral-periodica', title: 'Atualização Cadastral Periódica' },
-  { slug: 'cobertura-duvidas', title: 'Cobertura (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'inclusao-ampliacao-cobertura', title: 'Inclusão / Ampliação do Rol de Cobertura' },
-  { slug: 'autorizacao-portais-unimed', title: 'Autorização Portais Unimeds' },
-  { slug: 'assistencia-domiciliar', title: 'Assistência Domiciliar' },
-  { slug: 'tratamento-odontologico-duvidas', title: 'Tratamento Odontológico (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'auxilio-materiais-saude', title: 'Auxílio de Materiais de Saúde' },
-  { slug: 'transporte-tratamento-fora-domicilio', title: 'Transporte de Paciente em Tratamento Fora do Domicílio' },
-  { slug: 'despesas-saude-duvidas', title: 'Atendimento - Despesas de Saúde (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'recurso-informacoes-financeiras', title: 'Recurso / Contestação de Informações Financeiras' },
-  { slug: 'acompanhamento-denuncia-reclamacao', title: 'Acompanhamento de Registros de Denúncia / Reclamação' },
-  { slug: 'atualizacao-site', title: 'Atualização do Site' },
-  { slug: 'site-app-duvidas', title: 'Site / App (Dúvidas, Informações e Esclarecimentos)' },
-  { slug: 'problemas-acesso-site-app', title: 'Problemas de Acesso do Site / App' },
-  { slug: 'indisponibilidade-site-app', title: 'Indisponibilidade do Site / App' },
-  { slug: 'erro-funcionalidades-site-app', title: 'Ocorrência de Erro em Funcionalidades do Site / App' },
+  { slug: 'abertura-solicitacoes-administrativas', title: 'Abertura de solicitações administrativas' },
+  { slug: 'autorizacao-exame', title: 'Autorização de exame' },
+  { slug: 'autorizacao-procedimentos', title: 'Autorização (dúvidas, informações e esclarecimentos)' },
+  { slug: 'auxilio-duvidas-informacoes', title: 'Auxílio (dúvidas, informações e esclarecimentos)' },
+  { slug: 'carteirinha-virtual', title: 'Carteirinha virtual' },
+  { slug: 'atualizacao-cadastral-periodica', title: 'Atualização cadastral periódica' },
+  { slug: 'cobertura-duvidas', title: 'Cobertura (dúvidas, informações e esclarecimentos)' },
+  { slug: 'inclusao-ampliacao-cobertura', title: 'Inclusão / ampliação do rol de cobertura' },
+  { slug: 'autorizacao-portais-unimed', title: 'Autorização portais Unimeds' },
+  { slug: 'assistencia-domiciliar', title: 'Autorização de Assistência domiciliar' },
+  { slug: 'tratamento-odontologico-duvidas', title: 'Tratamento odontológico (dúvidas, informações e esclarecimentos)' },
+  { slug: 'auxilio-materiais-saude', title: 'Auxílio de materiais de saúde' },
+  { slug: 'transporte-tratamento-fora-domicilio', title: 'Transporte de paciente em tratamento fora do domicílio' },
+  { slug: 'despesas-saude-duvidas', title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)' },
+  { slug: 'recurso-informacoes-financeiras', title: 'Recurso / contestação de informações financeiras' },
+  { slug: 'acompanhamento-denuncia-reclamacao', title: 'Acompanhamento de registros de denúncia / reclamação' },
+  { slug: 'atualizacao-site', title: 'Atualização do site' },
+  { slug: 'site-app-duvidas', title: 'Site / app (dúvidas, informações e esclarecimentos)' },
+  { slug: 'problemas-acesso-site-app', title: 'Problemas de acesso do site / app' },
+  { slug: 'indisponibilidade-site-app', title: 'Indisponibilidade do site / app' },
+  { slug: 'erro-funcionalidades-site-app', title: 'Ocorrência de erro em funcionalidades do site / app' },
 ]
 
 const LOCALIDADE_PROCEDIMENTO_LABEL = 'Localidade do Procedimento'
@@ -274,22 +279,22 @@ const SLUGS_CADASTRO_RAMO = new Set([
   'abertura-solicitacoes-administrativas', 'reingresso-reativacao',
 ])
 
-const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de Dados Cadastrais', [
+const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de dados cadastrais', [
   {
     id: 'dados-contato',
-    title: 'Dados de contato',
+    title: 'Dados do beneficiário',
     fields: [
       { id: 'localidade', label: 'Localidade', type: 'text', placeholder: 'Ex.: Brasília/DF' },
+      { id: 'nomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, informe o nome social' },
+      { id: 'sexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
       { id: 'nomeMae', label: 'Nome da mãe', type: 'text', placeholder: 'Nome completo da mãe' },
       { id: 'nomePai', label: 'Nome do pai', type: 'text', placeholder: 'Nome completo do pai' },
       { id: 'emailInstitucional', label: 'E-mail institucional', type: 'text', format: 'email', placeholder: 'nome@mpu.mp.br' },
       { id: 'emailPessoal', label: 'E-mail pessoal', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
       { id: 'telefone', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
-      { id: 'endereco', label: 'Endereço', type: 'text', fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF' },
-      { id: 'nomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, informe o nome social' },
       { id: 'cartao', label: 'Cartão', type: 'text', placeholder: 'Número do cartão' },
       { id: 'estadoLotacao', label: 'Estado de lotação', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
-      { id: 'sexo', label: 'Sexo', type: 'select', options: SEXO_OPTIONS },
+      { id: 'endereco', label: 'Endereço', type: 'text', fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF' },
     ],
   },
   {
@@ -309,7 +314,7 @@ const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-d
   },
 ], undefined, true))
 
-const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-carteira-temporaria', 'Emissão de Carteira Temporária', [
+const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-carteira-temporaria', 'Emissão de carteira temporária', [
   {
     id: 'contato',
     title: 'Contato',
@@ -319,9 +324,9 @@ const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-cartei
   },
 ], undefined, true))
 
-const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de Documentos e Comprovantes', [], undefined, true)
+const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de documentos e comprovantes', [], undefined, true)
 
-const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompanhamento de Protocolos e Processos', [
+const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompanhamento de protocolos e processos', [
   {
     id: 'protocolo',
     title: 'Protocolo ou processo',
@@ -367,7 +372,7 @@ const ASSUNTO_OUTRAS_SOLICITACOES_OPTIONS = [
   'Site / APP',
 ]
 
-const outrasSolicitacoes = baseSchema('outras-solicitacoes', 'Outras Solicitações', [
+const outrasSolicitacoes = baseSchema('outras-solicitacoes', 'Outras solicitações', [
   {
     id: 'assunto',
     title: 'Assunto',
@@ -396,7 +401,7 @@ const BENEFICIARIO_ESPECIAL_TIPO_OPTIONS = [
 
 const titularInscricaoAdesao = beneficiaries.find((beneficiary) => beneficiary.relation === 'Titular')
 
-const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / Adesão', [
+const inscricaoAdesao = baseSchema('inscricao-adesao', 'Inscrição / adesão', [
   {
     id: 'tipo-beneficiario',
     fields: [
@@ -595,7 +600,7 @@ const desligamento = baseSchema('desligamento', 'Desligamento', [
   },
 ], undefined, true)
 
-const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudança de Tipo de Beneficiário', [
+const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudança de tipo de beneficiário', [
   {
     id: 'tipo-mudanca',
     title: 'Tipo de mudança',
@@ -660,7 +665,7 @@ const mudancaTipoBeneficiario = baseSchema('mudanca-tipo-beneficiario', 'Mudanç
   },
 ], undefined, true)
 
-const processoAposentadoriaRetorno = withoutGenericEmail(baseSchema('processo-aposentadoria-retorno-orgao', 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem', [
+const processoAposentadoriaRetorno = withoutGenericEmail(baseSchema('processo-aposentadoria-retorno-orgao', 'Início de processo de aposentadoria / retorno ao órgão de origem', [
   {
     id: 'dados-funcionais',
     title: 'Dados funcionais',
@@ -1038,6 +1043,8 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     perguntaChave: {
       enunciado: 'Para quem é a atualização?',
       casos: CASOS_ATUALIZACAO_DADOS_CADASTRAIS,
+      secaoAncora: 'dados-contato',
+      colunas: 2,
     },
   },
   [emissaoDocumentos.slug]: {
@@ -1072,7 +1079,7 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
       SLUGS_CADASTRO_RAMO.has(slug),
     )])),
   'autorizacao-cirurgia': {
-    ...authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
+    ...authorizationSchema('autorizacao-cirurgia', 'Autorização de cirurgia eletiva', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames', required: true },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1080,7 +1087,7 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_CIRURGIA_ELETIVA,
   },
   fisioterapia: {
-    ...authorizationSchema('fisioterapia', 'Fisioterapia', [
+    ...authorizationSchema('fisioterapia', 'Autorização de Fisioterapia', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1088,7 +1095,7 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_FISIOTERAPIA,
   },
   fonoaudiologia: {
-    ...authorizationSchema('fonoaudiologia', 'Fonoaudiologia', [
+    ...authorizationSchema('fonoaudiologia', 'Autorização de Fonoaudiologia', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1096,7 +1103,7 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_FONOAUDIOLOGIA,
   },
   pilates: {
-    ...authorizationSchema('pilates', 'Pilates', [
+    ...authorizationSchema('pilates', 'Autorização de Pilates', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames', required: true },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1104,14 +1111,14 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_PILATES,
   },
   psicologia: {
-    ...authorizationSchema('psicologia', 'Psicologia', [
+    ...authorizationSchema('psicologia', 'Autorização de Psicologia', [
       { id: 'relatorioPsicologico', label: 'Relatório psicológico', required: true },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
     ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
     avisoInicial: AVISO_INICIAL_PSICOLOGIA,
   },
   rpg: {
-    ...authorizationSchema('rpg', 'RPG', [
+    ...authorizationSchema('rpg', 'Autorização de RPG', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1119,15 +1126,15 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_RPG,
   },
   acupuntura: {
-    ...withSectionTitle(authorizationSchema('acupuntura', 'Acupuntura', [
+    ...withSectionTitle(authorizationSchema('acupuntura', 'Autorização de Acupuntura', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
-    ], LOCALIDADE_PROCEDIMENTO_LABEL, false, true), 'detalhes', 'Dados da Solicitação'),
+    ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true), 'detalhes', 'Dados da Solicitação'),
     avisoInicial: AVISO_INICIAL_ACUPUNTURA,
   },
   hidroterapia: {
-    ...authorizationSchema('hidroterapia', 'Hidroterapia', [
+    ...authorizationSchema('hidroterapia', 'Autorização de Hidroterapia', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1135,7 +1142,7 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_HIDROTERAPIA,
   },
   'terapia-ocupacional': {
-    ...authorizationSchema('terapia-ocupacional', 'Terapia Ocupacional', [
+    ...authorizationSchema('terapia-ocupacional', 'Autorização de Terapia ocupacional', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames' },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
@@ -1143,14 +1150,14 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     avisoInicial: AVISO_INICIAL_TERAPIA_OCUPACIONAL,
   },
   'autorizacao-outros': {
-    ...authorizationSchema('autorizacao-outros', 'Autorização de Procedimentos (Outros)', [
+    ...authorizationSchema('autorizacao-outros', 'Autorização de procedimentos (outros)', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames', required: true },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
     ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
     avisoInicial: AVISO_INICIAL_AUTORIZACAO_OUTROS,
   },
-  'auxilio-aquisicao-medicamentos': authorizationSchema('auxilio-aquisicao-medicamentos', 'Auxílio para Aquisição de Medicamentos', [
+  'auxilio-aquisicao-medicamentos': authorizationSchema('auxilio-aquisicao-medicamentos', 'Auxílio para aquisição de medicamentos', [
     { id: 'receitaMedica', label: 'Receita médica', required: true },
     { id: 'relatorioMedico', label: 'Relatório médico', required: true },
     { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },

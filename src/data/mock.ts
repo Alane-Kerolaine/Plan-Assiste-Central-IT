@@ -829,7 +829,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-atualizacao-dados-cadastrais',
-    title: 'Atualização de Dados Cadastrais',
+    title: 'Atualização de dados cadastrais',
     category: 'Cadastro',
     description: 'Atualize dados de contato, endereço e informações bancárias do seu cadastro.',
     tags: ['Dados pessoais', 'Contato', 'Dados bancários'],
@@ -838,7 +838,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-emissao-documentos',
-    title: 'Emissão de Documentos e Comprovantes',
+    title: 'Emissão de documentos e comprovantes',
     category: 'Cadastro',
     description: 'Solicite cartões, carta de permanência e outros comprovantes do Plan-Assiste.',
     tags: ['Cartão', 'Carta de permanência', 'Comprovantes'],
@@ -847,7 +847,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-emissao-carteira-temporaria',
-    title: 'Emissão de Carteira Temporária',
+    title: 'Emissão de carteira temporária',
     category: 'Cadastro',
     description: 'Solicite a emissão de carteira temporária para urgência e emergência.',
     tags: ['Carteira', 'Temporária', 'Urgência e emergência'],
@@ -856,7 +856,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-acompanhamento-protocolos',
-    title: 'Acompanhamento de Protocolos e Processos',
+    title: 'Acompanhamento de protocolos e processos',
     category: 'Cadastro',
     description: 'Consulte a situação de um protocolo ou processo único em andamento.',
     tags: ['Protocolo', 'Processo', 'Acompanhamento'],
@@ -865,7 +865,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-inscricao-adesao',
-    title: 'Inscrição / Adesão',
+    title: 'Inscrição / adesão',
     category: 'Cadastro',
     description: 'Solicite a inscrição de titular, dependente ou beneficiário especial no Programa.',
     tags: ['Titular', 'Dependente', 'Beneficiário especial'],
@@ -874,7 +874,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-reingresso-reativacao',
-    title: 'Reingresso / Reativação',
+    title: 'Reingresso / reativação',
     category: 'Cadastro',
     description: 'Solicite o reingresso ou reativação de beneficiário no Plan-Assiste.',
     tags: ['Reingresso', 'Reativação'],
@@ -892,7 +892,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-mudanca-tipo-beneficiario',
-    title: 'Mudança de Tipo de Beneficiário',
+    title: 'Mudança de tipo de beneficiário',
     category: 'Cadastro',
     description: 'Solicite a alteração do tipo de vínculo de um beneficiário no Programa.',
     tags: ['Beneficiário especial', 'Mudança de vínculo'],
@@ -901,7 +901,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-pais-dependentes',
-    title: 'Pais Dependentes (Econômicos ou não)',
+    title: 'Pais dependentes (econômicos ou não)',
     category: 'Cadastro',
     description: 'Solicite a inscrição de pais como dependentes econômicos ou não econômicos.',
     tags: ['Pais', 'Dependência econômica'],
@@ -910,7 +910,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-cadastro-duvidas-informacoes',
-    title: 'Cadastro - Dúvidas, Informações e Esclarecimentos',
+    title: 'Cadastro - dúvidas, informações e esclarecimentos',
     category: 'Cadastro',
     description: 'Envie dúvidas ou pedidos de esclarecimento sobre seu cadastro.',
     tags: ['Dúvidas', 'Cadastro', 'Esclarecimentos'],
@@ -919,7 +919,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-reembolso-duvidas',
-    title: 'Reembolso (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Reembolso (dúvidas, informações e esclarecimentos)',
     category: 'Reembolso e auxílios',
     description: 'Envie dúvidas gerais sobre reembolso de despesas de saúde.',
     tags: ['Reembolso', 'Dúvidas'],
@@ -928,7 +928,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-recurso-reembolso',
-    title: 'Recurso de Reembolso - Livre Escolha',
+    title: 'Recurso de reembolso - livre escolha',
     category: 'Reembolso e auxílios',
     description: 'Solicite recurso sobre um reembolso de livre escolha já analisado.',
     tags: ['Recurso', 'Reembolso'],
@@ -937,7 +937,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-solicitacao-reembolso',
-    title: 'Reembolso de Procedimentos (Livre Escolha)',
+    title: 'Reembolso de procedimentos (livre escolha)',
     category: 'Reembolso e auxílios',
     description: 'Solicite reembolso de despesas realizadas em livre escolha.',
     tags: ['Reembolso', 'Livre escolha'],
@@ -946,7 +946,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-beneficio-medicamentos',
-    title: 'Benefício para Aquisição de Medicamentos',
+    title: 'Benefício para aquisição de medicamentos',
     category: 'Benefícios',
     description: 'Solicite o benefício de assistência farmacológica para medicamentos de alto custo ou de uso contínuo.',
     tags: ['Benefícios', 'Medicamentos'],
@@ -955,7 +955,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-autorizacao-cirurgia',
-    title: 'Autorização de Cirurgia Eletiva',
+    title: 'Autorização de cirurgia eletiva',
     category: 'Autorizações',
     description: 'Solicite autorização prévia para cirurgia eletiva.',
     tags: ['Cirurgia', 'Autorização'],
@@ -982,7 +982,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-terapia-ocupacional',
-    title: 'Terapia Ocupacional',
+    title: 'Terapia ocupacional',
     category: 'Autorizações',
     description: 'Solicite autorização para sessões de terapia ocupacional.',
     tags: ['Terapia ocupacional'],
@@ -1036,7 +1036,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-abertura-solicitacoes-administrativas',
-    title: 'Abertura de Solicitações Administrativas',
+    title: 'Abertura de solicitações administrativas',
     category: 'Cadastro',
     description: 'Abra uma solicitação administrativa junto ao Plan-Assiste.',
     tags: ['Administrativo', 'Solicitação'],
@@ -1045,7 +1045,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-outras-solicitacoes',
-    title: 'Outras Solicitações',
+    title: 'Outras solicitações',
     category: 'Cadastro',
     description: 'Envie uma solicitação que não se enquadra nas demais categorias do catálogo.',
     tags: ['Outros assuntos'],
@@ -1054,7 +1054,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-autorizacao-duvidas',
-    title: 'Autorização (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Autorização (dúvidas, informações e esclarecimentos)',
     category: 'Autorizações',
     description: 'Envie dúvidas gerais sobre autorização de procedimentos.',
     tags: ['Autorização', 'Dúvidas'],
@@ -1063,7 +1063,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-autorizacao-outros',
-    title: 'Autorização de Procedimentos (Outros)',
+    title: 'Autorização de procedimentos (outros)',
     category: 'Autorizações',
     description: 'Solicite autorização para procedimentos não listados nas demais categorias.',
     tags: ['Autorização', 'Outros procedimentos'],
@@ -1072,7 +1072,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-processo-aposentadoria-retorno',
-    title: 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem',
+    title: 'Início de processo de aposentadoria / retorno ao órgão de origem',
     category: 'Cadastro',
     description: 'Informe o início do processo de aposentadoria ou o retorno ao órgão de origem.',
     tags: ['Aposentadoria', 'Retorno ao órgão de origem'],
@@ -1081,7 +1081,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-auxilio-duvidas-informacoes',
-    title: 'Auxílio (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Auxílio (dúvidas, informações e esclarecimentos)',
     category: 'Reembolso e auxílios',
     description: 'Envie dúvidas gerais sobre os auxílios oferecidos pelo Plan-Assiste.',
     tags: ['Auxílio', 'Dúvidas'],
@@ -1090,7 +1090,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-carteirinha-virtual',
-    title: 'Carteirinha Virtual',
+    title: 'Carteirinha virtual',
     category: 'Cadastro',
     description: 'Envie dúvidas ou solicitações relacionadas à carteirinha virtual do Plan-Assiste.',
     tags: ['Carteirinha virtual', 'Dúvidas'],
@@ -1099,7 +1099,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-atualizacao-cadastral-periodica',
-    title: 'Atualização Cadastral Periódica',
+    title: 'Atualização cadastral periódica',
     category: 'Cadastro',
     description: 'Atenda à convocação periódica de atualização cadastral do Plan-Assiste.',
     tags: ['Atualização cadastral', 'Periódica'],
@@ -1108,7 +1108,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-cobertura-duvidas',
-    title: 'Cobertura (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Cobertura (dúvidas, informações e esclarecimentos)',
     category: 'Cobertura',
     description: 'Envie dúvidas ou pedidos de esclarecimento sobre a cobertura do Plan-Assiste.',
     tags: ['Cobertura', 'Dúvidas'],
@@ -1117,7 +1117,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-inclusao-ampliacao-cobertura',
-    title: 'Inclusão / Ampliação do Rol de Cobertura',
+    title: 'Inclusão / ampliação do rol de cobertura',
     category: 'Cobertura',
     description: 'Solicite a inclusão ou ampliação de procedimentos no rol de cobertura do Programa.',
     tags: ['Rol de cobertura', 'Inclusão'],
@@ -1126,7 +1126,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-autorizacao-portais-unimed',
-    title: 'Autorização Portais Unimeds',
+    title: 'Autorização portais Unimeds',
     category: 'Autorizações',
     description: 'Solicite apoio para autorização de procedimentos pelos portais das Unimeds credenciadas.',
     tags: ['Unimed', 'Portais'],
@@ -1135,7 +1135,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-assistencia-domiciliar',
-    title: 'Assistência Domiciliar',
+    title: 'Assistência domiciliar',
     category: 'Autorizações',
     description: 'Solicite autorização para assistência domiciliar (Home Care).',
     tags: ['Assistência domiciliar', 'Home care'],
@@ -1144,7 +1144,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-tratamento-odontologico-duvidas',
-    title: 'Tratamento Odontológico (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Tratamento odontológico (dúvidas, informações e esclarecimentos)',
     category: 'Autorizações',
     description: 'Envie dúvidas sobre autorização ou cobertura de tratamento odontológico.',
     tags: ['Odontologia', 'Dúvidas'],
@@ -1153,7 +1153,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-auxilio-materiais-saude',
-    title: 'Auxílio de Materiais de Saúde',
+    title: 'Auxílio de materiais de saúde',
     category: 'Reembolso e auxílios',
     description: 'Solicite auxílio para aquisição de materiais de saúde.',
     tags: ['Materiais de saúde', 'Auxílio'],
@@ -1162,7 +1162,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-transporte-tratamento-fora-domicilio',
-    title: 'Transporte de Paciente em Tratamento Fora do Domicílio',
+    title: 'Transporte de paciente em tratamento fora do domicílio',
     category: 'Reembolso e auxílios',
     description: 'Solicite auxílio de transporte para tratamento realizado fora do domicílio.',
     tags: ['Transporte', 'Tratamento fora do domicílio'],
@@ -1171,7 +1171,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-despesas-saude-duvidas',
-    title: 'Atendimento - Despesas de Saúde (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)',
     category: 'Financeiro',
     description: 'Envie dúvidas sobre despesas de saúde, contribuições e coparticipações.',
     tags: ['Despesas de saúde', 'Dúvidas'],
@@ -1180,7 +1180,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-recurso-informacoes-financeiras',
-    title: 'Recurso / Contestação de Informações Financeiras',
+    title: 'Recurso / contestação de informações financeiras',
     category: 'Financeiro',
     description: 'Solicite recurso ou conteste informações financeiras do seu cadastro.',
     tags: ['Recurso', 'Informações financeiras'],
@@ -1189,7 +1189,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-acompanhamento-denuncia-reclamacao',
-    title: 'Acompanhamento de Registros de Denúncia / Reclamação',
+    title: 'Acompanhamento de registros de denúncia / reclamação',
     category: 'Fale Conosco',
     description: 'Consulte o andamento de um registro de denúncia ou reclamação já enviado.',
     tags: ['Denúncia', 'Reclamação', 'Acompanhamento'],
@@ -1198,7 +1198,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-atualizacao-site',
-    title: 'Atualização do Site',
+    title: 'Atualização do site',
     category: 'Fale Conosco',
     description: 'Solicite a atualização de conteúdos ou informações do site do Plan-Assiste.',
     tags: ['Site', 'Atualização'],
@@ -1207,7 +1207,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-site-app-duvidas',
-    title: 'Site / App (Dúvidas, Informações e Esclarecimentos)',
+    title: 'Site / app (dúvidas, informações e esclarecimentos)',
     category: 'Fale Conosco',
     description: 'Envie dúvidas sobre o uso do site ou do aplicativo do Plan-Assiste.',
     tags: ['Site', 'Aplicativo', 'Dúvidas'],
@@ -1216,7 +1216,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-problemas-acesso-site-app',
-    title: 'Problemas de Acesso do Site / App',
+    title: 'Problemas de acesso do site / app',
     category: 'Fale Conosco',
     description: 'Relate problemas para acessar o site ou o aplicativo do Plan-Assiste.',
     tags: ['Site', 'Aplicativo', 'Acesso'],
@@ -1225,7 +1225,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-indisponibilidade-site-app',
-    title: 'Indisponibilidade do Site / App',
+    title: 'Indisponibilidade do site / app',
     category: 'Fale Conosco',
     description: 'Relate indisponibilidade do site ou do aplicativo do Plan-Assiste.',
     tags: ['Site', 'Aplicativo', 'Indisponibilidade'],
@@ -1234,7 +1234,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-erro-funcionalidades-site-app',
-    title: 'Ocorrência de Erro em Funcionalidades do Site / App',
+    title: 'Ocorrência de erro em funcionalidades do site / app',
     category: 'Fale Conosco',
     description: 'Relate erros em funcionalidades do site ou do aplicativo do Plan-Assiste.',
     tags: ['Site', 'Aplicativo', 'Erro'],

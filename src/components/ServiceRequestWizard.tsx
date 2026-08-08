@@ -44,7 +44,7 @@ export function ServiceRequestWizard({
 
   function handleBeneficiarioChange(beneficiaryId: string) {
     const beneficiary = beneficiaries.find((item) => item.id === beneficiaryId)
-    setValues((current) => ({ ...current, beneficiarioId: beneficiaryId, ...beneficiaryFieldValues(beneficiary) }))
+    setValues((current) => ({ ...current, beneficiarioId: beneficiaryId, ...beneficiaryFieldValues(beneficiary, schema) }))
   }
 
   function addFiles(fieldId: string, newFiles: File[]) {
