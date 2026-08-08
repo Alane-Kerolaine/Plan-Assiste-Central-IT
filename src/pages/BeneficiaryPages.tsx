@@ -89,6 +89,7 @@ import { WizardSteps } from '../components/serviceRequestWizardComponents'
 import { DEFAULT_SUCCESS_SECONDARY_ACTION, type WizardStep } from '../components/serviceRequestWizardHelpers'
 import { generateProtocolNumber } from '../utils/protocol'
 import { maskCpfCnpj, maskCurrency } from '../utils/inputMasks'
+import { isFutureBrazilianDate } from '../utils/dates'
 import {
   getStoredNotifications,
   markAllNotificationsRead,
@@ -1147,6 +1148,8 @@ const REEMBOLSO_FAQ = [
   },
 ]
 
+const RECEIPT_DATE_FUTURE_MESSAGE = 'A data da nota fiscal/recibo não pode ser superior à data atual.'
+
 export function BeneficiaryNovaReembolsoPage() {
   const profile = getStoredUserProfile()
   const [showForm, setShowForm] = useState(false)
@@ -1163,6 +1166,7 @@ export function BeneficiaryNovaReembolsoPage() {
   const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
   const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
   const [editItem, setEditItem] = useState<ReimbursementItem | null>(null)
+  const [editNotice, setEditNotice] = useState('')
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
   const nextItemId = useRef(1)
 
@@ -1179,6 +1183,10 @@ export function BeneficiaryNovaReembolsoPage() {
   function addReimbursementItem() {
     if (!draft.type || !draft.receiptNumber || !draft.receiptDate || !draft.providerDocument || !draft.value) {
       setNotice('Preencha tipo de reembolso, nota/recibo, data, CPF/CNPJ do credenciado e valor para adicionar a solicitação.')
+      return
+    }
+    if (isFutureBrazilianDate(draft.receiptDate)) {
+      setNotice(RECEIPT_DATE_FUTURE_MESSAGE)
       return
     }
     const missingDocuments = reimbursementAttachments(draft.type, draft.isPriorityCare)
@@ -1253,7 +1261,12 @@ export function BeneficiaryNovaReembolsoPage() {
 
   function saveEditedItem() {
     if (!editItem) return
+    if (isFutureBrazilianDate(editItem.receiptDate)) {
+      setEditNotice(RECEIPT_DATE_FUTURE_MESSAGE)
+      return
+    }
     setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
+    setEditNotice('')
     setEditItem(null)
   }
 
@@ -1601,7 +1614,11 @@ export function BeneficiaryNovaReembolsoPage() {
                 </label>
                 <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
                 <label>Nº nota fiscal/recibo *<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
-                <label>Data da nota fiscal/recibo *<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
+                <label>
+                  Data da nota fiscal/recibo *
+                  <BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} />
+                  {isFutureBrazilianDate(draft.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
+                </label>
                 <label>CPF/CNPJ credenciado *<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
                 <label>Valor *<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
                 {!isCampoReembolsoOculto(draft.type, 'sessions') && (
@@ -1707,11 +1724,11 @@ export function BeneficiaryNovaReembolsoPage() {
       {attachmentsModal}
 
       {editItem && (
-        <div className="go-modal-overlay" onClick={() => setEditItem(null)} role="presentation">
+        <div className="go-modal-overlay" onClick={() => { setEditItem(null); setEditNotice('') }} role="presentation">
           <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
             <div className="go-modal-header">
               <h2 id="edit-modal-title">Editar solicitação</h2>
-              <button aria-label="Fechar" className="go-modal-close" onClick={() => setEditItem(null)} type="button">
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">
                 <X aria-hidden="true" />
               </button>
             </div>
@@ -1725,7 +1742,11 @@ export function BeneficiaryNovaReembolsoPage() {
                   Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
                 </label>
                 <label>Nº nota fiscal/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
-                <label>Data da nota fiscal/recibo *<BrazilianDateInput onChangeValue={(value) => updateEditItem('receiptDate', value)} value={editItem.receiptDate} /></label>
+                <label>
+                  Data da nota fiscal/recibo *
+                  <BrazilianDateInput onChangeValue={(value) => { updateEditItem('receiptDate', value); setEditNotice('') }} value={editItem.receiptDate} />
+                  {isFutureBrazilianDate(editItem.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
+                </label>
                 <label>CPF/CNPJ credenciado *<input maxLength={18} onChange={(event) => updateEditItem('providerDocument', maskCpfCnpj(event.target.value))} value={editItem.providerDocument} /></label>
                 <label>Valor *<input onChange={(event) => updateEditItem('value', maskCurrency(event.target.value))} value={editItem.value} /></label>
                 {!isCampoReembolsoOculto(editItem.type, 'sessions') && (
@@ -1733,8 +1754,9 @@ export function BeneficiaryNovaReembolsoPage() {
                 )}
                 <label className="wide">Observações<textarea onChange={(event) => updateEditItem('notes', event.target.value)} rows={4} value={editItem.notes} /></label>
               </div>
+              {editNotice && <p className="form-alert alert-danger" role="alert">{editNotice}</p>}
               <div className="reimbursement-actions">
-                <button className="secondary-button" onClick={() => setEditItem(null)} type="button">Fechar</button>
+                <button className="secondary-button" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">Fechar</button>
                 <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
               </div>
             </div>

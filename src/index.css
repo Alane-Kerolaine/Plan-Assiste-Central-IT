@@ -863,6 +863,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
   .standard-results-header { break-after: avoid; }
 }
 .service-field-hint { color: var(--brand-dark); font-size: 16px; font-weight: 400; }
+.field-error-text { color: var(--danger-strong); font-size: 15px; font-weight: var(--fw-semibold); }
 .form-alert { border: 1px solid var(--border); border-left-width: 4px; border-radius: 8px; padding: 14px 16px; margin: 16px 0 0; color: var(--text-dark); font-weight: var(--fw-semibold); }
 .form-alert.alert-info { border-left-color: var(--blue); background: #f1f8fb; }
 .form-alert.alert-warning { border-left-color: var(--warning); background: #fff8e0; }
