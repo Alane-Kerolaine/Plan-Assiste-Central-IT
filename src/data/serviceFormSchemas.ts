@@ -48,7 +48,8 @@ export type CasoInstrucaoDocumento = {
 }
 
 export type AvisoNormativoConfig = {
-  titulo: string
+  /** Opcional: quando o contexto já nomeia o aviso, o card é exibido só com o conteúdo. */
+  titulo?: string
   conteudo: string
   baseLegal?: { label: string, href: string }
   exigeConfirmacao: boolean

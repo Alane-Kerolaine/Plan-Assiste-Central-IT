@@ -24,8 +24,12 @@ export function AvisoNormativo({ titulo, conteudo, baseLegal, exigeConfirmacao, 
   const paragraphs = conteudo.split('\n\n').filter((paragraph) => paragraph.trim().length > 0)
 
   return (
-    <section aria-labelledby={headingId} className={`aviso-normativo${tone === 'informativo' ? ' tone-informativo' : ''}`}>
-      <h3 id={headingId}>{titulo}</h3>
+    <section
+      aria-label={titulo ? undefined : 'Aviso'}
+      aria-labelledby={titulo ? headingId : undefined}
+      className={`aviso-normativo${tone === 'informativo' ? ' tone-informativo' : ''}`}
+    >
+      {titulo && <h3 id={headingId}>{titulo}</h3>}
       {paragraphs.map((paragraph, index) => <p key={index}>{renderWithBold(paragraph)}</p>)}
       {baseLegal && (
         <p className="aviso-normativo-base-legal">

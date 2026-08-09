@@ -802,9 +802,8 @@ const reimbursementTypes = [
 // Aviso informativo exibido após a escolha do tipo de reembolso, com regras específicas do
 // procedimento. Por ora só temos o texto oficial da Acupuntura (teste); os demais tipos
 // entram aqui conforme forem recebidos.
-const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }> = {
+const REEMBOLSO_TIPO_AVISOS: Record<string, { conteudo: string }> = {
   Acupuntura: {
-    titulo: 'Acupuntura',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, o tratamento de acupuntura ficará limitado a 40 (quarenta) sessões por ano civil, realizadas por profissionais médicos habilitados, mediante indicação médica ou odontológica, restrito à sua área de atuação. Será exigida perícia quando o número de sessões anuais ultrapassar os limites estabelecidos em norma complementar.',
@@ -812,7 +811,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   'Acompanhamento nutricional': {
-    titulo: 'Acompanhamento nutricional',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -820,15 +818,12 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   'Cirurgia com internação': {
-    titulo: 'Cirurgia com internação',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   'Cirurgia sem internação': {
-    titulo: 'Cirurgia sem internação',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   Fisioterapia: {
-    titulo: 'Fisioterapia',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 30, de 27/07/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana e/ou 40 (quarenta) sessões por ano civil.',
@@ -836,7 +831,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Fonoaudiologia: {
-    titulo: 'Fonoaudiologia',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -844,7 +838,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Hidroterapia: {
-    titulo: 'Hidroterapia',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG. Nesses casos, a perícia deverá ser agendada junto ao serviço médico, e apresentado o parecer do médico solicitante.',
@@ -852,19 +845,15 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   'Honorários individuais': {
-    titulo: 'Honorários individuais',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   'Internação sem cirurgia': {
-    titulo: 'Internação sem cirurgia',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   'Medicamentos ambulatoriais': {
-    titulo: 'Medicamentos ambulatoriais',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   Musicoterapia: {
-    titulo: 'Musicoterapia',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -872,11 +861,9 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Odontologia: {
-    titulo: 'Odontologia',
     conteudo: 'Solicitações de reembolso de procedimentos odontológicos que necessitam de perícia devem ser realizadas após orçadas e periciadas, sob pena de não serem ressarcidas. Nesses casos, deverá ser providenciado o agendamento junto ao setor de odontologia de cada ramo. O formulário de orçamento deverá ser preenchido pelo dentista consultado para apresentação no momento da perícia.',
   },
   Pilates: {
-    titulo: 'Pilates',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido nas Normas Complementares nº 32, de 15/02/2023, e nº 30, de 27/07/2023, será exigida perícia inicial para as sessões de Pilates. Quando autorizadas pela perícia, deverão ser realizadas por fisioterapeuta devidamente habilitado e serão limitadas a 40 (quarenta) por ano civil, vedada qualquer prorrogação. Para solicitar a perícia, basta encaminhar e-mail, com parecer do médico solicitante, para o setor de autorizações da sua localidade. Após, anexar a perícia ao pedido de reembolso.',
@@ -884,7 +871,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Psicologia: {
-    titulo: 'Psicologia',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -892,7 +878,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Psicomotricidade: {
-    titulo: 'Psicomotricidade',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -900,7 +885,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Psicopedagogia: {
-    titulo: 'Psicopedagogia',
     conteudo: [
       'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -908,15 +892,12 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   Quimioterapia: {
-    titulo: 'Quimioterapia',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   Radioterapia: {
-    titulo: 'Radioterapia',
     conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
   },
   RPG: {
-    titulo: 'RPG',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG.',
@@ -924,7 +905,6 @@ const REEMBOLSO_TIPO_AVISOS: Record<string, { titulo: string, conteudo: string }
     ].join('\n\n'),
   },
   'Terapia ocupacional': {
-    titulo: 'Terapia Ocupacional',
     conteudo: [
       'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
       'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
@@ -1585,7 +1565,7 @@ export function BeneficiaryNovaReembolsoPage() {
             <div className="reimbursement-form-section">
               <h3>Dados da solicitação</h3>
               <div className="reimbursement-grid">
-                <label>
+                <label className="half-width">
                   <span className="service-field-label-text">Tipo de reembolso</span>
                   <Combobox
                     value={draft.type}
@@ -1601,7 +1581,6 @@ export function BeneficiaryNovaReembolsoPage() {
                   conteudo={REEMBOLSO_TIPO_AVISOS[draft.type].conteudo}
                   exigeConfirmacao={false}
                   onConfirmar={() => {}}
-                  titulo={REEMBOLSO_TIPO_AVISOS[draft.type].titulo}
                   tone="informativo"
                 />
               )}
@@ -1619,7 +1598,7 @@ export function BeneficiaryNovaReembolsoPage() {
                   <BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} />
                   {isFutureBrazilianDate(draft.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
                 </label>
-                <label>CPF/CNPJ credenciado *<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
+                <label className="half-width">CPF/CNPJ credenciado *<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
                 <label>Valor *<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
                 {!isCampoReembolsoOculto(draft.type, 'sessions') && (
                   <label>Quantidade de sessões *<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value.replace(/\D/g, ''))} placeholder="Digite a quantidade" /></label>
