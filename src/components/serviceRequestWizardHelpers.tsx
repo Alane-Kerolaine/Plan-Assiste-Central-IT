@@ -143,13 +143,15 @@ export function renderField(field: ServiceField, value: string, onChange: (value
     )
   }
 
-  const labelClassName = field.fullWidth
+  const larguraClassName = field.fullWidth
     ? 'wide'
     : field.columnSpan === 3
       ? 'span-3'
       : field.columnSpan === 2
         ? 'half-width'
         : undefined
+  const labelClassName = [larguraClassName, field.ownRow ? 'own-row' : undefined]
+    .filter(Boolean).join(' ') || undefined
   const requiredMark = field.required ? ' *' : ''
   const fieldInfoIcon = field.infoText && (
     <span className="field-info-icon" data-tooltip={field.infoText} tabIndex={0} role="img" aria-label={field.infoText}>

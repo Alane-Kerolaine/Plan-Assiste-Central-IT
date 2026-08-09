@@ -806,6 +806,11 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-grid .wide { grid-column: 1 / -1; }
 .reimbursement-grid .half-width { grid-column: span 2; }
 .reimbursement-grid .span-3 { grid-column: span 3; }
+/* Campo sozinho na linha: ocupa a faixa inteira do grid para nenhum vizinho subir, mas a largura
+   visível continua a das colunas declaradas (2 colunas = 50% menos meia calha). */
+.reimbursement-grid .own-row { grid-column: 1 / -1; }
+.reimbursement-grid .own-row.half-width { max-width: calc(50% - 8px); }
+.reimbursement-grid .own-row.span-3 { max-width: calc(75% - 4px); }
 .reimbursement-grid + .reimbursement-grid { margin-top: 20px; }
 /* Estados de texto dos campos de formulário. Conteúdo (digitado ou vindo do cadastro) em #103f3a,
    o mesmo tom que o manual reserva a títulos e informações de maior hierarquia; placeholder e

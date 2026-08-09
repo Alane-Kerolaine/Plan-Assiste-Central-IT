@@ -22,6 +22,8 @@ export type ServiceField = {
   disabled?: boolean
   fullWidth?: boolean
   columnSpan?: 2 | 3
+  /** Mantém o campo sozinho na linha, preservando a largura definida em `columnSpan`. */
+  ownRow?: boolean
   placeholder?: string
   options?: string[]
   defaultValue?: string
@@ -140,10 +142,11 @@ function dadosParaContatoSection(): ServiceFormSection {
     id: 'dados-contato',
     title: 'Dados para Contato',
     fields: [
-      { id: 'contatoTitularNome', label: 'Titular', type: 'text', disabled: true, columnSpan: 3, defaultValue: titular?.name },
+      // Linha 1: titular, matrícula e ramo. Linha 2: e-mail e telefone, com a mesma largura.
+      { id: 'contatoTitularNome', label: 'Titular', type: 'text', disabled: true, columnSpan: 2, defaultValue: titular?.name },
       { id: 'contatoTitularMatricula', label: 'Matrícula', type: 'text', disabled: true, defaultValue: titular?.matricula },
-      { id: 'contatoTitularEmail', label: 'E-mail', type: 'text', disabled: true, defaultValue: titular?.email },
       { id: 'contatoTitularRamo', label: 'Ramo', type: 'text', disabled: true, defaultValue: titular?.ramo },
+      { id: 'contatoTitularEmail', label: 'E-mail', type: 'text', disabled: true, columnSpan: 2, defaultValue: titular?.email },
       { id: 'contatoTitularTelefone', label: 'Telefone', type: 'text', required: true, format: 'phone', columnSpan: 2, defaultValue: titular?.telefone, placeholder: '(00) 00000-0000' },
     ],
   }
@@ -153,7 +156,7 @@ function dadosParaContatoSection(): ServiceFormSection {
 // exibidos logo abaixo do card de avisos da seção de pedido/detalhes.
 const PRESTADOR_FIELDS: ServiceField[] = [
   { id: 'dataPrevista', label: 'Data prevista', type: 'date' },
-  { id: 'nomePrestador', label: 'Nome Prestador', type: 'text', required: true, columnSpan: 2, placeholder: 'Nome completo do prestador' },
+  { id: 'nomePrestador', label: 'Nome Prestador', type: 'text', required: true, columnSpan: 3, placeholder: 'Nome completo do prestador' },
   { id: 'telefonePrestador', label: 'Telefone Prestador', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
   { id: 'cpfCnpjPrestador', label: 'CPF/CNPJ Prestador', type: 'text', format: 'cpfCnpj', columnSpan: 2, placeholder: '000.000.000-00 ou 00.000.000/0000-00' },
 ]
@@ -186,12 +189,21 @@ function baseSchema(slug: string, title: string, extraSections: ServiceFormSecti
 }
 
 function authorizationSchema(slug: string, title: string, documents: Array<{ id: string, label: string, required?: boolean }>, localidadeLabel?: string, comDadosContato: boolean = false, comDadosPrestador: boolean = false): ServiceFormSchema {
+  // A localidade do procedimento é informação do pedido, não da identificação do beneficiário:
+  // sai da seção de identificação e abre a seção de detalhes, ocupando três colunas para dividir
+  // a primeira linha com a data prevista.
+  const identificacao = identificationSection(localidadeLabel)
+  const localidadeProcedimento = identificacao.fields
+    .filter((field) => field.id === 'localAtendimento')
+    .map((field) => ({ ...field, columnSpan: 3 as const }))
+
   const sections: ServiceFormSection[] = [
-    identificationSection(localidadeLabel),
+    { ...identificacao, fields: identificacao.fields.filter((field) => field.id !== 'localAtendimento') },
     {
       id: 'detalhes',
       title: 'Informações do pedido',
       fields: [
+        ...localidadeProcedimento,
         ...(comDadosPrestador ? PRESTADOR_FIELDS : []),
         { id: 'descricao', label: 'Descrição', type: 'textarea', fullWidth: true, placeholder: 'Inclua informações que ajudem na análise da solicitação' },
       ],

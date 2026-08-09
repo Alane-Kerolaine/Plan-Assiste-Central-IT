@@ -712,15 +712,6 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/dependentes',
   },
   {
-    id: 'consulta-odontologica',
-    title: 'Tratamento odontológico',
-    category: 'Autorizações',
-    description: 'Inicie atendimento odontológico e acompanhe perícias quando exigidas.',
-    tags: ['Odontologia', 'Tratamento', 'Orientações'],
-    action: 'Consultar orientações',
-    route: '/plan-assiste/beneficiarios/autorizacoes#tratamento-odontologico',
-  },
-  {
     id: 'irpf',
     title: 'IRPF',
     category: 'Financeiro',

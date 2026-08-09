@@ -791,8 +791,8 @@ const initialReimbursementDraft: ReimbursementDraft = {
 }
 
 const reimbursementTypes = [
-  'Acompanhamento nutricional', 'Acupuntura', 'Avaliação neuropsicológica',
-  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação', 'Equoterapia',
+  'Acompanhamento nutricional', 'Acupuntura',
+  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação',
   'Exames', 'Fisioterapia', 'Fonoaudiologia', 'Hidroterapia', 'Honorários individuais',
   'Internação sem cirurgia', 'Medicamentos ambulatoriais', 'Musicoterapia', 'Odontologia',
   'Parto', 'Pilates', 'Psicologia', 'Psicomotricidade', 'Psicopedagogia', 'Quimioterapia',
@@ -3276,7 +3276,6 @@ export function FaqPage() {
 
 const requestIconById: Record<string, LucideIcon> = {
   'inclusao-dependentes': UserRound,
-  'consulta-odontologica': Stethoscope,
   irpf: FileText,
   'extrato-mes': FileText,
   carteirinhas: IdCard,
