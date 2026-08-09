@@ -1,9 +1,12 @@
 import { Info } from 'lucide-react'
 import { beneficiaries, type Beneficiary } from '../data/mock'
-import type { ServiceField, ServiceFormSchema } from '../data/serviceFormSchemas'
+import type { ServiceField, ServiceFormSchema, ServiceFormSection } from '../data/serviceFormSchemas'
+import { parseBrazilianDate } from '../utils/dates'
 import { maskCep, maskCpf, maskCpfCnpj, maskPhone } from '../utils/inputMasks'
+import { isValidEmail } from '../utils/validation'
 import { BrazilianDateInput } from './BrazilianDateInput'
 import { Combobox } from './Combobox'
+import { EmailTextInput } from './EmailTextInput'
 
 export type WizardStep = 'form' | 'review' | 'success'
 
@@ -57,6 +60,32 @@ export function initialValues(schema: ServiceFormSchema): Record<string, string>
   return values
 }
 
+// Rótulos dos campos de e-mail preenchidos com um endereço inválido — usado pelos wizards para
+// bloquear o avanço com a mesma regra do alerta exibido abaixo do campo.
+export function invalidEmailLabels(sections: ServiceFormSection[], values: Record<string, string>): string[] {
+  return sections
+    .flatMap((section) => section.fields)
+    .filter((field) => field.format === 'email' && !field.disabled)
+    .filter((field) => {
+      const value = values[field.id] ?? ''
+      return value.trim().length > 0 && !isValidEmail(value)
+    })
+    .map((field) => field.label)
+}
+
+// Datas digitadas fora do padrão dd/mm/aaaa ou inexistentes (31/02, por exemplo). A máscara do
+// campo aceita esses valores, e o formulário valida em JS em vez das mensagens do navegador.
+export function invalidDateLabels(sections: ServiceFormSection[], values: Record<string, string>): string[] {
+  return sections
+    .flatMap((section) => section.fields)
+    .filter((field) => field.type === 'date' && !field.disabled)
+    .filter((field) => {
+      const value = values[field.id] ?? ''
+      return value.trim().length > 0 && !parseBrazilianDate(value)
+    })
+    .map((field) => field.label)
+}
+
 export function isoDateToBr(value: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
   const [year, month, day] = value.split('-')
@@ -71,7 +100,12 @@ export function formatReviewValue(field: ServiceField, value: string | undefined
   return value
 }
 
+// Campos que o schema marca como `disabled` trazem dados do cadastro e são renderizados com
+// `readonly`: mesma aparência de campo travado, mas o texto pode ser selecionado, copiado e
+// alcançado pelo teclado/leitor de tela.
 export function renderField(field: ServiceField, value: string, onChange: (value: string) => void) {
+  const somenteLeitura = Boolean(field.disabled)
+
   if (field.type === 'note') {
     return (
       <p className="service-field-note wide" key={field.id}>{field.label}</p>
@@ -146,13 +180,21 @@ export function renderField(field: ServiceField, value: string, onChange: (value
     return (
       <label className={labelClassName} key={field.id}>
         <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
-        <BrazilianDateInput disabled={field.disabled} required={field.required} value={value} onChangeValue={onChange} />
+        <BrazilianDateInput readOnly={somenteLeitura} required={field.required} value={value} onChangeValue={onChange} />
+      </label>
+    )
+  }
+
+  if (field.format === 'email') {
+    return (
+      <label className={labelClassName} key={field.id}>
+        <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
+        <EmailTextInput readOnly={somenteLeitura} placeholder={field.placeholder} value={value} onChange={onChange} />
       </label>
     )
   }
 
   const fieldMask = field.format === 'phone' ? maskPhone : field.format === 'cpf' ? maskCpf : field.format === 'cpfCnpj' ? maskCpfCnpj : field.format === 'cep' ? maskCep : undefined
-  const inputType = field.format === 'email' ? 'email' : 'text'
   const inputMode = fieldMask ? 'numeric' : undefined
   const maxLength = field.format === 'phone' ? 15 : field.format === 'cpf' ? 14 : field.format === 'cpfCnpj' ? 18 : field.format === 'cep' ? 9 : undefined
 
@@ -160,11 +202,11 @@ export function renderField(field: ServiceField, value: string, onChange: (value
     <label className={labelClassName} key={field.id}>
       <span className="service-field-label-text">{field.label}{requiredMark}{fieldInfoIcon}</span>
       <input
-        type={inputType}
+        type="text"
         inputMode={inputMode}
         maxLength={maxLength}
         value={value}
-        disabled={field.disabled}
+        readOnly={somenteLeitura}
         placeholder={field.placeholder}
         onChange={(event) => onChange(fieldMask ? fieldMask(event.target.value) : event.target.value)}
       />

@@ -12,6 +12,8 @@ import {
   DEFAULT_SUCCESS_SECONDARY_ACTION,
   formatReviewValue,
   initialValues,
+  invalidDateLabels,
+  invalidEmailLabels,
   renderField,
   type WizardStep,
 } from './serviceRequestWizardHelpers'
@@ -67,15 +69,16 @@ export function ServiceRequestWizard({
     visibleSections.forEach((section) => {
       section.fields.forEach((field) => {
         if (!field.required) return
+        const nome = field.shortLabel ?? field.label
         if (field.type === 'checkbox') {
-          if (values[field.id] !== 'true') missing.push(field.label)
+          if (values[field.id] !== 'true') missing.push(nome)
           return
         }
         if (field.type === 'file') {
-          if ((attachments[field.id]?.length ?? 0) === 0) missing.push(field.label)
+          if ((attachments[field.id]?.length ?? 0) === 0) missing.push(nome)
           return
         }
-        if (!values[field.id]?.trim()) missing.push(field.label)
+        if (!values[field.id]?.trim()) missing.push(nome)
       })
     })
     return missing
@@ -85,6 +88,16 @@ export function ServiceRequestWizard({
     const missing = validate()
     if (missing.length > 0) {
       setNotice(`Preencha os campos obrigatórios: ${missing.join(', ')}.`)
+      return
+    }
+    const emailsInvalidos = invalidEmailLabels(visibleSections, values)
+    if (emailsInvalidos.length > 0) {
+      setNotice(`Informe um e-mail válido em: ${emailsInvalidos.join(', ')}.`)
+      return
+    }
+    const datasInvalidas = invalidDateLabels(visibleSections, values)
+    if (datasInvalidas.length > 0) {
+      setNotice(`Informe uma data válida no formato dd/mm/aaaa em: ${datasInvalidas.join(', ')}.`)
       return
     }
     setNotice('')
@@ -183,7 +196,9 @@ export function ServiceRequestWizard({
   return (
     <div className="service-wizard">
       <WizardSteps current={step} />
-      <form className="reimbursement-form" onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
+      {/* noValidate: a validação é feita em JS, com alertas no padrão visual do portal,
+          em vez das mensagens nativas do navegador. */}
+      <form className="reimbursement-form" noValidate onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
         <section className="reimbursement-card">
           <h2>Formulário</h2>
           {schema.avisoInicial && (!schema.avisoInicial.posicao || schema.avisoInicial.posicao === 'inicio') && (
@@ -231,6 +246,7 @@ export function ServiceRequestWizard({
                           helpText={field.helpText}
                           key={field.id}
                           label={field.label}
+                          required={field.required}
                           onAdd={(newFiles) => addFiles(field.id, newFiles)}
                           onRemove={(index) => removeFile(field.id, index)}
                         />

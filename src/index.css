@@ -46,6 +46,11 @@
   --brand-strong: #087765;
   --text-dark: #103f3a;
   --text: #225c55;
+  /* Estados de texto dos campos de formulário. #667370 rende 4,94:1 sobre branco e 4,68:1 sobre o
+     fundo suave dos campos travados — AA nos dois casos. Tons mais claros da mesma família
+     (ex.: #a1b2ae, 2,21:1) reprovam. */
+  --text-placeholder: #667370;
+  --text-disabled: #667370;
   --mint-bg: #e7f5ef;
   --mint-soft: #f2faf7;
   --card-bg: #ffffff;
@@ -802,7 +807,33 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-grid .half-width { grid-column: span 2; }
 .reimbursement-grid .span-3 { grid-column: span 3; }
 .reimbursement-grid + .reimbursement-grid { margin-top: 20px; }
-.reimbursement-grid input:disabled { background: #f4faf8; color: var(--brand-dark); cursor: not-allowed; }
+/* Estados de texto dos campos de formulário. Conteúdo (digitado ou vindo do cadastro) em #103f3a,
+   o mesmo tom que o manual reserva a títulos e informações de maior hierarquia; placeholder e
+   campo travado em #667370 — 4,94:1 sobre branco e 4,68:1 sobre o fundo suave, AA nos dois casos. */
+.reimbursement-grid input,
+.reimbursement-grid select,
+.reimbursement-grid textarea,
+.service-beneficiary-field .cms-combobox input { color: var(--text-dark); }
+/* Campo com conteúdo — preenchido pelo cadastro ou digitado pelo usuário — sobe do peso leve (300)
+   para o regular (400), o mesmo do corpo de texto do portal; campo vazio, com o placeholder à
+   mostra, permanece em 300. O rótulo segue em 600, mantendo a hierarquia rótulo > valor. */
+.reimbursement-grid input:not(:placeholder-shown),
+.reimbursement-grid textarea:not(:placeholder-shown),
+.service-beneficiary-field .cms-combobox input:not(:placeholder-shown) { font-weight: var(--fw-regular); }
+.reimbursement-grid input::placeholder,
+.reimbursement-grid textarea::placeholder,
+.service-beneficiary-field input::placeholder { color: var(--text-placeholder); opacity: 1; }
+/* Campos do cadastro: `readonly` nos formulários de serviço (texto copiável e alcançável por
+   teclado) e `disabled` nas telas que ainda os renderizam assim — mesma aparência nos dois casos,
+   sem cursor de ação bloqueada. */
+.reimbursement-grid input[readonly],
+.reimbursement-grid input:disabled,
+.reimbursement-grid select:disabled,
+.reimbursement-grid textarea:disabled {
+  background-color: #f4faf8;
+  color: var(--text-disabled);
+  cursor: default;
+}
 .reimbursement-profile-hint { margin: 12px 0 0; }
 .reimbursement-profile-hint a { color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: underline; }
 .responsibility-term input { width: 18px; min-height: auto; height: 18px; accent-color: var(--brand-primary); }
@@ -812,6 +843,9 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .responsibility-term { display: flex !important; flex-direction: row !important; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 16px; margin-top: 16px; color: var(--text-dark); font-weight: var(--fw-semibold); }
 .responsibility-term input { margin-top: 3px; flex-shrink: 0; }
 .responsibility-term a { color: var(--brand-strong); text-decoration: underline; white-space: nowrap; }
+/* O termo abre a seção: a distância do título já vem da margem do h3, sem somar a margem que o
+   separa dos campos quando ele aparece depois deles. */
+.reimbursement-grid > .responsibility-term:first-child { margin-top: 0; }
 .service-field-note { border-left: 4px solid var(--brand-primary); border-radius: 8px; background: var(--mint-soft); color: var(--text-dark); padding: 12px 14px; margin: 0; font-size: 14px; }
 .service-field-label-text { display: inline-flex; align-items: center; }
 .field-info-icon { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 17px; height: 17px; margin-left: 5px; border-radius: 50%; background: var(--mint-soft); color: var(--brand-strong); cursor: help; }
@@ -2696,6 +2730,8 @@ select:not([multiple]) {
   --brand-strong: #ffffff;
   --text-dark: #ffffff;
   --text: #f5f5f5;
+  --text-placeholder: #ffffff;
+  --text-disabled: #ffffff;
   --mint-bg: #000000;
   --mint-soft: #080808;
   --card-bg: #000000;

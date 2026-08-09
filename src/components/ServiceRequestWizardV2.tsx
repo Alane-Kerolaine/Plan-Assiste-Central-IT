@@ -13,6 +13,8 @@ import {
   DEFAULT_SUCCESS_SECONDARY_ACTION,
   formatReviewValue,
   initialValues,
+  invalidDateLabels,
+  invalidEmailLabels,
   renderField,
   type WizardStep,
 } from './serviceRequestWizardHelpers'
@@ -42,11 +44,9 @@ export function ServiceRequestWizardV2({
   )
 
   const [step, setStep] = useState<WizardStep>('form')
-  const [values, setValues] = useState<Record<string, string>>(() => ({
-    ...initialValues(schema),
-    ...perguntaChave.casos[0].sincronizarCampos,
-  }))
-  const [casoId, setCasoId] = useState(perguntaChave.casos[0].id)
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(schema))
+  // Nenhum caso vem pré-selecionado: o combobox abre vazio, com placeholder, até a escolha do usuário.
+  const [casoId, setCasoId] = useState('')
   const [anexosPorDocumento, setAnexosPorDocumento] = useState<Record<string, File[]>>({})
   const [avisoConfirmado, setAvisoConfirmado] = useState(false)
   const [notice, setNotice] = useState('')
@@ -59,8 +59,8 @@ export function ServiceRequestWizardV2({
     return () => clearTimeout(id)
   }, [copied])
 
-  const casoSelecionado = perguntaChave.casos.find((caso) => caso.id === casoId) ?? perguntaChave.casos[0]
-  const documentosRequeridos = new Set(casoSelecionado.documentos.map((documento) => documento.id))
+  const casoSelecionado = perguntaChave.casos.find((caso) => caso.id === casoId)
+  const documentosRequeridos = new Set(casoSelecionado?.documentos.map((documento) => documento.id) ?? [])
 
   function updateValue(fieldId: string, value: string) {
     setValues((current) => ({ ...current, [fieldId]: value }))
@@ -101,13 +101,18 @@ export function ServiceRequestWizardV2({
     visibleSections.forEach((section) => {
       section.fields.forEach((field) => {
         if (!field.required) return
+        const nome = field.shortLabel ?? field.label
         if (field.type === 'checkbox') {
-          if (values[field.id] !== 'true') missing.push(field.label)
+          if (values[field.id] !== 'true') missing.push(nome)
           return
         }
-        if (!values[field.id]?.trim()) missing.push(field.label)
+        if (!values[field.id]?.trim()) missing.push(nome)
       })
     })
+    if (!casoSelecionado) {
+      missing.push(perguntaChave.enunciado)
+      return missing
+    }
     casoSelecionado.documentos.forEach((documento) => {
       if (documento.obrigatorio && (anexosPorDocumento[documento.id]?.length ?? 0) === 0) {
         missing.push(documento.label)
@@ -125,6 +130,16 @@ export function ServiceRequestWizardV2({
       setNotice(`Preencha os campos obrigatórios: ${missing.join(', ')}.`)
       return
     }
+    const emailsInvalidos = invalidEmailLabels(visibleSections, values)
+    if (emailsInvalidos.length > 0) {
+      setNotice(`Informe um e-mail válido em: ${emailsInvalidos.join(', ')}.`)
+      return
+    }
+    const datasInvalidas = invalidDateLabels(visibleSections, values)
+    if (datasInvalidas.length > 0) {
+      setNotice(`Informe uma data válida no formato dd/mm/aaaa em: ${datasInvalidas.join(', ')}.`)
+      return
+    }
     setNotice('')
     setStep('review')
   }
@@ -135,9 +150,9 @@ export function ServiceRequestWizardV2({
   }
 
   function handleReset() {
-    setValues({ ...initialValues(schema), ...perguntaChave.casos[0].sincronizarCampos })
+    setValues(initialValues(schema))
     setAnexosPorDocumento({})
-    setCasoId(perguntaChave.casos[0].id)
+    setCasoId('')
     setAvisoConfirmado(false)
     setNotice('')
     setProtocol('')
@@ -208,27 +223,33 @@ export function ServiceRequestWizardV2({
               </dl>
             </div>
           ))}
-          <div className="reimbursement-form-section">
-            <h3>Instruções específicas — {casoSelecionado.titulo}</h3>
-            <dl className="service-review-grid">
-              {casoSelecionado.documentos.map((documento) => (
-                <div className="service-review-row" key={documento.id}>
-                  <dt>{documento.label}</dt>
-                  <dd>
-                    {(anexosPorDocumento[documento.id]?.length ?? 0) > 0
-                      ? anexosPorDocumento[documento.id].map((file) => file.name).join(', ')
-                      : '–'}
-                  </dd>
-                </div>
-              ))}
-              {casoSelecionado.avisoNormativo?.exigeConfirmacao && (
+          {casoSelecionado && (
+            <div className="reimbursement-form-section">
+              <h3>{perguntaChave.tituloAnexos ?? `Instruções específicas — ${casoSelecionado.titulo}`}</h3>
+              <dl className="service-review-grid">
                 <div className="service-review-row">
-                  <dt>Aviso normativo</dt>
-                  <dd>{avisoConfirmado ? 'Confirmado' : 'Não confirmado'}</dd>
+                  <dt>{perguntaChave.enunciado}</dt>
+                  <dd>{casoSelecionado.titulo}</dd>
                 </div>
-              )}
-            </dl>
-          </div>
+                {casoSelecionado.documentos.map((documento) => (
+                  <div className="service-review-row" key={documento.id}>
+                    <dt>{documento.label}</dt>
+                    <dd>
+                      {(anexosPorDocumento[documento.id]?.length ?? 0) > 0
+                        ? anexosPorDocumento[documento.id].map((file) => file.name).join(', ')
+                        : '–'}
+                    </dd>
+                  </div>
+                ))}
+                {casoSelecionado.avisoNormativo?.exigeConfirmacao && (
+                  <div className="service-review-row">
+                    <dt>Aviso normativo</dt>
+                    <dd>{avisoConfirmado ? 'Confirmado' : 'Não confirmado'}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
           {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
           <div className="reimbursement-actions">
             <button className="secondary-button" type="button" onClick={() => setStep('form')}>
@@ -246,7 +267,9 @@ export function ServiceRequestWizardV2({
   return (
     <div className="service-wizard">
       <WizardSteps current={step} />
-      <form className="reimbursement-form" onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
+      {/* noValidate: a validação é feita em JS, com alertas no padrão visual do portal,
+          em vez das mensagens nativas do navegador. */}
+      <form className="reimbursement-form" noValidate onSubmit={(event) => { event.preventDefault(); handleContinue() }}>
         <section className="reimbursement-card">
           <h2>Formulário</h2>
           {schema.avisoInicial && (!schema.avisoInicial.posicao || schema.avisoInicial.posicao === 'inicio') && (
@@ -285,17 +308,26 @@ export function ServiceRequestWizardV2({
                   </div>
                 )}
                 {section.id === (perguntaChave.secaoAncora ?? 'detalhes') && (
-                  <div className="reimbursement-grid">
-                    <label className={perguntaChave.colunas === 2 ? 'half-width' : 'wide'} key="pergunta-chave-combobox">
-                      {perguntaChave.enunciado}
-                      <Combobox
-                        onSelect={handleCasoChange}
-                        options={perguntaChave.casos.map((caso) => ({ value: caso.id, label: caso.titulo }))}
-                        placeholder="Selecione uma opção"
-                        value={casoId}
+                  <>
+                    <div className="reimbursement-grid">
+                      <label className={perguntaChave.colunas === 2 ? 'half-width' : 'wide'} key="pergunta-chave-combobox">
+                        {perguntaChave.enunciado}
+                        <Combobox
+                          onSelect={handleCasoChange}
+                          options={perguntaChave.casos.map((caso) => ({ value: caso.id, label: caso.titulo }))}
+                          placeholder="Selecione uma opção"
+                          value={casoId}
+                        />
+                      </label>
+                    </div>
+                    {casoSelecionado?.avisoNormativo && (
+                      <AvisoNormativo
+                        {...casoSelecionado.avisoNormativo}
+                        confirmado={avisoConfirmado}
+                        onConfirmar={setAvisoConfirmado}
                       />
-                    </label>
-                  </div>
+                    )}
+                  </>
                 )}
                 <div className={`reimbursement-grid${section.columns === 3 ? ' reimbursement-grid-three-columns' : section.columns === 2 ? ' reimbursement-grid-two-columns' : ''}`}>
                   {otherFields.map((field) => renderField(field, values[field.id], (value) => updateValue(field.id, value)))}
@@ -303,17 +335,10 @@ export function ServiceRequestWizardV2({
               </div>
             )
           })}
-          <div className="reimbursement-form-section">
-            <h3>Documentos exigidos — {casoSelecionado.titulo}</h3>
-            <ChecklistAnexos documentos={checklistDocumentos} onAdd={addFiles} onRemove={removeFile} />
-          </div>
-          {casoSelecionado.avisoNormativo && (
+          {casoSelecionado && (
             <div className="reimbursement-form-section">
-              <AvisoNormativo
-                {...casoSelecionado.avisoNormativo}
-                confirmado={avisoConfirmado}
-                onConfirmar={setAvisoConfirmado}
-              />
+              <h3>{perguntaChave.tituloAnexos ?? `Documentos exigidos — ${casoSelecionado.titulo}`}</h3>
+              <ChecklistAnexos documentos={checklistDocumentos} onAdd={addFiles} onRemove={removeFile} />
             </div>
           )}
           {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}

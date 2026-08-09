@@ -6,6 +6,7 @@ type BrazilianDateInputProps = {
   id?: string
   name?: string
   onChangeValue?: (value: string) => void
+  readOnly?: boolean
   required?: boolean
   value?: string
 }
@@ -17,7 +18,7 @@ function maskBrazilianDate(value: string) {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
 }
 
-export function BrazilianDateInput({ className, disabled, id, name, onChangeValue, required, value }: BrazilianDateInputProps) {
+export function BrazilianDateInput({ className, disabled, id, name, onChangeValue, readOnly, required, value }: BrazilianDateInputProps) {
   const [internalValue, setInternalValue] = useState('')
   const currentValue = value ?? internalValue
 
@@ -32,6 +33,7 @@ export function BrazilianDateInput({ className, disabled, id, name, onChangeValu
       name={name}
       pattern="(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}"
       placeholder="dd/mm/aaaa"
+      readOnly={readOnly}
       required={required}
       title="Informe a data no formato dd/mm/aaaa"
       type="text"

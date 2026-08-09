@@ -928,9 +928,9 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-recurso-reembolso',
-    title: 'Recurso de reembolso - livre escolha',
+    title: 'Recurso / Contestação de Reembolso',
     category: 'Reembolso e auxílios',
-    description: 'Solicite recurso sobre um reembolso de livre escolha já analisado.',
+    description: 'Solicite recurso ou conteste o resultado da análise de um reembolso.',
     tags: ['Recurso', 'Reembolso'],
     action: 'Solicitar recurso',
     route: '/beneficiario/servicos/recurso-reembolso/nova-solicitacao',

@@ -4,7 +4,6 @@ import type { AvisoNormativoConfig } from '../data/serviceFormSchemas'
 type AvisoNormativoProps = AvisoNormativoConfig & {
   confirmado: boolean
   onConfirmar: (confirmado: boolean) => void
-  tone?: 'aviso' | 'informativo'
 }
 
 function renderWithBold(text: string) {
