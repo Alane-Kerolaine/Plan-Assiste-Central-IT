@@ -2791,6 +2791,9 @@ export function ExpensesPage() {
   const totalDiscount = visibleBalances.reduce((total, record) => total + record.discount, 0)
   const visibleCompetences = competenceRange(periodStart, periodEnd)
   const copayByBeneficiary = beneficiaries.map((beneficiary) => ({ beneficiary, months: visibleCompetences.map((month) => ({ month, value: visibleExpenses.filter((record) => record.beneficiaryId === beneficiary.id && record.month === month).reduce((total, record) => total + record.copay, 0) })) })).filter((item) => beneficiaryFilter === 'Todos' || item.beneficiary.id === beneficiaryFilter)
+  const copayMonthlyTotals = visibleCompetences.map((_, index) => copayByBeneficiary.reduce((total, item) => total + item.months[index].value, 0))
+  const copayFamilyTotal = copayMonthlyTotals.reduce((total, value) => total + value, 0)
+  const copayTotalLabel = beneficiaryFilter === 'Todos' ? 'Total da família' : 'Total do beneficiário'
 
   async function exportExtract() {
     const { Workbook } = await import('exceljs')
@@ -2809,6 +2812,7 @@ export function ExpensesPage() {
     } else {
       sheet.addRow(['Beneficiário', ...visibleCompetences, 'Saldo acumulado'])
       copayByBeneficiary.forEach(({ beneficiary, months }) => sheet.addRow([beneficiary.name, ...months.map((month) => month.value), months.reduce((total, month) => total + month.value, 0)]))
+      sheet.addRow([copayTotalLabel, ...copayMonthlyTotals, copayFamilyTotal]).font = { bold: true }
       for (let column = 2; column <= visibleCompetences.length + 2; column += 1) { sheet.getColumn(column).numFmt = 'R$ #,##0.00'; sheet.getColumn(column).width = 16 }
       sheet.getColumn(1).width = 34
     }
@@ -2971,6 +2975,7 @@ export function ExpensesPage() {
               <table className="extract-table extract-copay-table" style={{ minWidth: Math.max(940, 410 + visibleCompetences.length * 140) }}>
                 <thead><tr><th>Beneficiário</th>{visibleCompetences.map((competence) => <th key={competence}>{competence}</th>)}<th>Saldo acumulado</th></tr></thead>
                 <tbody>{copayByBeneficiary.map(({ beneficiary, months }) => <tr key={beneficiary.id}><td><strong>{beneficiary.name}</strong></td>{months.map((month) => <td key={month.month}>{formatCurrency(month.value)}</td>)}<td><strong>{formatCurrency(months.reduce((total, month) => total + month.value, 0))}</strong></td></tr>)}</tbody>
+                <tfoot><tr className="extract-total-row"><td>{copayTotalLabel}</td>{copayMonthlyTotals.map((value, index) => <td key={visibleCompetences[index]}>{formatCurrency(value)}</td>)}<td><strong>{formatCurrency(copayFamilyTotal)}</strong></td></tr></tfoot>
               </table>
             </div>
           </div>

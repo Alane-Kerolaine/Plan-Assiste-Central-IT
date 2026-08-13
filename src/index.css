@@ -696,6 +696,7 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .cookie-consent-actions { justify-content: flex-end; }
 .footer-cookie-link { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .extract-copay-table td:first-child { background: white; }
+.extract-copay-table .extract-total-row td:first-child { background: #f6fbfa; text-align: left !important; }
 .extract-scroll-hint { margin: 0 0 12px; color: var(--brand-strong); font-weight: var(--fw-semibold); }
 .extract-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
 .extract-export-actions { display: flex; justify-content: flex-end; margin-top: 18px; }
