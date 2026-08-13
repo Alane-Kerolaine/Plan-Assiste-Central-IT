@@ -2488,7 +2488,7 @@ type BalanceRecord = {
   charge: number
   discount: number
   adjustment: number
-  status: 'Lançado' | 'Programado' | 'Quitado' | 'Estornado'
+  status: 'Quitado' | 'Aberto' | 'Cancelado' | 'Estornado'
 }
 
 export function HealthAidExtractPage() {
@@ -2665,9 +2665,10 @@ const expenseRecords: ExpenseRecord[] = [
 const balanceRecords: BalanceRecord[] = [
   { id: 'bal-001', month: '01/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 01/2026', charge: 458.72, discount: 458.72, adjustment: 0, status: 'Quitado' },
   { id: 'bal-002', month: '02/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 02/2026', charge: 209.53, discount: 209.53, adjustment: 0, status: 'Quitado' },
-  { id: 'bal-003', month: '03/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 03/2026', charge: 145.67, discount: 145.67, adjustment: 0, status: 'Lançado' },
-  { id: 'bal-004', month: '04/2026', description: 'Contribuição do plano', reference: 'Folha 04/2026', charge: 0, discount: 389.42, adjustment: 0, status: 'Programado' },
+  { id: 'bal-003', month: '03/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 03/2026', charge: 145.67, discount: 145.67, adjustment: 0, status: 'Aberto' },
+  { id: 'bal-004', month: '04/2026', description: 'Contribuição do plano', reference: 'Folha 04/2026', charge: 0, discount: 389.42, adjustment: 0, status: 'Aberto' },
   { id: 'bal-005', month: '03/2026', description: 'Devolução de custeio em folha', reference: 'Estorno da folha 03/2026', charge: 0, discount: 0, adjustment: 115.35, status: 'Estornado' },
+  { id: 'bal-006', month: '02/2026', description: 'Cancelamento de custeio por glosa', reference: 'Ajuste da folha 02/2026', charge: 0, discount: 0, adjustment: 33.6, status: 'Cancelado' },
 ]
 
 const irpfStatements = [

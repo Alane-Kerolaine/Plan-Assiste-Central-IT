@@ -659,8 +659,8 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .extract-total-row td:first-child { text-align: right !important; }
 .extract-status { display: inline-flex; width: max-content; border-radius: 999px; padding: 4px 9px; background: #edf1f4; color: #526774; font-size: 16px; font-weight: var(--fw-semibold); }
 .extract-status.status-quitado { background: #dff3ee; color: #087765; }
-.extract-status.status-lancado { background: #e4f0ff; color: #2463a6; }
-.extract-status.status-programado { background: #fff0d5; color: #9a6416; }
+.extract-status.status-aberto { background: #e4f0ff; color: #2463a6; }
+.extract-status.status-cancelado { background: #fff0d5; color: #9a6416; }
 .extract-status.status-estornado { background: #f4e8ff; color: #6f3a96; }
 .extract-rule-note, .extract-data-source { margin: 0 0 12px; border-left: 4px solid var(--brand-primary); border-radius: 8px; background: var(--mint-soft); padding: 12px 14px; color: var(--brand-dark); }
 .extract-balances-result .extract-rule-note { margin: 12px 0 0; }
