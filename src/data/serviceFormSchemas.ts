@@ -39,6 +39,9 @@ export type ServiceFormSection = {
   fields: ServiceField[]
   showIf?: ServiceFieldCondition
   columns?: 2 | 3
+  // Continua a seção anterior: some o divisor e o espaçamento de quebra, para
+  // que os campos sejam lidos como parte do mesmo bloco.
+  continuation?: boolean
 }
 
 export type CasoInstrucaoDocumento = {
@@ -242,6 +245,21 @@ function withSectionTitle(schema: ServiceFormSchema, sectionId: string, title: s
   }
 }
 
+// Acrescenta campos a uma seção já montada. Sem `beforeFieldId` entram no fim;
+// com ele, imediatamente antes do campo indicado (útil para não cair depois da
+// Descrição, que é sempre o último campo das seções de pedido).
+function withExtraFields(schema: ServiceFormSchema, sectionId: string, fields: ServiceField[], beforeFieldId?: string): ServiceFormSchema {
+  return {
+    ...schema,
+    sections: schema.sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const posicao = beforeFieldId ? section.fields.findIndex((field) => field.id === beforeFieldId) : -1
+      if (posicao < 0) return { ...section, fields: [...section.fields, ...fields] }
+      return { ...section, fields: [...section.fields.slice(0, posicao), ...fields, ...section.fields.slice(posicao)] }
+    }),
+  }
+}
+
 const SEXO_OPTIONS = ['Masculino', 'Feminino']
 const UF_OPTIONS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -254,7 +272,7 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'cadastro-duvidas-informacoes', title: 'Cadastro - dúvidas, informações e esclarecimentos' },
   { slug: 'reembolso-duvidas', title: 'Reembolso (dúvidas, informações e esclarecimentos)' },
   { slug: 'recurso-reembolso', title: 'Recurso / Contestação de Reembolso' },
-  { slug: 'autorizacao-cirurgia', title: 'Autorização de cirurgia eletiva' },
+  { slug: 'autorizacao-cirurgia', title: 'Autorização de Cirurgia Eletiva' },
   { slug: 'psicologia', title: 'Psicologia' },
   { slug: 'fonoaudiologia', title: 'Fonoaudiologia' },
   { slug: 'terapia-ocupacional', title: 'Terapia ocupacional' },
@@ -305,8 +323,10 @@ const SLUGS_CADASTRO_RAMO = new Set([
 
 const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de dados cadastrais', [
   {
+    // Sem título: são dados do mesmo beneficiário, então a seção continua a
+    // Identificação sem quebra visual.
     id: 'dados-contato',
-    title: 'Dados do beneficiário',
+    continuation: true,
     fields: [
       { id: 'localidade', label: 'Localidade', type: 'text', placeholder: 'Ex.: Brasília/DF' },
       { id: 'nomeSocial', label: 'Nome social', type: 'text', placeholder: 'Se houver, informe o nome social' },
@@ -348,7 +368,85 @@ const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-cartei
   },
 ], undefined, true))
 
-const emissaoDocumentos = baseSchema('emissao-documentos', 'Emissão de documentos e comprovantes', [], undefined, true)
+// Fonte única dos documentos emitidos: alimenta o campo "Documento solicitado" do
+// formulário e os casos da pergunta-chave (CASOS_EMISSAO_DOCUMENTOS), para que as
+// duas listas não divirjam.
+const DOCUMENTOS_EMISSAO_OPTIONS = [
+  'Carteira do Plan-Assiste',
+  'Carteira Unimed',
+  'Carteira UniOdonto (para fora do DF e convênio odontológico)',
+  'Carta de Permanência',
+]
+
+const TEXTO_AVISO_CARTEIRA_PLAN_ASSISTE = 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.'
+
+const emissaoDocumentos = withExtraFields(
+  baseSchema('emissao-documentos', 'Emissão de documentos e comprovantes', [], undefined, true),
+  'identificacao',
+  [
+    {
+      id: 'documentoSolicitado',
+      label: 'Documento solicitado',
+      type: 'select',
+      required: true,
+      options: DOCUMENTOS_EMISSAO_OPTIONS,
+      columnSpan: 2,
+    },
+    {
+      id: 'avisoCarteiraPlanAssiste',
+      label: TEXTO_AVISO_CARTEIRA_PLAN_ASSISTE,
+      type: 'note',
+      fullWidth: true,
+      showIf: { fieldId: 'documentoSolicitado', equals: DOCUMENTOS_EMISSAO_OPTIONS[0] },
+    },
+  ],
+)
+
+// Denúncia / Reclamação: quem registra informa os próprios dados, digitados à mão.
+// Por isso não usa baseSchema — não há seleção de beneficiário nem campos travados
+// preenchidos a partir do cadastro.
+const denunciaReclamacao: ServiceFormSchema = {
+  slug: 'denuncia-reclamacao',
+  title: 'Denúncia / Reclamação',
+  sections: [
+    {
+      id: 'identificacao',
+      title: 'Identificação',
+      fields: [
+        { id: 'nomeCompleto', label: 'Nome completo', type: 'text', columnSpan: 2, placeholder: 'Nome completo de quem registra' },
+        { id: 'email', label: 'E-mail', type: 'text', format: 'email', columnSpan: 2, placeholder: 'nome@exemplo.com' },
+        { id: 'rgOrgaoExpedidor', label: 'RG e Órgão Expedidor', type: 'text', columnSpan: 2, placeholder: 'Ex.: 1234567 SSP/DF' },
+        { id: 'cpf', label: 'CPF', type: 'text', format: 'cpf', columnSpan: 2, placeholder: '000.000.000-00' },
+        { id: 'celular', label: 'Celular', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
+        { id: 'telefone', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 0000-0000' },
+        { id: 'cidade', label: 'Cidade', type: 'text', placeholder: 'Cidade' },
+        { id: 'estado', label: 'Estado', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
+      ],
+    },
+    detailsSection(),
+  ],
+}
+
+// Manifestação livre: como a Denúncia / Reclamação, quem registra informa os
+// próprios dados e nenhum campo é obrigatório.
+const ASSUNTO_MANIFESTACAO_OPTIONS = ['Crítica', 'Elogio', 'Sugestão']
+
+const criticaSugestaoElogios: ServiceFormSchema = {
+  slug: 'critica-sugestao-elogios',
+  title: 'Crítica, Sugestão, Elogios',
+  sections: [
+    {
+      id: 'identificacao',
+      title: 'Identificação',
+      fields: [
+        { id: 'nomeCompleto', label: 'Nome completo', type: 'text', columnSpan: 2, placeholder: 'Nome completo de quem registra' },
+        { id: 'email', label: 'E-mail', type: 'text', format: 'email', columnSpan: 2, placeholder: 'nome@exemplo.com' },
+        { id: 'assunto', label: 'Assunto', type: 'select', columnSpan: 2, options: ASSUNTO_MANIFESTACAO_OPTIONS },
+      ],
+    },
+    detailsSection(),
+  ],
+}
 
 const acompanhamentoProtocolos = baseSchema('acompanhamento-protocolos', 'Acompanhamento de protocolos e processos', [
   {
@@ -928,7 +1026,7 @@ const ANEXO_GENERICO_EMISSAO_DOCUMENTOS: CasoInstrucaoDocumento = {
 
 const AVISO_CARTEIRA_PLAN_ASSISTE: AvisoNormativoConfig = {
   titulo: 'Atenção',
-  conteudo: 'É possível realizar a emissão da carteira do Plan-Assiste através do Portal e do Aplicativo do Plan-Assiste.',
+  conteudo: TEXTO_AVISO_CARTEIRA_PLAN_ASSISTE,
   exigeConfirmacao: false,
   tone: 'informativo',
 }
@@ -936,23 +1034,23 @@ const AVISO_CARTEIRA_PLAN_ASSISTE: AvisoNormativoConfig = {
 const CASOS_EMISSAO_DOCUMENTOS: CasoInstrucaoServico[] = [
   {
     id: 'carteira_plan_assiste',
-    titulo: 'Carteira do Plan-Assiste',
+    titulo: DOCUMENTOS_EMISSAO_OPTIONS[0],
     documentos: [ANEXO_GENERICO_EMISSAO_DOCUMENTOS],
     avisoNormativo: AVISO_CARTEIRA_PLAN_ASSISTE,
   },
   {
     id: 'carteira_unimed',
-    titulo: 'Carteira Unimed',
+    titulo: DOCUMENTOS_EMISSAO_OPTIONS[1],
     documentos: [ANEXO_GENERICO_EMISSAO_DOCUMENTOS],
   },
   {
     id: 'carteira_uniodonto',
-    titulo: 'Carteira UniOdonto (para fora do DF e convênio odontológico)',
+    titulo: DOCUMENTOS_EMISSAO_OPTIONS[2],
     documentos: [ANEXO_GENERICO_EMISSAO_DOCUMENTOS],
   },
   {
     id: 'carta_permanencia',
-    titulo: 'Carta de Permanência',
+    titulo: DOCUMENTOS_EMISSAO_OPTIONS[3],
     documentos: [ANEXO_GENERICO_EMISSAO_DOCUMENTOS],
   },
 ]
@@ -1099,6 +1197,8 @@ const CASOS_APOSENTADORIA_RETORNO: CasoInstrucaoServico[] = [
 ]
 
 const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
+  [denunciaReclamacao.slug]: denunciaReclamacao,
+  [criticaSugestaoElogios.slug]: criticaSugestaoElogios,
   [atualizacaoDadosCadastrais.slug]: {
     ...atualizacaoDadosCadastrais,
     perguntaChave: {
@@ -1140,13 +1240,30 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
       SLUGS_CADASTRO_RAMO.has(slug),
     )])),
   'autorizacao-cirurgia': {
-    ...authorizationSchema('autorizacao-cirurgia', 'Autorização de cirurgia eletiva', [
+    ...authorizationSchema('autorizacao-cirurgia', 'Autorização de Cirurgia Eletiva', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
       { id: 'laudosExames', label: 'Laudos de Exames', required: true },
       { id: 'documentosAdicionais', label: 'Documentos adicionais' },
     ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
     avisoInicial: AVISO_INICIAL_CIRURGIA_ELETIVA,
   },
+  // "Tipo de Autorização" é exclusivo deste formulário. Ancorado antes de
+  // `dataPrevista` (primeiro campo do bloco do prestador) para ficar junto dos
+  // dados do pedido, completando a linha da Localidade do Procedimento.
+  'medicamentos-cobertura-direta': withExtraFields(
+    withSectionTitle(
+      authorizationSchema('medicamentos-cobertura-direta', 'Medicamentos - Cobertura Direta', [
+        { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },
+        { id: 'laudosExames', label: 'Laudos de Exames' },
+        { id: 'documentosAdicionais', label: 'Documentos adicionais' },
+      ], LOCALIDADE_PROCEDIMENTO_LABEL, true, true),
+      'detalhes',
+      'Dados da Solicitação',
+    ),
+    'detalhes',
+    [{ id: 'tipoAutorizacao', label: 'Tipo de Autorização', type: 'text', placeholder: 'Informe o tipo de autorização' }],
+    'dataPrevista',
+  ),
   fisioterapia: {
     ...authorizationSchema('fisioterapia', 'Autorização de Fisioterapia', [
       { id: 'pedidoRelatorioMedico', label: 'Pedido/Relatório Médico', required: true },

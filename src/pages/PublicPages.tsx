@@ -26,6 +26,7 @@ import {
   LockKeyhole,
   Mail,
   MonitorCheck,
+  Pill,
   Printer,
   PersonStanding,
   Scale,
@@ -857,7 +858,7 @@ const planAssisteArticles: PortalArticle[] = [
       },
       {
         title: 'Cirurgia eletiva',
-        cards: [{ title: 'Autorização de cirurgia eletiva', text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.', to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
+        cards: [{ title: 'Cirurgia Eletiva', text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.', to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
       },
       {
         title: 'Tratamentos seriados',
@@ -871,6 +872,10 @@ const planAssisteArticles: PortalArticle[] = [
           { title: 'Hidroterapia', text: 'A Norma Complementar nº 32 prevê perícia acima de duas sessões semanais, 40 anuais ou em casos de internação.', to: '/beneficiario/servicos/hidroterapia/nova-solicitacao', actionLabel: 'Solicitar autorização' },
           { title: 'RPG', text: 'A Norma Complementar nº 32 prevê perícia acima de duas sessões semanais, 40 anuais ou em casos de internação.', to: '/beneficiario/servicos/rpg/nova-solicitacao', actionLabel: 'Solicitar autorização' },
         ],
+      },
+      {
+        title: 'Medicamentos',
+        cards: [{ title: 'Medicamentos - Cobertura Direta', text: 'Solicite a cobertura direta de medicamentos informando o tipo de autorização e anexando o pedido ou relatório médico com os laudos de exames.', to: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
       },
       {
         id: 'tratamento-odontologico',
@@ -2195,7 +2200,8 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
                   <div className={`plan-value-grid portal-section-card-grid ${section.cards.length === 2 ? 'is-two-column' : ''} ${article?.slug === 'beneficiarios/autorizacoes' ? 'authorization-navigation-grid' : ''}`}>
                     {section.cards.map((card) => {
                       const authorizationCardIcons: Record<string, typeof BookOpenCheck> = {
-                        'Autorização de cirurgia eletiva': HeartPulse,
+                        'Cirurgia Eletiva': HeartPulse,
+                        'Medicamentos - Cobertura Direta': Pill,
                         Acupuntura: Activity,
                         Fisioterapia: Dumbbell,
                         Fonoaudiologia: Speech,

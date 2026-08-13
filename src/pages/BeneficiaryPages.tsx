@@ -229,7 +229,7 @@ const beneficiaryAuthorizationGroups = [
     title: 'Cirurgia eletiva',
     cards: [
       {
-        title: 'Autorização de cirurgia eletiva',
+        title: 'Cirurgia Eletiva',
         text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.',
         to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao',
         icon: HeartPulse,
@@ -247,6 +247,17 @@ const beneficiaryAuthorizationGroups = [
       { title: 'Pilates', text: 'Solicite o tratamento indicado por profissional habilitado e envie a documentação clínica necessária.', to: '/beneficiario/servicos/pilates/nova-solicitacao', icon: PersonStanding },
       { title: 'Hidroterapia', text: 'Informe a frequência indicada e envie a documentação clínica. Alguns pedidos podem exigir perícia.', to: '/beneficiario/servicos/hidroterapia/nova-solicitacao', icon: Waves },
       { title: 'RPG', text: 'Informe a frequência indicada e envie a documentação clínica. Alguns pedidos podem exigir perícia.', to: '/beneficiario/servicos/rpg/nova-solicitacao', icon: Accessibility },
+    ],
+  },
+  {
+    title: 'Medicamentos',
+    cards: [
+      {
+        title: 'Medicamentos - Cobertura Direta',
+        text: 'Informe o tipo de autorização e anexe o pedido ou relatório médico com os laudos de exames relacionados ao tratamento.',
+        to: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao',
+        icon: Pill,
+      },
     ],
   },
 ]
@@ -3144,6 +3155,7 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-solicitacao-reembolso': HandCoins,
   'servico-beneficio-medicamentos': Pill,
   'servico-autorizacao-cirurgia': ClipboardCheck,
+  'servico-medicamentos-cobertura-direta': Pill,
   'servico-psicologia': Stethoscope,
   'servico-fonoaudiologia': Stethoscope,
   'servico-terapia-ocupacional': Stethoscope,
@@ -3168,6 +3180,8 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-transporte-tratamento-fora-domicilio': MapPin,
   'servico-despesas-saude-duvidas': CircleDollarSign,
   'servico-recurso-informacoes-financeiras': WalletCards,
+  'servico-denuncia-reclamacao': AlertTriangle,
+  'servico-critica-sugestao-elogios': MessageCircle,
   'servico-acompanhamento-denuncia-reclamacao': ClipboardList,
   'servico-atualizacao-site': MonitorCheck,
   'servico-site-app-duvidas': MonitorCheck,

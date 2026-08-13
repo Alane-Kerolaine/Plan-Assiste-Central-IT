@@ -946,12 +946,23 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-autorizacao-cirurgia',
-    title: 'Autorização de cirurgia eletiva',
+    // Nome curto do serviço: aparece no card do Catálogo e na migalha de pão.
+    // O título das páginas do serviço vem do schema ('Autorização de Cirurgia Eletiva').
+    title: 'Cirurgia Eletiva',
     category: 'Autorizações',
     description: 'Solicite autorização prévia para cirurgia eletiva.',
     tags: ['Cirurgia', 'Autorização'],
     action: 'Solicitar autorização',
     route: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao',
+  },
+  {
+    id: 'servico-medicamentos-cobertura-direta',
+    title: 'Medicamentos - Cobertura Direta',
+    category: 'Autorizações',
+    description: 'Solicite autorização para cobertura direta de medicamentos.',
+    tags: ['Medicamentos', 'Autorização'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao',
   },
   {
     id: 'servico-psicologia',
@@ -1177,6 +1188,24 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     tags: ['Recurso', 'Informações financeiras'],
     action: 'Solicitar recurso',
     route: '/beneficiario/servicos/recurso-informacoes-financeiras/nova-solicitacao',
+  },
+  {
+    id: 'servico-denuncia-reclamacao',
+    title: 'Denúncia / Reclamação',
+    category: 'Fale Conosco',
+    description: 'Registre uma denúncia ou reclamação informando seus dados, a descrição do ocorrido e os documentos comprobatórios.',
+    tags: ['Denúncia', 'Reclamação'],
+    action: 'Registrar denúncia',
+    route: '/beneficiario/servicos/denuncia-reclamacao/nova-solicitacao',
+  },
+  {
+    id: 'servico-critica-sugestao-elogios',
+    title: 'Crítica, Sugestão, Elogios',
+    category: 'Fale Conosco',
+    description: 'Registre uma crítica, sugestão ou elogio sobre os serviços do Plan-Assiste.',
+    tags: ['Crítica', 'Sugestão', 'Elogio'],
+    action: 'Registrar manifestação',
+    route: '/beneficiario/servicos/critica-sugestao-elogios/nova-solicitacao',
   },
   {
     id: 'servico-acompanhamento-denuncia-reclamacao',

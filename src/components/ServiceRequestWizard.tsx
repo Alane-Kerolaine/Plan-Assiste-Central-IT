@@ -159,7 +159,7 @@ export function ServiceRequestWizard({
           <h2>Revise sua solicitação</h2>
           <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
           {visibleSections.map((section) => (
-            <div className="reimbursement-form-section" key={section.id}>
+            <div className={`reimbursement-form-section${section.continuation ? ' is-continuation' : ''}`} key={section.id}>
               {section.title && <h3>{section.title}</h3>}
               <dl className="service-review-grid">
                 {section.fields.filter((field) => field.type !== 'note').map((field) => (
@@ -215,7 +215,7 @@ export function ServiceRequestWizard({
             const beneficiaryField = section.fields.find((field) => field.type === 'beneficiary')
             const otherFields = section.fields.filter((field) => field.type !== 'beneficiary')
             return (
-              <div className="reimbursement-form-section" key={section.id}>
+              <div className={`reimbursement-form-section${section.continuation ? ' is-continuation' : ''}`} key={section.id}>
                 {section.title && <h3>{section.title}</h3>}
                 {schema.avisoInicial?.posicao === 'apos-detalhes' && section.id === 'detalhes' && (
                   <AvisoNormativo
