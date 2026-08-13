@@ -1107,7 +1107,7 @@ function reimbursementDateValue(date: string) {
 }
 
 const REEMBOLSO_INSTRUCTIONS = [
-  'Selecione o tipo de reembolso e o beneficiário atendido para cada procedimento.',
+  'Selecione o tipo de reembolso e o beneficiário atendido do procedimento.',
   'Anexe a nota fiscal/recibo e os demais documentos exigidos para o tipo escolhido.',
   'Revise os dados na etapa de Revisão antes de confirmar o envio.',
   'Guarde o número de protocolo gerado para acompanhar sua solicitação.',
@@ -1124,11 +1124,13 @@ const REEMBOLSO_FAQ = [
   },
   {
     question: 'Posso incluir mais de um procedimento na mesma solicitação?',
-    answer: 'Sim. Utilize o botão "Adicionar solicitação" para incluir cada procedimento na lista antes de revisar e enviar; todos serão analisados dentro do mesmo protocolo.',
+    answer: 'Não. Cada solicitação corresponde a um procedimento e gera um protocolo próprio. Para reembolsar mais de um procedimento, envie uma solicitação para cada um.',
   },
 ]
 
 const RECEIPT_DATE_FUTURE_MESSAGE = 'A data da nota fiscal/recibo não pode ser superior à data atual.'
+
+const REEMBOLSO_ITEM_ID = 'reembolso-1'
 
 export function BeneficiaryNovaReembolsoPage() {
   const profile = getStoredUserProfile()
@@ -1145,10 +1147,6 @@ export function BeneficiaryNovaReembolsoPage() {
   const [attachmentsModalItemId, setAttachmentsModalItemId] = useState<string | null>(null)
   const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
   const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
-  const [editItem, setEditItem] = useState<ReimbursementItem | null>(null)
-  const [editNotice, setEditNotice] = useState('')
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
-  const nextItemId = useRef(1)
 
   useEffect(() => {
     if (!copied) return
@@ -1158,29 +1156,6 @@ export function BeneficiaryNovaReembolsoPage() {
 
   function updateDraft<Key extends keyof ReimbursementDraft>(key: Key, value: ReimbursementDraft[Key]) {
     setDraft((current) => ({ ...current, [key]: value }))
-  }
-
-  function addReimbursementItem() {
-    if (!draft.type || !draft.receiptNumber || !draft.receiptDate || !draft.providerDocument || !draft.value) {
-      setNotice('Preencha tipo de reembolso, nota/recibo, data, CPF/CNPJ do credenciado e valor para adicionar a solicitação.')
-      return
-    }
-    if (isFutureBrazilianDate(draft.receiptDate)) {
-      setNotice(RECEIPT_DATE_FUTURE_MESSAGE)
-      return
-    }
-    const missingDocuments = reimbursementAttachments(draft.type, draft.isPriorityCare)
-      .filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
-    if (missingDocuments.length > 0) {
-      setNotice(`Anexe o(s) documento(s) obrigatório(s) antes de adicionar a solicitação: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
-      return
-    }
-    const id = `reembolso-${nextItemId.current++}`
-    setItems((current) => [...current, { ...draft, id }])
-    setItemAttachments((current) => ({ ...current, [id]: attachmentFiles }))
-    setDraft({ ...initialReimbursementDraft, beneficiary: draft.beneficiary, dependentType: draft.dependentType })
-    setAttachmentFiles({})
-    setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
   }
 
   function addAttachmentFiles(label: string, newFiles: File[]) {
@@ -1235,42 +1210,28 @@ export function BeneficiaryNovaReembolsoPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  function updateEditItem<Key extends keyof ReimbursementItem>(key: Key, value: ReimbursementItem[Key]) {
-    setEditItem((current) => (current ? { ...current, [key]: value } : current))
-  }
-
-  function saveEditedItem() {
-    if (!editItem) return
-    if (isFutureBrazilianDate(editItem.receiptDate)) {
-      setEditNotice(RECEIPT_DATE_FUTURE_MESSAGE)
-      return
-    }
-    setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
-    setEditNotice('')
-    setEditItem(null)
-  }
-
-  function confirmDeleteItem() {
-    if (!deleteItemId) return
-    setItems((current) => current.filter((item) => item.id !== deleteItemId))
-    setItemAttachments((current) => {
-      const next = { ...current }
-      delete next[deleteItemId]
-      return next
-    })
-    setDeleteItemId(null)
-  }
-
   function handleContinue(event: FormEvent) {
     event.preventDefault()
-    if (items.length === 0) {
-      setNotice('Adicione pelo menos uma solicitação antes de continuar.')
+    if (!draft.type || !draft.receiptNumber || !draft.receiptDate || !draft.providerDocument || !draft.value) {
+      setNotice('Preencha tipo de reembolso, nota/recibo, data, CPF/CNPJ do credenciado e valor para continuar.')
+      return
+    }
+    if (isFutureBrazilianDate(draft.receiptDate)) {
+      setNotice(RECEIPT_DATE_FUTURE_MESSAGE)
+      return
+    }
+    const missingDocuments = reimbursementAttachments(draft.type, draft.isPriorityCare)
+      .filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
+    if (missingDocuments.length > 0) {
+      setNotice(`Anexe o(s) documento(s) obrigatório(s) para continuar: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
       return
     }
     if (!formAcceptedTerm) {
       setNotice('Aceite o termo de responsabilidade para continuar.')
       return
     }
+    setItems([{ ...draft, id: REEMBOLSO_ITEM_ID }])
+    setItemAttachments({ [REEMBOLSO_ITEM_ID]: attachmentFiles })
     setNotice('')
     setStep('review')
   }
@@ -1639,48 +1600,6 @@ export function BeneficiaryNovaReembolsoPage() {
               )}
             </div>
 
-            <div className="reimbursement-actions">
-              <button className="secondary-button" type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
-            </div>
-
-            {items.length > 0 && (
-              <div className="reimbursement-table-wrap reimbursement-items-table">
-                <table className="reimbursement-table">
-                  <thead>
-                    <tr>
-                      <th>Beneficiário</th><th>Portador de TEA, SD ou PC</th><th>Nº nota/recibo</th><th>Data</th>
-                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Observações</th><th>Valor</th>
-                      <th aria-label="Ações" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.beneficiary}</td>
-                        <td>{item.isPriorityCare ? 'Sim' : 'Não'}</td>
-                        <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
-                        <td>{item.providerDocument}</td><td>{item.type}</td>
-                        <td>{item.sessions || '-'}</td>
-                        <td>{item.notes || '-'}</td>
-                        <td>{item.value}</td>
-                        <td className="reimbursement-item-actions">
-                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(false) }} type="button">
-                            <Paperclip aria-hidden="true" />
-                          </button>
-                          <button aria-label="Editar solicitação" onClick={() => setEditItem(item)} type="button">
-                            <Pencil aria-hidden="true" />
-                          </button>
-                          <button aria-label="Excluir solicitação" className="reimbursement-item-delete" onClick={() => setDeleteItemId(item.id)} type="button">
-                            <Trash2 aria-hidden="true" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
             <label className="responsibility-term">
               <input checked={formAcceptedTerm} onChange={(event) => setFormAcceptedTerm(event.target.checked)} type="checkbox" />
               <span>
@@ -1699,69 +1618,6 @@ export function BeneficiaryNovaReembolsoPage() {
           </section>
         </form>
       </div>
-
-      {attachmentsModal}
-
-      {editItem && (
-        <div className="go-modal-overlay" onClick={() => { setEditItem(null); setEditNotice('') }} role="presentation">
-          <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
-            <div className="go-modal-header">
-              <h2 id="edit-modal-title">Editar solicitação</h2>
-              <button aria-label="Fechar" className="go-modal-close" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">
-                <X aria-hidden="true" />
-              </button>
-            </div>
-            <div className="go-modal-body">
-              <div className="reimbursement-grid reimbursement-grid-two-columns">
-                <label>Beneficiário atendido<input disabled value={editItem.beneficiary} /></label>
-                <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
-                <label>Tipo de reembolso<input disabled value={editItem.type} /></label>
-                <label className="responsibility-term wide">
-                  <input checked={editItem.isPriorityCare} onChange={(event) => updateEditItem('isPriorityCare', event.target.checked)} type="checkbox" />
-                  Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
-                </label>
-                <label>Nº nota fiscal/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
-                <label>
-                  Data da nota fiscal/recibo *
-                  <BrazilianDateInput onChangeValue={(value) => { updateEditItem('receiptDate', value); setEditNotice('') }} value={editItem.receiptDate} />
-                  {isFutureBrazilianDate(editItem.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
-                </label>
-                <label>CPF/CNPJ credenciado *<input maxLength={18} onChange={(event) => updateEditItem('providerDocument', maskCpfCnpj(event.target.value))} value={editItem.providerDocument} /></label>
-                <label>Valor *<input onChange={(event) => updateEditItem('value', maskCurrency(event.target.value))} value={editItem.value} /></label>
-                {!isCampoReembolsoOculto(editItem.type, 'sessions') && (
-                  <label>Quantidade de sessões *<input onChange={(event) => updateEditItem('sessions', event.target.value.replace(/\D/g, ''))} value={editItem.sessions} /></label>
-                )}
-                <label className="wide">Observações<textarea onChange={(event) => updateEditItem('notes', event.target.value)} rows={4} value={editItem.notes} /></label>
-              </div>
-              {editNotice && <p className="form-alert alert-danger" role="alert">{editNotice}</p>}
-              <div className="reimbursement-actions">
-                <button className="secondary-button" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">Fechar</button>
-                <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteItemId && (
-        <div className="go-modal-overlay" onClick={() => setDeleteItemId(null)} role="presentation">
-          <div aria-labelledby="delete-modal-title" aria-modal="true" className="go-modal go-modal-small" onClick={(event) => event.stopPropagation()} role="dialog">
-            <div className="go-modal-header">
-              <h2 id="delete-modal-title">Confirmação</h2>
-              <button aria-label="Fechar" className="go-modal-close" onClick={() => setDeleteItemId(null)} type="button">
-                <X aria-hidden="true" />
-              </button>
-            </div>
-            <div className="go-modal-body">
-              <p>Confirma excluir a solicitação?</p>
-              <div className="reimbursement-actions">
-                <button className="secondary-button" onClick={() => setDeleteItemId(null)} type="button">Não</button>
-                <button className="primary-button" onClick={confirmDeleteItem} type="button">Sim</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
