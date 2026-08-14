@@ -3181,8 +3181,6 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-despesas-saude-duvidas': CircleDollarSign,
   'servico-recurso-informacoes-financeiras': WalletCards,
   'servico-denuncia-reclamacao': AlertTriangle,
-  'servico-critica-sugestao-elogios': MessageCircle,
-  'servico-acompanhamento-denuncia-reclamacao': ClipboardList,
   'servico-atualizacao-site': MonitorCheck,
   'servico-site-app-duvidas': MonitorCheck,
   'servico-problemas-acesso-site-app': AlertTriangle,

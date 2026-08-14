@@ -2281,7 +2281,8 @@ select:not([multiple]) {
 .compact-news-card span { width: fit-content; border-radius: 6px; background: #f8dae9; color: #ad5578; padding: 4px 10px; font-size: 16px; font-weight: var(--fw-semibold); }
 .compact-news-card h3 { min-height: 72px; max-height: 72px; overflow: hidden; margin: 0; line-height: 1.32; font-size: 18px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .compact-news-card time { align-self: end; color: var(--brand-dark); line-height: 1.2; }
-.support-page-grid { margin-bottom: 24px; }
+/* Cinco canais não fecham a grade fixa de 4 colunas: distribui conforme couber. */
+.support-page-grid { margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .support-page-card { min-height: 310px; }
 .support-page-card h2 { margin: 0; font-size: 20px; }
 .support-page-card small { color: var(--brand-dark); line-height: 1.45; }

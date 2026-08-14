@@ -23,6 +23,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Megaphone,
   Menu,
   MessageCircle,
   MonitorCheck,
@@ -896,14 +897,14 @@ export function EmptyState({ title }: { title: string }) {
   )
 }
 
-export type SupportIconType = 'chat' | 'faq' | 'phone' | 'manifestation'
+export type SupportIconType = 'chat' | 'faq' | 'phone' | 'manifestation' | 'quality'
 
 export function SupportIcon({ type }: { type: SupportIconType }) {
   if (type === 'chat') {
     return <img className="support-card-image-icon" src="/assets/assistente-virtual.svg" alt="" />
   }
 
-  const icons = { chat: MessageCircle, faq: HelpCircle, phone: Phone, manifestation: Ear }
+  const icons = { chat: MessageCircle, faq: HelpCircle, phone: Phone, manifestation: Ear, quality: Megaphone }
   const Icon = icons[type]
   return <Icon aria-hidden="true" />
 }

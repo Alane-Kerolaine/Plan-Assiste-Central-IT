@@ -261,7 +261,7 @@ function withExtraFields(schema: ServiceFormSchema, sectionId: string, fields: S
 }
 
 const SEXO_OPTIONS = ['Masculino', 'Feminino']
-const UF_OPTIONS = [
+export const UF_OPTIONS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
   'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
@@ -296,7 +296,6 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'transporte-tratamento-fora-domicilio', title: 'Transporte de paciente em tratamento fora do domicílio' },
   { slug: 'despesas-saude-duvidas', title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)' },
   { slug: 'recurso-informacoes-financeiras', title: 'Recurso / contestação de informações financeiras' },
-  { slug: 'acompanhamento-denuncia-reclamacao', title: 'Acompanhamento de registros de denúncia / reclamação' },
   { slug: 'atualizacao-site', title: 'Atualização do site' },
   { slug: 'site-app-duvidas', title: 'Site / app (dúvidas, informações e esclarecimentos)' },
   { slug: 'problemas-acesso-site-app', title: 'Problemas de acesso do site / app' },
@@ -421,27 +420,6 @@ const denunciaReclamacao: ServiceFormSchema = {
         { id: 'telefone', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 0000-0000' },
         { id: 'cidade', label: 'Cidade', type: 'text', placeholder: 'Cidade' },
         { id: 'estado', label: 'Estado', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
-      ],
-    },
-    detailsSection(),
-  ],
-}
-
-// Manifestação livre: como a Denúncia / Reclamação, quem registra informa os
-// próprios dados e nenhum campo é obrigatório.
-const ASSUNTO_MANIFESTACAO_OPTIONS = ['Crítica', 'Elogio', 'Sugestão']
-
-const criticaSugestaoElogios: ServiceFormSchema = {
-  slug: 'critica-sugestao-elogios',
-  title: 'Crítica, Sugestão, Elogios',
-  sections: [
-    {
-      id: 'identificacao',
-      title: 'Identificação',
-      fields: [
-        { id: 'nomeCompleto', label: 'Nome completo', type: 'text', columnSpan: 2, placeholder: 'Nome completo de quem registra' },
-        { id: 'email', label: 'E-mail', type: 'text', format: 'email', columnSpan: 2, placeholder: 'nome@exemplo.com' },
-        { id: 'assunto', label: 'Assunto', type: 'select', columnSpan: 2, options: ASSUNTO_MANIFESTACAO_OPTIONS },
       ],
     },
     detailsSection(),
@@ -1198,7 +1176,6 @@ const CASOS_APOSENTADORIA_RETORNO: CasoInstrucaoServico[] = [
 
 const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
   [denunciaReclamacao.slug]: denunciaReclamacao,
-  [criticaSugestaoElogios.slug]: criticaSugestaoElogios,
   [atualizacaoDadosCadastrais.slug]: {
     ...atualizacaoDadosCadastrais,
     perguntaChave: {

@@ -42,7 +42,6 @@ import {
   Waves,
 } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CaptchaField } from '../components/CaptchaField'
 import { FileAttachmentField } from '../components/FileAttachmentField'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { Footer, Header, MainMenu, RestrictedAreaSidebar, SupportIcon, type AreaSidebarGroup, type SupportIconType } from '../components/PortalComponents'
@@ -59,7 +58,8 @@ import {
   toggleFavoriteNews,
   type FavoriteState,
 } from '../utils/favorites'
-import { generateCaptchaCode } from '../utils/captcha'
+import { UF_OPTIONS } from '../data/serviceFormSchemas'
+import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
 import { getStoredSession } from '../utils/session'
 import { NewsCard } from './HomePage'
@@ -4588,25 +4588,39 @@ export function TeamPublicPage({ loggedIn, onLogout }: PublicPageProps) {
   )
 }
 
+const TIPO_REGISTRO_DENUNCIA = 'Denúncia ou reclamação'
+const TIPO_REGISTRO_ACOMPANHAMENTO = 'Acompanhamento de registros de denúncia / reclamação'
+
 export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
   const location = useLocation()
   const isComplaint = location.pathname.endsWith('/reclamacao-e-denuncia')
   const isQuality = location.pathname.endsWith('/qualidade-dos-servicos')
-  const manifestationSubjects = isComplaint ? ['Reclamação', 'Denúncia'] : ['Crítica', 'Elogio', 'Sugestão']
+  // O canal de denúncia reúne dois registros; o seletor decide quais campos entram.
+  const [tipoRegistro, setTipoRegistro] = useState(TIPO_REGISTRO_DENUNCIA)
+  const isAcompanhamento = isComplaint && tipoRegistro === TIPO_REGISTRO_ACOMPANHAMENTO
+  const isDenuncia = isComplaint && !isAcompanhamento
+  // Só a avaliação tem Assunto; na denúncia o tipo já é o próprio canal.
+  const manifestationSubjects = ['Crítica', 'Elogio', 'Sugestão']
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
+  // Campos exclusivos da denúncia/reclamação: espelham o formulário
+  // "Denúncia / Reclamação" do Catálogo de serviços.
+  const [rgOrgaoExpedidor, setRgOrgaoExpedidor] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [celular, setCelular] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [estado, setEstado] = useState('')
+  // Exclusivos do acompanhamento: espelham os campos do formulário que saiu do
+  // Catálogo de serviços, aqui digitados à mão por ser uma página pública.
+  const [dataNascimento, setDataNascimento] = useState('')
+  const [matricula, setMatricula] = useState('')
+  const [localidadeMatricula, setLocalidadeMatricula] = useState('')
   const [assunto, setAssunto] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
-  const [captchaCode, setCaptchaCode] = useState(() => generateCaptchaCode())
-  const [captchaValue, setCaptchaValue] = useState('')
   const [notice, setNotice] = useState('')
   const [submitted, setSubmitted] = useState(false)
-
-  function refreshCaptcha() {
-    setCaptchaCode(generateCaptchaCode())
-    setCaptchaValue('')
-  }
 
   function addFiles(newFiles: File[]) {
     setAttachments((current) => [...current, ...newFiles])
@@ -4619,23 +4633,31 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
   function handleReset() {
     setNome('')
     setEmail('')
+    setRgOrgaoExpedidor('')
+    setCpf('')
+    setCelular('')
+    setTelefone('')
+    setCidade('')
+    setEstado('')
+    setDataNascimento('')
+    setMatricula('')
+    setLocalidadeMatricula('')
     setAssunto('')
     setMensagem('')
     setAttachments([])
     setNotice('')
     setSubmitted(false)
-    refreshCaptcha()
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!nome.trim() || !email.trim() || !assunto || !stripHtml(mensagem)) {
-      setNotice(`Preencha nome, e-mail, assunto e mensagem para enviar ${isComplaint ? 'seu relato' : 'sua avaliação'}.`)
-      return
-    }
-    if (captchaValue.trim().toUpperCase() !== captchaCode) {
-      setNotice('Código de verificação incorreto. Confira o código e tente novamente.')
-      refreshCaptcha()
+    // A denúncia não tem campo Assunto: os tipos viraram o próprio serviço.
+    if (!nome.trim() || !email.trim() || (!isComplaint && !assunto) || !stripHtml(mensagem)) {
+      setNotice(isAcompanhamento
+        ? 'Preencha nome, e-mail e descrição para enviar sua solicitação.'
+        : isComplaint
+          ? 'Preencha nome, e-mail e descrição para enviar seu relato.'
+          : 'Preencha nome, e-mail, assunto e descrição para enviar sua avaliação.')
       return
     }
     setNotice('')
@@ -4654,7 +4676,7 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
           />
           <div className="service-success">
             <CheckCircle2 aria-hidden="true" className="service-success-icon" />
-            <h2>{isComplaint ? 'Denúncia enviada com sucesso' : 'Avaliação enviada com sucesso'}</h2>
+            <h2>{isAcompanhamento ? 'Solicitação enviada com sucesso' : isComplaint ? 'Denúncia enviada com sucesso' : 'Avaliação enviada com sucesso'}</h2>
             <p>Recebemos sua mensagem. Nossa equipe vai analisá-la e retornar pelo e-mail informado, se necessário.</p>
             <div className="service-success-actions">
               <Link className="primary-button" to="/">Voltar para o início</Link>
@@ -4678,44 +4700,119 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
         </section>
         <form className="reimbursement-form" onSubmit={handleSubmit}>
           <section className="reimbursement-card">
+            {isComplaint && (
+              <div className="reimbursement-form-section">
+                <div className="reimbursement-grid">
+                  <label className="half-width">
+                    Tipo de registro *
+                    <select value={tipoRegistro} onChange={(event) => { setTipoRegistro(event.target.value); setNotice('') }}>
+                      <option value={TIPO_REGISTRO_DENUNCIA}>{TIPO_REGISTRO_DENUNCIA}</option>
+                      <option value={TIPO_REGISTRO_ACOMPANHAMENTO}>{TIPO_REGISTRO_ACOMPANHAMENTO}</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
             <div className="reimbursement-form-section">
               <h3>Identificação</h3>
-              <div className="reimbursement-grid reimbursement-grid-two-columns manifestation-identification-grid">
-                <label>
+              <div className={isComplaint ? 'reimbursement-grid' : 'reimbursement-grid reimbursement-grid-two-columns manifestation-identification-grid'}>
+                <label className={isComplaint ? 'half-width' : undefined}>
                   Nome completo *
                   <input value={nome} onChange={(event) => setNome(event.target.value)} placeholder="Digite o seu nome completo" />
                 </label>
-                <label>
+                <label className={isComplaint ? 'half-width' : undefined}>
                   E-mail *
                   <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Digite o seu e-mail de contato" />
                 </label>
+                {isAcompanhamento && (
+                  <>
+                    <label className="half-width">
+                      CPF
+                      <input value={cpf} maxLength={14} onChange={(event) => setCpf(maskCpf(event.target.value))} placeholder="000.000.000-00" />
+                    </label>
+                    <label className="half-width">
+                      Data de nascimento
+                      <input type="date" value={dataNascimento} onChange={(event) => setDataNascimento(event.target.value)} />
+                    </label>
+                    <label className="half-width">
+                      Matrícula
+                      <input value={matricula} onChange={(event) => setMatricula(event.target.value)} placeholder="Número da matrícula" />
+                    </label>
+                    <label className="half-width">
+                      Localidade da Matrícula
+                      <input value={localidadeMatricula} onChange={(event) => setLocalidadeMatricula(event.target.value)} placeholder="Ex.: Brasília - DF" />
+                    </label>
+                    <label className="half-width">
+                      Telefone
+                      <input value={telefone} maxLength={15} onChange={(event) => setTelefone(maskPhone(event.target.value))} placeholder="(00) 00000-0000" />
+                    </label>
+                  </>
+                )}
+                {isDenuncia && (
+                  <>
+                    <label className="half-width">
+                      RG e Órgão Expedidor
+                      <input value={rgOrgaoExpedidor} onChange={(event) => setRgOrgaoExpedidor(event.target.value)} placeholder="Ex.: 1234567 SSP/DF" />
+                    </label>
+                    <label className="half-width">
+                      CPF
+                      <input value={cpf} maxLength={14} onChange={(event) => setCpf(maskCpf(event.target.value))} placeholder="000.000.000-00" />
+                    </label>
+                    <label>
+                      Celular
+                      <input value={celular} maxLength={15} onChange={(event) => setCelular(maskPhone(event.target.value))} placeholder="(00) 00000-0000" />
+                    </label>
+                    <label>
+                      Telefone
+                      <input value={telefone} maxLength={15} onChange={(event) => setTelefone(maskPhone(event.target.value))} placeholder="(00) 0000-0000" />
+                    </label>
+                    <label>
+                      Cidade
+                      <input value={cidade} onChange={(event) => setCidade(event.target.value)} placeholder="Cidade" />
+                    </label>
+                    <label>
+                      Estado
+                      <select value={estado} onChange={(event) => setEstado(event.target.value)}>
+                        <option value="">Selecione</option>
+                        {UF_OPTIONS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                      </select>
+                    </label>
+                  </>
+                )}
               </div>
             </div>
             <div className="reimbursement-form-section">
-              <h3>{isComplaint ? 'Detalhes da denúncia ou reclamação' : 'Detalhes da avaliação'}</h3>
+              <h3>{isAcompanhamento ? 'Detalhes do acompanhamento' : isComplaint ? 'Detalhes da denúncia ou reclamação' : 'Detalhes da avaliação'}</h3>
               <div className="reimbursement-grid">
+                {!isComplaint && (
+                  <label className="wide">
+                    Assunto *
+                    <select value={assunto} onChange={(event) => setAssunto(event.target.value)}>
+                      <option value="">Selecione uma opção</option>
+                      {manifestationSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
+                  </label>
+                )}
                 <label className="wide">
-                  Assunto *
-                  <select value={assunto} onChange={(event) => setAssunto(event.target.value)}>
-                    <option value="">Selecione uma opção</option>
-                    {manifestationSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
-                  </select>
+                  Descrição *
+                  <textarea rows={7} value={mensagem} onChange={(event) => setMensagem(event.target.value)} placeholder={isAcompanhamento ? 'Informe o número do registro, se tiver, e o que deseja saber sobre o andamento' : isComplaint ? 'Descreva o ocorrido com o máximo de informações relevantes' : 'Conte-nos como foi sua experiência e o que podemos melhorar'} />
                 </label>
-                <label className="wide">
-                  Mensagem *
-                  <textarea rows={7} value={mensagem} onChange={(event) => setMensagem(event.target.value)} placeholder={isComplaint ? 'Descreva o ocorrido com o máximo de informações relevantes' : 'Conte-nos como foi sua experiência e o que podemos melhorar'} />
-                </label>
-                {isComplaint && <FileAttachmentField fullWidth files={attachments} helpText="Anexe, se necessário, provas ou documentos relacionados ao relato (PDF, JPG, PNG ou GIF até 10 MB)." label="Anexos (opcional)" onAdd={addFiles} onRemove={removeFile} />}
+                <FileAttachmentField
+                  fullWidth
+                  files={attachments}
+                  helpText={isComplaint
+                    ? 'Anexe, se necessário, provas ou documentos relacionados ao relato (PDF, JPG, PNG ou GIF até 10 MB).'
+                    : 'Anexe, se necessário, imagens ou documentos que ajudem a ilustrar sua manifestação (PDF, JPG, PNG ou GIF até 10 MB).'}
+                  label="Anexos (opcional)"
+                  onAdd={addFiles}
+                  onRemove={removeFile}
+                />
               </div>
-            </div>
-            <div className="reimbursement-form-section">
-              <h3>Verificação de segurança</h3>
-              <CaptchaField code={captchaCode} onChangeValue={setCaptchaValue} onRefresh={refreshCaptcha} value={captchaValue} />
             </div>
             {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
             <div className="reimbursement-actions">
               <button className="primary-button" type="submit">
-                <Send aria-hidden="true" /> {isComplaint ? 'Enviar denúncia' : 'Enviar'}
+                <Send aria-hidden="true" /> {isAcompanhamento ? 'Enviar solicitação' : isComplaint ? 'Enviar denúncia' : 'Enviar'}
               </button>
               <button className="secondary-button" type="button" onClick={handleReset}>Limpar formulário</button>
             </div>
