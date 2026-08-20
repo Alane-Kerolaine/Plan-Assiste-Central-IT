@@ -3,6 +3,7 @@ import { beneficiaries, type Beneficiary } from '../data/mock'
 import type { ServiceField, ServiceFormSchema, ServiceFormSection } from '../data/serviceFormSchemas'
 import { parseBrazilianDate } from '../utils/dates'
 import { maskCep, maskCpf, maskCpfCnpj, maskPhone } from '../utils/inputMasks'
+import { nomeExibicao } from '../utils/nomeSocial'
 import { isValidEmail } from '../utils/validation'
 import { BrazilianDateInput } from './BrazilianDateInput'
 import { Combobox } from './Combobox'
@@ -20,12 +21,15 @@ export const WIZARD_STEPS: { id: WizardStep, label: string }[] = [
 
 export function beneficiaryFieldValues(beneficiary: Beneficiary | undefined, schema: ServiceFormSchema): Record<string, string> {
   const values: Record<string, string> = {
-    nomeCompleto: beneficiary?.name ?? '',
+    // Versao simplificada do vinculo: qualquer nao-titular e exibido como Dependente.
+    tipoDependente: beneficiary ? (beneficiary.relation === 'Titular' ? 'Titular' : 'Dependente') : '',
+    nomeCompleto: nomeExibicao(beneficiary),
     cpf: beneficiary?.cpf ?? '',
     dataNascimento: beneficiary?.dataNascimento ? isoDateToBr(beneficiary.dataNascimento) : '',
     matricula: beneficiary?.matricula ?? '',
     email: beneficiary?.email ?? '',
     telefone: beneficiary?.telefone ?? '',
+    telefoneContato: beneficiary?.telefone ?? '',
     ramo: beneficiary?.ramo ?? '',
     banco: beneficiary?.banco ?? '',
     agencia: beneficiary?.agencia ?? '',

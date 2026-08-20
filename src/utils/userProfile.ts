@@ -15,6 +15,8 @@ export type UserAddress = {
 export type UserProfile = {
   id: string
   name: string
+  /** Sobrepoe o name em toda exibicao. Ver utils/nomeSocial. */
+  nomeSocial?: string
   email: string
   providerEmail?: string
   providerWhatsapp?: string
@@ -36,6 +38,7 @@ const storageKey = 'planAssisteUserProfile'
 export const defaultUserProfile: UserProfile = {
   id: mockUser.id,
   name: mockUser.name,
+  nomeSocial: mockUser.nomeSocial,
   email: 'ana.araujo@mpu.mp.br',
   providerEmail: 'contato@saudeevida.com.br',
   providerWhatsapp: '(61) 99876-4321',

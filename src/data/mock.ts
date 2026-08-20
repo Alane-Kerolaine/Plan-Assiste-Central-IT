@@ -63,6 +63,7 @@ export type NewsItem = {
 export const mockUser = {
   id: 'user-001',
   name: 'Ana Maria de Araújo',
+  nomeSocial: '',
   shortName: 'Ana Maria',
   profile: 'Titular',
   avatar: '/assets/avatar-ana.png',
@@ -1282,6 +1283,8 @@ export const savedPreferences: SavedPreference[] = [
 export type Beneficiary = {
   id: string
   name: string
+  /** Sobrepoe o name em toda exibicao. Ver utils/nomeSocial. */
+  nomeSocial?: string
   relation: string
   cpf: string
   dataNascimento: string
@@ -1298,7 +1301,7 @@ export type Beneficiary = {
 export const beneficiaries: Beneficiary[] = [
   { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', email: 'ana.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
   { id: 'andre', name: 'André Luiz Araújo', relation: 'Filho(a)', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteado(a)', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'maria', name: 'Maria Olívia Araújo', nomeSocial: 'Olívia Araújo', relation: 'Enteado(a)', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
 ]
 
 export const quickAccess: Service[] = [

@@ -56,6 +56,7 @@ import {
   type PortalProfile,
 } from '../utils/session'
 import { getStoredUserProfile } from '../utils/userProfile'
+import { nomeExibicao } from '../utils/nomeSocial'
 import { GovBrSignInButton } from './GovBrSignInButton'
 import { getCmsAddresses, getCmsContactChannels, getCmsSocialLinks } from '../cms/siteContentRepository'
 export { ProviderSearch } from './ProviderNetwork'
@@ -728,7 +729,7 @@ export function Sidebar({ onLogout }: { onLogout: () => void }) {
           <img src={mockUser.avatar} alt="" />
           <div>
             <span>Área do beneficiário</span>
-            <strong>{mockUser.name}</strong>
+            <strong>{nomeExibicao(mockUser)}</strong>
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="Área do beneficiário">
@@ -852,7 +853,7 @@ export function RestrictedAreaSidebar({
           <img src={avatar} alt="" />
           <div>
             <span>{areaLabel}</span>
-            <strong>{session.displayName || mockUser.name}</strong>
+            <strong>{session.displayName || nomeExibicao(mockUser)}</strong>
           </div>
         </div>
         <nav className="sidebar-nav" aria-label={areaLabel}>

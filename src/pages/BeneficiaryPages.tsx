@@ -112,6 +112,8 @@ import { Combobox } from '../components/Combobox'
 import { ChatMessageComposer } from '../components/ChatMessageComposer'
 import { getStoredSession } from '../utils/session'
 import { pluralCount, pluralize } from '../utils/plural'
+import { nomeExibicao, nomeExibicaoPorRegistro } from '../utils/nomeSocial'
+import { servicoDetalheRota } from '../utils/servicoPlanAssiste'
 import {
   SOLICITACOES_PAGE_SIZE_OPTIONS,
   solicitacaoConcluida,
@@ -1145,6 +1147,8 @@ const REEMBOLSO_ITEM_ID = 'reembolso-1'
 
 export function BeneficiaryNovaReembolsoPage() {
   const profile = getStoredUserProfile()
+  // E-mail vem do cadastro, mas segue editavel para esta solicitacao.
+  const [contatoEmail, setContatoEmail] = useState(profile.email)
   const [showForm, setShowForm] = useState(false)
   const [step, setStep] = useState<WizardStep>('form')
   const [draft, setDraft] = useState<ReimbursementDraft>(initialReimbursementDraft)
@@ -1295,6 +1299,7 @@ export function BeneficiaryNovaReembolsoPage() {
             <button className="primary-button" onClick={() => setShowForm(true)} type="button">
               Iniciar solicitação <ArrowRight aria-hidden="true" />
             </button>
+            {servicoDetalheRota(catalogEntry) && <Link className="secondary-button" to={servicoDetalheRota(catalogEntry) as string}>Ver detalhes</Link>}
           </div>
         </section>
       </div>
@@ -1312,7 +1317,7 @@ export function BeneficiaryNovaReembolsoPage() {
     <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
       <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
         <div className="go-modal-header">
-          <h2 id="anexos-modal-title">Anexos da solicitação: {attachmentsModalItem.type} — {attachmentsModalItem.beneficiary}</h2>
+          <h2 id="anexos-modal-title">Anexos da solicitação: {attachmentsModalItem.type} — {nomeExibicaoPorRegistro(attachmentsModalItem.beneficiary)}</h2>
           <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
             <X aria-hidden="true" />
           </button>
@@ -1465,7 +1470,7 @@ export function BeneficiaryNovaReembolsoPage() {
                   <tbody>
                     {items.map((item) => (
                       <tr key={item.id}>
-                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.providerDocument}</td><td>{item.type}</td>
                         <td>{item.sessions || '-'}</td><td>{item.value}</td>
                         <td className="reimbursement-item-actions">
@@ -1512,11 +1517,11 @@ export function BeneficiaryNovaReembolsoPage() {
                 <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
                 <label>Matrícula<input value="30003387" disabled /></label>
                 <label>Ramo<input value="MPDFT" disabled /></label>
-                <label>E-mail<input value={profile.email} disabled /></label>
+                <label>E-mail<input value={contatoEmail} onChange={(event) => setContatoEmail(event.target.value)} placeholder="nome@exemplo.com" /></label>
                 <label>Telefone com DDD<input value={profile.phone} disabled /></label>
               </div>
               <p className="service-field-hint reimbursement-profile-hint">
-                E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+                Telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
               </p>
             </div>
 
@@ -1560,7 +1565,7 @@ export function BeneficiaryNovaReembolsoPage() {
                 <label>
                   Beneficiário atendido
                   <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
-                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
                   </select>
                 </label>
                 <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
@@ -1704,6 +1709,8 @@ const MEDICAMENTO_ORIENTACOES = [
 
 export function BeneficiaryNovaBeneficioMedicamentosPage() {
   const profile = getStoredUserProfile()
+  // E-mail vem do cadastro, mas segue editavel para esta solicitacao.
+  const [contatoEmail, setContatoEmail] = useState(profile.email)
   const [showForm, setShowForm] = useState(false)
   const [step, setStep] = useState<WizardStep>('form')
   const [draft, setDraft] = useState<MedicamentoDraft>(initialMedicamentoDraft)
@@ -1884,6 +1891,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
             <button className="primary-button" onClick={() => setShowForm(true)} type="button">
               Iniciar solicitação <ArrowRight aria-hidden="true" />
             </button>
+            {servicoDetalheRota(catalogEntry) && <Link className="secondary-button" to={servicoDetalheRota(catalogEntry) as string}>Ver detalhes</Link>}
           </div>
         </section>
       </div>
@@ -1901,7 +1909,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
     <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
       <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
         <div className="go-modal-header">
-          <h2 id="anexos-modal-title">Anexos da solicitação: Nº {attachmentsModalItem.receiptNumber} — {attachmentsModalItem.beneficiary}</h2>
+          <h2 id="anexos-modal-title">Anexos da solicitação: Nº {attachmentsModalItem.receiptNumber} — {nomeExibicaoPorRegistro(attachmentsModalItem.beneficiary)}</h2>
           <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
             <X aria-hidden="true" />
           </button>
@@ -2053,7 +2061,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
                   <tbody>
                     {items.map((item) => (
                       <tr key={item.id}>
-                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.description || '-'}</td><td>{item.unitValue}</td><td>{item.quantity}</td>
                         <td>{medicamentoTotalValue(item.unitValue, item.quantity)}</td>
                         <td className="reimbursement-item-actions">
@@ -2112,11 +2120,11 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
                 <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
                 <label>Matrícula<input value="30003387" disabled /></label>
                 <label>Ramo<input value="MPDFT" disabled /></label>
-                <label>E-mail<input value={profile.email} disabled /></label>
+                <label>E-mail<input value={contatoEmail} onChange={(event) => setContatoEmail(event.target.value)} placeholder="nome@exemplo.com" /></label>
                 <label>Telefone com DDD<input value={profile.phone} disabled /></label>
               </div>
               <p className="service-field-hint reimbursement-profile-hint">
-                E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+                Telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
               </p>
             </div>
 
@@ -2140,7 +2148,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
                 <label>
                   Beneficiário atendido
                   <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
-                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
                   </select>
                 </label>
                 <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
@@ -2188,7 +2196,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
                   <tbody>
                     {items.map((item) => (
                       <tr key={item.id}>
-                        <td>{item.beneficiary}</td>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td>
                         <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.description || '-'}</td>
                         <td>{item.unitValue}</td><td>{item.quantity}</td>
@@ -2243,7 +2251,7 @@ export function BeneficiaryNovaBeneficioMedicamentosPage() {
             </div>
             <div className="go-modal-body">
               <div className="reimbursement-grid reimbursement-grid-two-columns">
-                <label>Beneficiário atendido<input disabled value={editItem.beneficiary} /></label>
+                <label>Beneficiário atendido<input disabled value={nomeExibicaoPorRegistro(editItem.beneficiary)} /></label>
                 <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
                 <label>Nº nota/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
                 <label>Data da nota/recibo *<BrazilianDateInput onChangeValue={(value) => updateEditItem('receiptDate', value)} value={editItem.receiptDate} /></label>
@@ -2403,7 +2411,7 @@ export function ReimbursementsPage() {
             Beneficiário
             <select value={beneficiaryFilter} onChange={(event) => setBeneficiaryFilter(event.target.value)}>
               <option>Todos</option>
-              {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
           <label className="reimbursement-filter-number">Número do reembolso<input value={reimbursementNumber} onChange={(event) => setReimbursementNumber(event.target.value)} placeholder="Ex.: 2026-1842" /></label>
@@ -2456,7 +2464,7 @@ export function ReimbursementsPage() {
             <tbody>
               {filteredRecords.map((record) => (
                 <tr key={record.id}>
-                  <td>{record.beneficiary}</td>
+                  <td>{nomeExibicaoPorRegistro(record.beneficiary)}</td>
                   <td>{record.id}</td>
                   <td>{record.requestDate}</td>
                   <td>{record.receiptNumber}</td>
@@ -2527,7 +2535,7 @@ export function HealthAidExtractPage() {
     const workbook = new Workbook()
     const sheet = workbook.addWorksheet('Auxílio-saúde')
     sheet.addRow(['Competência', 'Folha', 'Beneficiário', 'Valor recebido', 'Situação'])
-    records.forEach((record) => sheet.addRow([record.competence, record.payroll, record.beneficiary, record.value, 'Recebido']))
+    records.forEach((record) => sheet.addRow([record.competence, record.payroll, nomeExibicaoPorRegistro(record.beneficiary), record.value, 'Recebido']))
     sheet.columns = [{ width: 16 }, { width: 25 }, { width: 34 }, { width: 20 }, { width: 16 }]
     sheet.getColumn(4).numFmt = 'R$ #,##0.00'
     const header = sheet.getRow(1)
@@ -2557,7 +2565,7 @@ export function HealthAidExtractPage() {
         </div>
       </section>
       {notice && <p className="form-notice" role="status">{notice}</p>}
-      <section className="reimbursement-card health-aid-extract"><div className="request-results-heading"><h2>Valores recebidos</h2><span>{pluralCount(records.length, 'lançamento', 'lançamentos')}</span></div><div className="reimbursement-table-wrap"><table className="reimbursement-table financial-table"><thead><tr><th>Competência</th><th>Folha</th><th>Beneficiário</th><th>Valor recebido</th><th>Situação</th></tr></thead><tbody>{records.length ? records.map((record) => <tr key={`${record.competence}-${record.beneficiary}`}><td>{record.competence}</td><td>{record.payroll}</td><td>{record.beneficiary}</td><td><strong>{formatCurrency(record.value)}</strong></td><td><span className="extract-status status-quitado">Recebido</span></td></tr>) : <tr><td colSpan={5}>Nenhum lançamento encontrado para os filtros informados.</td></tr>}</tbody></table></div><div className="reimbursement-result-actions"><button type="button" onClick={exportHealthAidExtract} disabled={!records.length}><Download aria-hidden="true" /> Exportar dados em planilha (.xlsx)</button></div></section>
+      <section className="reimbursement-card health-aid-extract"><div className="request-results-heading"><h2>Valores recebidos</h2><span>{pluralCount(records.length, 'lançamento', 'lançamentos')}</span></div><div className="reimbursement-table-wrap"><table className="reimbursement-table financial-table"><thead><tr><th>Competência</th><th>Folha</th><th>Beneficiário</th><th>Valor recebido</th><th>Situação</th></tr></thead><tbody>{records.length ? records.map((record) => <tr key={`${record.competence}-${record.beneficiary}`}><td>{record.competence}</td><td>{record.payroll}</td><td>{nomeExibicaoPorRegistro(record.beneficiary)}</td><td><strong>{formatCurrency(record.value)}</strong></td><td><span className="extract-status status-quitado">Recebido</span></td></tr>) : <tr><td colSpan={5}>Nenhum lançamento encontrado para os filtros informados.</td></tr>}</tbody></table></div><div className="reimbursement-result-actions"><button type="button" onClick={exportHealthAidExtract} disabled={!records.length}><Download aria-hidden="true" /> Exportar dados em planilha (.xlsx)</button></div></section>
     </div>
   )
 }
@@ -2822,7 +2830,7 @@ export function ExpensesPage() {
       sheet.columns = [{ width: 15 }, { width: 38 }, { width: 25 }, { width: 18 }, { width: 18 }, { width: 28 }, { width: 16 }]
     } else {
       sheet.addRow(['Beneficiário', ...visibleCompetences, 'Saldo acumulado'])
-      copayByBeneficiary.forEach(({ beneficiary, months }) => sheet.addRow([beneficiary.name, ...months.map((month) => month.value), months.reduce((total, month) => total + month.value, 0)]))
+      copayByBeneficiary.forEach(({ beneficiary, months }) => sheet.addRow([nomeExibicao(beneficiary), ...months.map((month) => month.value), months.reduce((total, month) => total + month.value, 0)]))
       sheet.addRow([copayTotalLabel, ...copayMonthlyTotals, copayFamilyTotal]).font = { bold: true }
       for (let column = 2; column <= visibleCompetences.length + 2; column += 1) { sheet.getColumn(column).numFmt = 'R$ #,##0.00'; sheet.getColumn(column).width = 16 }
       sheet.getColumn(1).width = 34
@@ -2880,7 +2888,7 @@ export function ExpensesPage() {
             Beneficiário
             <select value={beneficiaryFilter} onChange={(event) => setBeneficiaryFilter(event.target.value)}>
               <option value="Todos">Todos</option>
-              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
         </div>
@@ -2985,7 +2993,7 @@ export function ExpensesPage() {
             <div className="extract-table-wrap">
               <table className="extract-table extract-copay-table" style={{ minWidth: Math.max(940, 410 + visibleCompetences.length * 140) }}>
                 <thead><tr><th>Beneficiário</th>{visibleCompetences.map((competence) => <th key={competence}>{competence}</th>)}<th>Saldo acumulado</th></tr></thead>
-                <tbody>{copayByBeneficiary.map(({ beneficiary, months }) => <tr key={beneficiary.id}><td><strong>{beneficiary.name}</strong></td>{months.map((month) => <td key={month.month}>{formatCurrency(month.value)}</td>)}<td><strong>{formatCurrency(months.reduce((total, month) => total + month.value, 0))}</strong></td></tr>)}</tbody>
+                <tbody>{copayByBeneficiary.map(({ beneficiary, months }) => <tr key={beneficiary.id}><td><strong>{nomeExibicao(beneficiary)}</strong></td>{months.map((month) => <td key={month.month}>{formatCurrency(month.value)}</td>)}<td><strong>{formatCurrency(months.reduce((total, month) => total + month.value, 0))}</strong></td></tr>)}</tbody>
                 <tfoot><tr className="extract-total-row"><td>{copayTotalLabel}</td>{copayMonthlyTotals.map((value, index) => <td key={visibleCompetences[index]}>{formatCurrency(value)}</td>)}<td><strong>{formatCurrency(copayFamilyTotal)}</strong></td></tr></tfoot>
               </table>
             </div>
@@ -3008,7 +3016,7 @@ export function IrpfPage() {
   const statement = irpfStatements.find((item) => item.year === year && item.beneficiaryId === beneficiaryId)
 
   function downloadStatement() {
-    setNotice(`Comprovante IRPF ${year} de ${selectedBeneficiary.name} preparado para download.`)
+    setNotice(`Comprovante IRPF ${year} de ${nomeExibicao(selectedBeneficiary)} preparado para download.`)
   }
 
   return (
@@ -3032,7 +3040,7 @@ export function IrpfPage() {
           <label>
             Beneficiário
             <select value={beneficiaryId} onChange={(event) => setBeneficiaryId(event.target.value)}>
-              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
         </div>
@@ -3042,7 +3050,7 @@ export function IrpfPage() {
         <section className="irpf-statement-card" aria-label="Comprovante encontrado">
           <div>
             <span className="request-category">Ano-calendário {statement.year}</span>
-            <h2>{selectedBeneficiary.name}</h2>
+            <h2>{nomeExibicao(selectedBeneficiary)}</h2>
             <p>Comprovante emitido em {statement.issuedAt}. Confira os valores consolidados antes de declarar.</p>
           </div>
           <dl>
@@ -3429,6 +3437,8 @@ export function CardsPage() {
   const [side, setSide] = useState<'front' | 'back'>('front')
   const [notice, setNotice] = useState('')
   const data = cardData.find((card) => card.id === selected) || cardData[0]
+  // A carteirinha e um documento de identificacao: exibe o nome social quando houver.
+  const nomeCartao = nomeExibicao(beneficiaries.find((item) => item.id === data.id) ?? data)
   const isUnimedCard = cardProvider === 'unimed'
   const cardLabel = isUnimedCard ? 'Unimed' : 'Plan-Assiste'
   const unimedRegistration = `0865 ${data.registration.replace(/\D/g, '').slice(0, 12)}`
@@ -3450,7 +3460,7 @@ export function CardsPage() {
         <div className="beneficiary-selector">
           {beneficiaries.map((beneficiary) => (
             <button type="button" key={beneficiary.id} onClick={() => setSelected(beneficiary.id)} className={selected === beneficiary.id ? 'selected' : ''}>
-              <span className="beneficiary-initials" aria-hidden="true">{getInitials(beneficiary.name)}</span><span><strong>{beneficiary.name}</strong><small>{beneficiary.relation}</small></span>
+              <span className="beneficiary-initials" aria-hidden="true">{getInitials(nomeExibicao(beneficiary))}</span><span><strong>{nomeExibicao(beneficiary)}</strong><small>{beneficiary.relation}</small></span>
             </button>
           ))}
         </div>
@@ -3469,14 +3479,14 @@ export function CardsPage() {
         </div>
         {isUnimedCard ? (
           side === 'front' ? (
-            <div className="health-card-front unimed-card-front" role="img" aria-label={`Frente da carteirinha Unimed de ${data.name}`}>
+            <div className="health-card-front unimed-card-front" role="img" aria-label={`Frente da carteirinha Unimed de ${nomeCartao}`}>
               <div className="unimed-card-header">
                 <img className="unimed-logo-image" src="/assets/unimed-logo.svg" alt="Unimed" />
                 <span>Plano de saúde nacional</span>
               </div>
               <div className="unimed-card-person">
                 <small>Beneficiário</small>
-                <strong>{data.name}</strong>
+                <strong>{nomeCartao}</strong>
                 <p>{unimedRegistration}</p>
               </div>
               <div className="unimed-card-grid">
@@ -3487,7 +3497,7 @@ export function CardsPage() {
               <b>Atendimento cooperado Unimed</b>
             </div>
           ) : (
-            <div className="health-card-back unimed-card-back" role="img" aria-label={`Verso da carteirinha Unimed de ${data.name}`}>
+            <div className="health-card-back unimed-card-back" role="img" aria-label={`Verso da carteirinha Unimed de ${nomeCartao}`}>
               <div>
                 <img className="unimed-logo-image" src="/assets/unimed-logo.svg" alt="Unimed" />
                 <strong>Orientações de atendimento</strong>
@@ -3502,7 +3512,7 @@ export function CardsPage() {
           )
         ) : (
           side === 'front' ? (
-            <div className="health-card-front" role="img" aria-label={`Frente da carteirinha Plan-Assiste de ${data.name}`}>
+            <div className="health-card-front" role="img" aria-label={`Frente da carteirinha Plan-Assiste de ${nomeCartao}`}>
               <div className="health-card-brand">
                 <img src="/assets/logo-branca.svg" alt="Plan-Assiste" />
               </div>
@@ -3510,7 +3520,7 @@ export function CardsPage() {
               <p>Validade: {data.validity}</p>
               <div className="health-card-person">
                 <p>Órgão: {data.organ}</p>
-                <p>Beneficiário: {data.name}</p>
+                <p>Beneficiário: {nomeCartao}</p>
                 <p>Nascimento: {data.birthDate}</p>
               </div>
               <strong>◎ www.planassiste.mpu.mp.br</strong>
@@ -3518,7 +3528,7 @@ export function CardsPage() {
               <i aria-hidden="true" />
             </div>
           ) : (
-            <div className="health-card-back" role="img" aria-label={`Verso da carteirinha Plan-Assiste de ${data.name}`}>
+            <div className="health-card-back" role="img" aria-label={`Verso da carteirinha Plan-Assiste de ${nomeCartao}`}>
               <img src="/assets/logo-branca.svg" alt="Plan-Assiste" />
               <p>Atendimento 24h</p><b>0800 591-5601</b><span>www.planassiste.mpu.mp.br</span>
             </div>
@@ -3532,7 +3542,7 @@ export function CardsPage() {
               <div><dt>Matrícula:</dt><dd>{isUnimedCard ? unimedRegistration : data.registration}</dd></div>
               <div><dt>Validade:</dt><dd>{data.validity}</dd></div>
               <div><dt>{isUnimedCard ? 'Abrangência:' : 'Órgão:'}</dt><dd>{isUnimedCard ? 'Nacional' : data.organ}</dd></div>
-              <div><dt>Beneficiário:</dt><dd>{data.name}</dd></div>
+              <div><dt>Beneficiário:</dt><dd>{nomeCartao}</dd></div>
               <div><dt>Nascimento:</dt><dd>{data.birthDate}</dd></div>
             </dl>
           </div>
@@ -3615,7 +3625,7 @@ export function MyDataPage() {
   const accountAvatar = isProviderAccount
     ? (profile.providerAvatar || '/assets/provider-clinic-logo.svg')
     : (profile.avatar || defaultUserProfile.avatar || '')
-  const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : profile.name
+  const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : nomeExibicao(profile)
   const accountEmail = isProviderAccount ? (profile.providerEmail || 'contato@saudeevida.com.br') : profile.email
   const addressHasCoordinates = profile.address.latitude !== undefined && profile.address.longitude !== undefined
 
@@ -3754,7 +3764,7 @@ export function MyDataPage() {
               {dependentDetails.map((dependent) => (
                 <article key={dependent.id}>
                   <span className="request-category">{dependent.status}</span>
-                  <h4>{dependent.name}</h4>
+                  <h4>{nomeExibicao(dependent)}</h4>
                   <dl>
                     <div><dt>Vínculo</dt><dd>{dependent.relation}</dd></div>
                     <div><dt>Nascimento</dt><dd>{dependent.birthDate}</dd></div>
@@ -3865,6 +3875,7 @@ const dependentDetails = [
   {
     id: 'maria',
     name: 'Maria Olívia Araújo',
+    nomeSocial: 'Olívia Araújo',
     relation: 'Dependente',
     status: 'Ativo',
     birthDate: '23/09/2015',
@@ -3899,11 +3910,11 @@ export function DependentsPage() {
         {dependentDetails.map((dependent) => (
           <article className="dependent-card" key={dependent.id}>
             <div className="beneficiary-initials" aria-hidden="true">
-              {dependent.name.split(' ').slice(0, 2).map((part) => part[0]).join('')}
+              {nomeExibicao(dependent).split(' ').slice(0, 2).map((part) => part[0]).join('')}
             </div>
             <div>
               <span className="request-category">{dependent.status}</span>
-              <h2>{dependent.name}</h2>
+              <h2>{nomeExibicao(dependent)}</h2>
               <dl>
                 <div><dt>Vínculo</dt><dd>{dependent.relation}</dd></div>
                 <div><dt>Nascimento</dt><dd>{dependent.birthDate}</dd></div>

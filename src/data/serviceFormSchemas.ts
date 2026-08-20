@@ -101,13 +101,17 @@ export type ServiceFormSchema = {
   sections: ServiceFormSection[]
   perguntaChave?: PerguntaChaveConfig
   avisoInicial?: AvisoInicialConfig
+  /** Revisão exibe o documento em PDF e o envio é assinado via gov.br. */
+  assinaturaGovBr?: boolean
 }
 
 function identificationSection(localidadeLabel: string = 'Localidade da Matrícula', includeRamo: boolean = false): ServiceFormSection {
   const localidadeTravada = localidadeLabel === 'Localidade da Matrícula'
   const fields: ServiceField[] = [
     { id: 'beneficiarioId', label: 'Beneficiário do Atendimento', type: 'beneficiary', required: true },
-    { id: 'nomeCompleto', label: 'Nome completo', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+    // Vinculo do beneficiario escolhido, simplificado em Titular/Dependente.
+    // O nome nao se repete aqui: ja aparece no seletor logo acima.
+    { id: 'tipoDependente', label: 'Tipo de Dependente', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     { id: 'cpf', label: 'CPF', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
     { id: 'dataNascimento', label: 'Data de nascimento', type: 'date', disabled: true },
     { id: 'matricula', label: 'Matrícula', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
@@ -119,7 +123,7 @@ function identificationSection(localidadeLabel: string = 'Localidade da Matrícu
 
   fields.push(
     { id: 'telefone', label: 'Telefone do beneficiário', type: 'text', required: true, format: 'phone', placeholder: '(00) 00000-0000' },
-    { id: 'email', label: 'E-mail', type: 'text', disabled: true, columnSpan: includeRamo ? 2 : undefined, placeholder: 'Selecione um beneficiário' },
+    { id: 'email', label: 'E-mail', type: 'text', format: 'email', columnSpan: includeRamo ? 2 : undefined, placeholder: 'nome@exemplo.com' },
     {
       id: 'localAtendimento',
       label: localidadeLabel,
@@ -150,7 +154,7 @@ function dadosParaContatoSection(): ServiceFormSection {
       { id: 'contatoTitularNome', label: 'Titular', type: 'text', disabled: true, columnSpan: 2, defaultValue: titular?.name },
       { id: 'contatoTitularMatricula', label: 'Matrícula', type: 'text', disabled: true, defaultValue: titular?.matricula },
       { id: 'contatoTitularRamo', label: 'Ramo', type: 'text', disabled: true, defaultValue: titular?.ramo },
-      { id: 'contatoTitularEmail', label: 'E-mail', type: 'text', disabled: true, columnSpan: 2, defaultValue: titular?.email },
+      { id: 'contatoTitularEmail', label: 'E-mail', type: 'text', format: 'email', columnSpan: 2, defaultValue: titular?.email, placeholder: 'nome@exemplo.com' },
       { id: 'contatoTitularTelefone', label: 'Telefone', type: 'text', required: true, format: 'phone', columnSpan: 2, defaultValue: titular?.telefone, placeholder: '(00) 00000-0000' },
     ],
   }
@@ -248,6 +252,36 @@ function withSectionTitle(schema: ServiceFormSchema, sectionId: string, title: s
 // Acrescenta campos a uma seção já montada. Sem `beforeFieldId` entram no fim;
 // com ele, imediatamente antes do campo indicado (útil para não cair depois da
 // Descrição, que é sempre o último campo das seções de pedido).
+// Deixa campos apenas como visualizacao num schema especifico, sem afetar os demais
+// formularios que compartilham a mesma secao. Campo so de leitura nao e cobrado na
+// validacao, entao a obrigatoriedade sai junto.
+// Mantém na Identificação apenas os campos indicados, preservando a ordem original.
+// Usado pelos formulários de autorização, onde só interessa saber de quem é o pedido.
+function withIdentificationFields(schema: ServiceFormSchema, fieldIds: string[]): ServiceFormSchema {
+  const manter = new Set(fieldIds)
+  return {
+    ...schema,
+    sections: schema.sections.map((section) => (
+      section.id === 'identificacao'
+        ? { ...section, fields: section.fields.filter((field) => manter.has(field.id)) }
+        : section
+    )),
+  }
+}
+
+function withReadOnlyFields(schema: ServiceFormSchema, fieldIds: string[]): ServiceFormSchema {
+  const alvo = new Set(fieldIds)
+  return {
+    ...schema,
+    sections: schema.sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) => (
+        alvo.has(field.id) ? { ...field, disabled: true, required: false } : field
+      )),
+    })),
+  }
+}
+
 function withExtraFields(schema: ServiceFormSchema, sectionId: string, fields: ServiceField[], beforeFieldId?: string): ServiceFormSchema {
   return {
     ...schema,
@@ -320,7 +354,9 @@ const SLUGS_CADASTRO_RAMO = new Set([
   'abertura-solicitacoes-administrativas', 'reingresso-reativacao',
 ])
 
-const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de dados cadastrais', [
+// Só estes campos são atualizáveis pelo beneficiário: nome social, filiação, e-mails,
+// telefone, endereço e dados bancários. O restante do cadastro fica em visualização.
+const atualizacaoDadosCadastrais = withReadOnlyFields(withoutGenericEmail(baseSchema('atualizacao-dados-cadastrais', 'Atualização de dados cadastrais', [
   {
     // Sem título: são dados do mesmo beneficiário, então a seção continua a
     // Identificação sem quebra visual.
@@ -334,7 +370,9 @@ const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-d
       { id: 'nomePai', label: 'Nome do pai', type: 'text', placeholder: 'Nome completo do pai' },
       { id: 'emailInstitucional', label: 'E-mail institucional', type: 'text', format: 'email', placeholder: 'nome@mpu.mp.br' },
       { id: 'emailPessoal', label: 'E-mail pessoal', type: 'text', format: 'email', placeholder: 'nome@exemplo.com' },
-      { id: 'telefone', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
+      // Id proprio: 'telefone' ja e usado pelo campo travado da Identificação, e os
+      // valores do formulario sao indexados por id.
+      { id: 'telefoneContato', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 00000-0000' },
       { id: 'cartao', label: 'Cartão', type: 'text', placeholder: 'Número do cartão' },
       { id: 'estadoLotacao', label: 'Estado de lotação', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
       { id: 'endereco', label: 'Endereço', type: 'text', fullWidth: true, placeholder: 'Rua, número, complemento, bairro, cidade/UF' },
@@ -344,18 +382,17 @@ const atualizacaoDadosCadastrais = withoutGenericEmail(baseSchema('atualizacao-d
     id: 'dados-bancarios',
     title: 'Dados bancários',
     fields: [
-      {
-        id: 'avisoDadosBancarios',
-        label: 'Os dados bancários são geridos pelas áreas internas do MPF e, por hora, não são passíveis de atualização pelo beneficiário.',
-        type: 'note',
-        fullWidth: true,
-      },
-      { id: 'banco', label: 'Banco', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'agencia', label: 'Agência', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
-      { id: 'contaCorrente', label: 'Conta corrente ou mista', type: 'text', disabled: true, placeholder: 'Selecione um beneficiário' },
+      { id: 'banco', label: 'Banco', type: 'text', placeholder: 'Selecione um beneficiário' },
+      { id: 'agencia', label: 'Agência', type: 'text', placeholder: 'Selecione um beneficiário' },
+      { id: 'contaCorrente', label: 'Conta corrente ou mista', type: 'text', placeholder: 'Selecione um beneficiário' },
     ],
   },
-], undefined, true))
+], undefined, true)), [
+  // Identificação: vêm do cadastro e não se alteram por aqui.
+  'telefone',
+  // Contato: dados funcionais, mantidos pelas áreas internas.
+  'localidade', 'sexo', 'cartao', 'estadoLotacao',
+])
 
 const emissaoCarteiraTemporaria = withoutGenericEmail(baseSchema('emissao-carteira-temporaria', 'Emissão de carteira temporária', [
   {
@@ -1317,6 +1354,39 @@ const SERVICE_FORM_SCHEMAS: Record<string, ServiceFormSchema> = {
     { id: 'relatorioMedico', label: 'Relatório médico', required: true },
     { id: 'documentosAdicionais', label: 'Exames e documentos adicionais' },
   ], LOCALIDADE_PROCEDIMENTO_LABEL),
+}
+
+// Autorizações de procedimento: a identificação pede só de quem é o pedido. Os demais
+// dados do cadastro (nascimento, matrícula, telefone e e-mail) não são solicitados,
+// pois já constam no cadastro do beneficiário.
+const CAMPOS_IDENTIFICACAO_AUTORIZACAO = ['beneficiarioId', 'tipoDependente', 'cpf']
+
+const SLUGS_IDENTIFICACAO_AUTORIZACAO = [
+  'autorizacao-cirurgia', 'psicologia', 'fonoaudiologia', 'terapia-ocupacional', 'fisioterapia',
+  'acupuntura', 'pilates', 'rpg', 'hidroterapia', 'autorizacao-outros', 'medicamentos-cobertura-direta',
+]
+
+// Serviços cujo envio é assinado via gov.br: a revisão mostra o documento em PDF e
+// a confirmação entrega a via assinada.
+const SLUGS_ASSINATURA_GOVBR = [
+  'inscricao-adesao',
+  'atualizacao-dados-cadastrais',
+  'atualizacao-cadastral-periodica',
+  'processo-aposentadoria-retorno-orgao',
+  'reingresso-reativacao',
+  'desligamento',
+  'mudanca-tipo-beneficiario',
+  'pais-dependentes',
+]
+
+for (const slug of SLUGS_ASSINATURA_GOVBR) {
+  const schema = SERVICE_FORM_SCHEMAS[slug]
+  if (schema) SERVICE_FORM_SCHEMAS[slug] = { ...schema, assinaturaGovBr: true }
+}
+
+for (const slug of SLUGS_IDENTIFICACAO_AUTORIZACAO) {
+  const schema = SERVICE_FORM_SCHEMAS[slug]
+  if (schema) SERVICE_FORM_SCHEMAS[slug] = withIdentificationFields(schema, CAMPOS_IDENTIFICACAO_AUTORIZACAO)
 }
 
 export function getServiceFormSchema(slug: string): ServiceFormSchema | undefined {

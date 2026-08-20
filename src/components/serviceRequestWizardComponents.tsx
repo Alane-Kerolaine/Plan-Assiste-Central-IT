@@ -1,4 +1,5 @@
 import { beneficiaries } from '../data/mock'
+import { nomeExibicao } from '../utils/nomeSocial'
 import type { ServiceField } from '../data/serviceFormSchemas'
 import { Combobox } from './Combobox'
 import { WIZARD_STEPS, type WizardStep } from './serviceRequestWizardHelpers'
@@ -14,7 +15,7 @@ export function BeneficiarySelect({
 }) {
   const beneficiaryOptions = beneficiaries.map((beneficiary) => ({
     value: beneficiary.id,
-    label: `${beneficiary.name} (${beneficiary.relation === 'Titular' ? 'Titular' : 'Dependente'})`,
+    label: nomeExibicao(beneficiary),
   }))
   return (
     <label className="service-beneficiary-field">

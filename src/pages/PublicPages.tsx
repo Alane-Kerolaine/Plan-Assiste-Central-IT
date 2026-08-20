@@ -23,6 +23,7 @@ import {
   HandHeart,
   HelpCircle,
   IdCard,
+  ListChecks,
   LockKeyhole,
   Mail,
   MonitorCheck,
@@ -58,7 +59,8 @@ import {
   toggleFavoriteNews,
   type FavoriteState,
 } from '../utils/favorites'
-import { UF_OPTIONS } from '../data/serviceFormSchemas'
+import { UF_OPTIONS, getServiceFormSchema } from '../data/serviceFormSchemas'
+import { findServicoByPaginaSlug, servicoFormSlug, servicoPaginaSlug, servicoRotaFormulario } from '../utils/servicoPlanAssiste'
 import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
 import { getStoredSession } from '../utils/session'
@@ -2030,6 +2032,17 @@ const planAssisteSections: PlanAssisteSection[] = [
       'codigo-de-conduta-integridade-e-compliance',
     ],
   },
+  {
+    // Vitrine dos serviços do catálogo: em vez de artigos, lista cada serviço com
+    // uma página explicativa que leva ao formulário correspondente.
+    slug: 'servicos',
+    title: 'Serviços',
+    summary: 'Conheça cada serviço do Plan-Assiste, o que é preciso reunir e acesse o formulário.',
+    description:
+      'Consulte os serviços disponíveis no Programa. Cada página reúne a finalidade do serviço, os documentos exigidos e as informações solicitadas, com acesso direto ao formulário de solicitação.',
+    icon: ListChecks,
+    articleSlugs: [],
+  },
 ]
 
 export function PublicShell({
@@ -2155,6 +2168,10 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
   const cmsSnapshot = useCmsSnapshot()
   if (slug === 'beneficiarios/autorizacoes') return <Navigate to="/beneficiario/autorizacoes" replace />
   const section = planAssisteSections.find((item) => item.slug === slug)
+
+  // A seção de Serviços tem páginas próprias: uma vitrine e o detalhe de cada serviço.
+  if (slug === 'servicos' && section) return <PlanAssisteServicosPage section={section} loggedIn={loggedIn} onLogout={onLogout} />
+  if (slug?.startsWith('servicos/')) return <PlanAssisteServicoPage slug={slug.slice('servicos/'.length)} loggedIn={loggedIn} onLogout={onLogout} />
 
   if (section) return <PlanAssisteSectionPage section={section} loggedIn={loggedIn} onLogout={onLogout} />
 
@@ -2440,6 +2457,193 @@ function PlanAssisteSectionPage({
   )
 }
 
+// ---------------------------------------------------------------------------
+// Seção "Serviços" do Plan-Assiste
+// ---------------------------------------------------------------------------
+
+// Busca sem acentuação e sem caixa, para "medico" encontrar "médico".
+function normalizaBusca(texto: string): string {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+function PlanAssisteServicosPage({ section, loggedIn, onLogout }: PublicPageProps & { section: PlanAssisteSection }) {
+  const Icon = section.icon
+  const [busca, setBusca] = useState('')
+
+  const termo = normalizaBusca(busca.trim())
+  const encontrados = termo
+    ? beneficiaryRequests.filter((request) => normalizaBusca(
+        [request.title, request.description, request.category, ...request.tags].join(' '),
+      ).includes(termo))
+    : beneficiaryRequests
+
+  const porCategoria = encontrados.reduce<Record<string, typeof beneficiaryRequests>>((grupos, request) => {
+    grupos[request.category] = [...(grupos[request.category] ?? []), request]
+    return grupos
+  }, {})
+
+  return (
+    <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
+      <main className="container public-page">
+        <PublicBreadcrumb current={section.title} parents={[{ label: 'Plan-Assiste', to: '/plan-assiste' }]} />
+
+        <div className="public-content-layout plan-content-layout">
+          <PlanAssisteSidebar currentSlug={section.slug} />
+          <div className="public-content-main">
+            <section className="public-hero public-hero-institutional plan-section-hero">
+              <Icon aria-hidden="true" />
+              <div>
+                <p className="eyebrow">Plan-Assiste</p>
+                <h1>{section.title}</h1>
+                <p>{section.description}</p>
+              </div>
+            </section>
+
+            <label className="support-faq-search plan-servico-search">
+              <span>Buscar serviço</span>
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+                placeholder="Nome do serviço, categoria ou palavra-chave"
+              />
+            </label>
+
+            <p className="plan-servico-count" role="status">
+              {encontrados.length === beneficiaryRequests.length
+                ? `${beneficiaryRequests.length} serviços disponíveis`
+                : `${encontrados.length} ${encontrados.length === 1 ? 'serviço encontrado' : 'serviços encontrados'} para “${busca.trim()}”`}
+            </p>
+
+            {encontrados.length === 0 ? (
+              <div className="empty-state">
+                <Search aria-hidden="true" />
+                <h2>Nenhum serviço encontrado</h2>
+                <p>Revise a palavra digitada ou limpe a busca para ver todos os serviços.</p>
+                <button className="secondary-button" type="button" onClick={() => setBusca('')}>Limpar busca</button>
+              </div>
+            ) : (
+              Object.entries(porCategoria).map(([categoria, servicos]) => (
+                <section className="plan-servico-group" key={categoria} aria-label={`Serviços de ${categoria}`}>
+                  <h2>{categoria}</h2>
+                  <div className="plan-servico-grid">
+                    {servicos.map((servico) => (
+                      <Link className="plan-servico-card" to={`/plan-assiste/servicos/${servicoPaginaSlug(servico)}`} key={servico.id}>
+                        <span>{servico.title}</span>
+                        <p>{servico.description}</p>
+                        <strong>Acessar <ArrowRight aria-hidden="true" /></strong>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+    </PublicShell>
+  )
+}
+
+function PlanAssisteServicoPage({ slug, loggedIn, onLogout }: PublicPageProps & { slug: string }) {
+  const servico = findServicoByPaginaSlug(slug)
+  if (!servico) return <Navigate to="/plan-assiste/servicos" replace />
+
+  const schema = servicoFormSlug(servico) ? getServiceFormSchema(servicoFormSlug(servico) as string) : undefined
+  const documentos = schema?.sections
+    .flatMap((secao) => secao.fields)
+    .filter((campo) => campo.type === 'file') ?? []
+  const blocos = schema?.sections.filter((secao) => secao.title && secao.fields.some((campo) => campo.type !== 'note' && campo.type !== 'file')) ?? []
+  const rotaFormulario = servicoRotaFormulario(servico)
+  const destino = rotaFormulario ?? servico.route ?? servico.externalUrl
+  // Só chama de 'Formulário' o que realmente leva a um; o resto usa o rótulo do catálogo.
+  const rotuloAcao = rotaFormulario ? `Formulário` : servico.action
+
+  return (
+    <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
+      <main className="container public-page">
+        <PublicBreadcrumb
+          current={servico.title}
+          parents={[{ label: 'Plan-Assiste', to: '/plan-assiste' }, { label: 'Serviços', to: '/plan-assiste/servicos' }]}
+        />
+
+        <div className="public-content-layout plan-content-layout">
+          <PlanAssisteSidebar currentSlug={`servicos/${slug}`} />
+          <div className="public-content-main">
+            <section className="public-hero public-hero-institutional plan-servico-hero">
+              <div>
+                <p className="eyebrow">{servico.category}</p>
+                <h1>{servico.title}</h1>
+                <p>{servico.description}</p>
+              </div>
+            </section>
+
+            <article className="portal-article-body plan-servico-body">
+              {servico.tags.length > 0 && (
+                <p className="plan-servico-tags">
+                  {servico.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                </p>
+              )}
+
+              {documentos.length > 0 && (
+                <section>
+                  <h2>Documentos necessários</h2>
+                  <p>Reúna os arquivos antes de iniciar. Os itens marcados como obrigatórios são exigidos para o envio.</p>
+                  <ul>
+                    {documentos.map((documento) => (
+                      <li key={documento.id}>
+                        {documento.label}{documento.required ? ' (obrigatório)' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {blocos.length > 0 && (
+                <section>
+                  <h2>Informações solicitadas</h2>
+                  <p>O formulário está organizado nestas etapas:</p>
+                  <ul>
+                    {blocos.map((bloco) => (
+                      <li key={bloco.id}>
+                        <strong>{bloco.title}</strong>
+                        {' — '}
+                        {bloco.fields.filter((campo) => campo.type !== 'note' && campo.type !== 'file').map((campo) => campo.label).join(', ')}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {!schema && (
+                <section>
+                  <h2>Como acessar</h2>
+                  <p>Este serviço é atendido diretamente em uma área do Portal, sem formulário de solicitação próprio.</p>
+                </section>
+              )}
+            </article>
+
+            {destino && (
+              <div className="plan-servico-actions">
+                {servico.externalUrl ? (
+                  <a className="primary-button" href={servico.externalUrl} target="_blank" rel="noreferrer">
+                    {rotuloAcao} <ArrowRight aria-hidden="true" />
+                  </a>
+                ) : (
+                  <Link className="primary-button" to={destino}>
+                    {rotuloAcao} <ArrowRight aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </PublicShell>
+  )
+}
+
 export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
   const navigate = useNavigate()
   const currentPath = currentSlug === 'plan-assiste' ? '/plan-assiste' : `/plan-assiste/${currentSlug}`
@@ -2482,7 +2686,7 @@ export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
         <div className="plan-side-section-list">
           {planAssisteSections.map((section) => {
             const sectionArticles = getPlanAssisteSectionArticles(section)
-            const isSectionActive = currentSlug === section.slug || section.articleSlugs.some((articleSlug) => (
+            const isSectionActive = currentSlug === section.slug || currentSlug.startsWith(`${section.slug}/`) || section.articleSlugs.some((articleSlug) => (
               currentSlug === articleSlug || currentSlug.startsWith(`${articleSlug}/`)
             ))
 

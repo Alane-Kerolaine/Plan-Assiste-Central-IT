@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CheckCircle2, ChevronLeft, Copy, RotateCcw, Send } from 'lucide-react'
 import { beneficiaries } from '../data/mock'
+import { nomeExibicao } from '../utils/nomeSocial'
+import { DocumentoPdfPreview } from './DocumentoAssinatura'
+import { getStoredUserProfile } from '../utils/userProfile'
+import { assinaturaAgora } from '../utils/documentoSolicitacao'
 import { isFieldVisible, type CasoInstrucaoServico, type PerguntaChaveConfig, type ServiceFormSchema } from '../data/serviceFormSchemas'
 import { generateProtocolNumber } from '../utils/protocol'
 import { AvisoNormativo } from './AvisoNormativo'
@@ -52,6 +56,7 @@ export function ServiceRequestWizardV2({
   const [notice, setNotice] = useState('')
   const [protocol, setProtocol] = useState('')
   const [copied, setCopied] = useState(false)
+  const [assinatura, setAssinatura] = useState<{ nome: string, detalhe: string } | undefined>(undefined)
 
   useEffect(() => {
     if (!copied) return
@@ -146,6 +151,7 @@ export function ServiceRequestWizardV2({
 
   function handleConfirm() {
     setProtocol(generateProtocolNumber())
+    if (schema.assinaturaGovBr) setAssinatura(assinaturaAgora(nomeExibicao(getStoredUserProfile())))
     setStep('success')
   }
 
@@ -156,6 +162,7 @@ export function ServiceRequestWizardV2({
     setAvisoConfirmado(false)
     setNotice('')
     setProtocol('')
+    setAssinatura(undefined)
     setStep('form')
   }
 
@@ -169,7 +176,7 @@ export function ServiceRequestWizardV2({
     return (
       <div className="service-wizard">
         <WizardSteps current={step} />
-        <div className="service-success">
+        <div className={`service-success${schema.assinaturaGovBr ? ' service-success-documento' : ''}`}>
           <CheckCircle2 aria-hidden="true" className="service-success-icon" />
           <h2>Solicitação criada com sucesso!</h2>
           <p>Sua solicitação foi registrada para análise.</p>
@@ -188,6 +195,19 @@ export function ServiceRequestWizardV2({
               <li><span className="service-followup-index">3</span> Verifique o status e atualizações</li>
             </ol>
           </div>
+          {schema.assinaturaGovBr && (
+            <DocumentoPdfPreview
+              schema={schema}
+              sections={visibleSections}
+              values={values}
+              attachments={anexosPorDocumento}
+              assinatura={assinatura}
+              protocolo={protocol}
+              permitirDownload
+              titulo="Documento assinado"
+              descricao="Sua via do documento, já com a assinatura aplicada. Guarde o arquivo junto ao número do protocolo."
+            />
+          )}
           <div className="service-success-actions">
             <button className="primary-button" type="button" onClick={handleReset}>
               <RotateCcw aria-hidden="true" /> Registrar nova solicitação
@@ -206,23 +226,34 @@ export function ServiceRequestWizardV2({
         <div className="reimbursement-card service-review">
           <h2>Revise sua solicitação</h2>
           <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
-          {visibleSections.map((section) => (
-            <div className={`reimbursement-form-section${section.continuation ? ' is-continuation' : ''}`} key={section.id}>
-              {section.title && <h3>{section.title}</h3>}
-              <dl className="service-review-grid">
-                {section.fields.filter((field) => field.type !== 'note').map((field) => (
-                  <div className="service-review-row" key={field.id}>
-                    <dt>{field.label}</dt>
-                    <dd>
-                      {field.type === 'beneficiary'
-                        ? (beneficiaries.find((item) => item.id === values[field.id])?.name ?? '–')
-                        : formatReviewValue(field, values[field.id])}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ))}
+          {schema.assinaturaGovBr ? (
+            <DocumentoPdfPreview
+              schema={schema}
+              sections={visibleSections}
+              values={values}
+              attachments={anexosPorDocumento}
+              titulo="Documento da solicitação"
+              descricao="Confira o documento gerado a partir dos dados informados. A assinatura será aplicada no envio."
+            />
+          ) : (
+            visibleSections.map((section) => (
+              <div className={`reimbursement-form-section${section.continuation ? ' is-continuation' : ''}`} key={section.id}>
+                {section.title && <h3>{section.title}</h3>}
+                <dl className="service-review-grid">
+                  {section.fields.filter((field) => field.type !== 'note').map((field) => (
+                    <div className="service-review-row" key={field.id}>
+                      <dt>{field.label}</dt>
+                      <dd>
+                        {field.type === 'beneficiary'
+                          ? (nomeExibicao(beneficiaries.find((item) => item.id === values[field.id])) || '–')
+                          : formatReviewValue(field, values[field.id])}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))
+          )}
           {casoSelecionado && (
             <div className="reimbursement-form-section">
               <h3>{perguntaChave.tituloAnexos ?? `Instruções específicas — ${casoSelecionado.titulo}`}</h3>
@@ -256,7 +287,7 @@ export function ServiceRequestWizardV2({
               <ChevronLeft aria-hidden="true" /> Voltar e editar
             </button>
             <button className="primary-button" type="button" onClick={handleConfirm}>
-              <Send aria-hidden="true" /> Confirmar e enviar
+              <Send aria-hidden="true" /> {schema.assinaturaGovBr ? 'Estou ciente, assinar com gov.br' : 'Confirmar e enviar'}
             </button>
           </div>
         </div>
