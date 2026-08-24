@@ -457,6 +457,13 @@ const denunciaReclamacao: ServiceFormSchema = {
         { id: 'telefone', label: 'Telefone', type: 'text', format: 'phone', placeholder: '(00) 0000-0000' },
         { id: 'cidade', label: 'Cidade', type: 'text', placeholder: 'Cidade' },
         { id: 'estado', label: 'Estado', type: 'combobox', options: UF_OPTIONS, placeholder: 'Digite ou selecione a UF' },
+        {
+          id: 'sigiloDadosPessoais',
+          label: 'Deseja manter seus dados pessoais em sigilo?',
+          shortLabel: 'Sigilo dos dados pessoais',
+          type: 'checkbox',
+          fullWidth: true,
+        },
       ],
     },
     detailsSection(),

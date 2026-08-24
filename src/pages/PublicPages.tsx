@@ -4820,6 +4820,8 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
   const [dataNascimento, setDataNascimento] = useState('')
   const [matricula, setMatricula] = useState('')
   const [localidadeMatricula, setLocalidadeMatricula] = useState('')
+  // Espelha o campo do formulário Denúncia / Reclamação do catálogo.
+  const [sigiloDadosPessoais, setSigiloDadosPessoais] = useState(false)
   const [assunto, setAssunto] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
@@ -4846,6 +4848,7 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
     setDataNascimento('')
     setMatricula('')
     setLocalidadeMatricula('')
+    setSigiloDadosPessoais(false)
     setAssunto('')
     setMensagem('')
     setAttachments([])
@@ -4980,6 +4983,10 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
                         <option value="">Selecione</option>
                         {UF_OPTIONS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
                       </select>
+                    </label>
+                    <label className="responsibility-term wide">
+                      <input type="checkbox" checked={sigiloDadosPessoais} onChange={(event) => setSigiloDadosPessoais(event.target.checked)} />
+                      Deseja manter seus dados pessoais em sigilo?
                     </label>
                   </>
                 )}
