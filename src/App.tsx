@@ -73,6 +73,7 @@ import { placeholderPages } from './data/mock'
 import { MockupPage } from './pages/MockupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CmsAdminOverviewPage, CmsBannersPage, CmsContactPage, CmsFilesPage, CmsMediaPage, CmsNewsPage, CmsPageEditorPage, CmsPagesPage } from './pages/CmsAdminPages'
+import { CmsLiveBrowserPage } from './pages/CmsLiveBrowser'
 import { InstrucoesCondicionaisPreviewPage } from './pages/InstrucoesCondicionaisPreviewPage'
 import { isFeatureInstrucoesCondicionaisEnabled } from './utils/featureFlags'
 import {
@@ -358,6 +359,7 @@ function App() {
           }
         />
         <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/navegar/*" element={<RequireAuth session={session} profile="team"><CmsLiveBrowserPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />

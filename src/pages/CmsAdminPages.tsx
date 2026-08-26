@@ -203,7 +203,7 @@ export function CmsAdminOverviewPage(props: PublicPageProps) {
         <Link className="primary-button" to="/area-da-equipe/administracao-do-portal/paginas/nova"><FilePlus2 aria-hidden="true" /> Nova página</Link>
       </section>
       <section className="cms-admin-module-grid">
-        <Link to="/area-da-equipe/administracao-do-portal/paginas"><Globe2 /><h2>Páginas</h2><p>Conteúdo em blocos, páginas-mãe, filhas e netas.</p></Link>
+        <Link to="/area-da-equipe/administracao-do-portal/navegar"><Globe2 /><h2>Navegar e editar</h2><p>Percorra o portal como o público o vê e edite a página em que estiver.</p></Link>
         <Link to="/area-da-equipe/administracao-do-portal/banners"><Images /><h2>Banners</h2><p>Cadastre, ordene, programe e publique banners por público.</p></Link>
         <Link to="/area-da-equipe/administracao-do-portal/midias"><FileImage /><h2>Mídia</h2><p>Gerencie imagens, vídeos e áudios com visualização e player.</p></Link>
         <Link to="/area-da-equipe/administracao-do-portal/arquivos"><FileArchive /><h2>Arquivos</h2><p>Consulte o acervo de PDFs e documentos do Office e envie novos arquivos.</p></Link>
