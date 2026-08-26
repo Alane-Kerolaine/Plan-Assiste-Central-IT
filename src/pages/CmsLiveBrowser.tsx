@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Home, Pencil, RefreshCw } from 'lucide-react'
 import { PublicBreadcrumb, PublicShell, type PublicPageProps } from './PublicPages'
 import { useCmsSnapshot } from '../cms/contentRepository'
-import { estadoDaPagina, rotaDeEdicao } from '../cms/portalNavegacao'
+import { estadoDaPagina, paginaParaEdicao } from '../cms/portalNavegacao'
+import { CmsLivePanel } from './CmsLivePanel'
 
 const RAIZ = '/area-da-equipe/administracao-do-portal/navegar'
 const INICIO = '/'
@@ -22,6 +23,9 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
   const [destino, setDestino] = useState(() => ({ url: rota ? `/${rota}` : INICIO, tentativa: 0 }))
   const [caminho, setCaminho] = useState(destino.url)
   const paginas = useCmsSnapshot().pages
+  const [editando, setEditando] = useState(false)
+  // Recarrega o quadro apos salvar, para o resultado publicado aparecer na hora.
+  const [versao, setVersao] = useState(0)
 
   /** Aceita caminho digitado, colado com o endereço completo ou sem a barra inicial. */
   function navegarPara(valor: string) {
@@ -120,22 +124,33 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
             <a className="secondary-button" href={caminho} target="_blank" rel="noreferrer">
               <ExternalLink aria-hidden="true" /> Abrir no portal
             </a>
-            <Link className="primary-button" to={rotaDeEdicao(estado, caminho)}>
-              <Pencil aria-hidden="true" /> Editar esta página
-            </Link>
+            <button className="primary-button" type="button" onClick={() => setEditando(true)}>
+              <Pencil aria-hidden="true" /> {editando ? 'Editando…' : 'Editar esta página'}
+            </button>
           </div>
         </div>
 
         <p className="cms-live-hint" role="status">{estado.descricao}</p>
 
-        <div className="cms-live-frame-wrap">
-          <iframe
-            className="cms-live-frame"
-            key={destino.tentativa}
-            ref={quadro}
-            src={destino.url}
-            title="Portal Plan-Assiste — visualização para edição"
-          />
+        <div className={`cms-live-stage${editando ? ' is-editing' : ''}`}>
+          <div className="cms-live-frame-wrap">
+            <iframe
+              className="cms-live-frame"
+              key={`${destino.tentativa}-${versao}`}
+              ref={quadro}
+              src={destino.url}
+              title="Portal Plan-Assiste — visualização para edição"
+            />
+          </div>
+
+          {editando && (
+            <CmsLivePanel
+              key={estado.pagina?.id ?? caminho}
+              paginaInicial={paginaParaEdicao(estado, caminho)}
+              onFechar={() => setEditando(false)}
+              onSalvo={() => setVersao((atual) => atual + 1)}
+            />
+          )}
         </div>
       </main>
     </PublicShell>

@@ -1,4 +1,4 @@
-import type { CmsPage } from './contentRepository'
+import { createCmsPage as criarPagina, type CmsPage } from './contentRepository'
 
 /** O caminho do portal vira o slug usado pelo CMS: /plan-assiste -> plan-assiste */
 export function caminhoParaSlug(caminho: string): string {
@@ -49,4 +49,22 @@ export function rotaDeEdicao(estado: EstadoPagina, caminho: string): string {
   return estado.pagina
     ? `${base}/${estado.pagina.id}`
     : `${base}/base-${encodeURIComponent(caminhoParaSlug(caminho))}`
+}
+
+/**
+ * Página a ser editada a partir do caminho aberto. Quando ainda não há versão
+ * gerenciada, cria uma a partir do caminho, para que a edição comece no lugar
+ * certo da hierarquia em vez de numa página solta.
+ */
+export function paginaParaEdicao(estado: EstadoPagina, caminho: string): CmsPage {
+  if (estado.pagina) return estado.pagina
+  const slug = caminhoParaSlug(caminho)
+  const partes = slug.split('/')
+  const base = criarPagina(slug)
+  return {
+    ...base,
+    parentSlug: partes.length > 1 ? partes.slice(0, -1).join('/') : null,
+    navigationTitle: '',
+    title: '',
+  }
 }

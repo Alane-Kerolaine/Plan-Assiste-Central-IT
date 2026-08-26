@@ -1940,6 +1940,31 @@ select:not([multiple]) {
 .cms-live-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .cms-live-actions .primary-button, .cms-live-actions .secondary-button { min-height: 40px; }
 .cms-live-hint { margin: 0 0 14px; color: var(--brand-dark); font-size: 16px; line-height: 1.45; }
+/* Palco: quadro do portal e, quando em edição, o painel ao lado. */
+.cms-live-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.cms-live-stage.is-editing { grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); }
+.cms-live-panel { display: flex; flex-direction: column; max-height: min(76vh, 900px); border: 1px solid var(--border); border-radius: 16px; background: white; overflow: hidden; box-shadow: 0 12px 30px rgba(16, 63, 58, .1); }
+.cms-live-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); background: var(--mint-soft); padding: 14px 18px; }
+.cms-live-panel-head strong { display: block; color: var(--text-dark); font-size: 19px; line-height: 1.2; }
+.cms-live-panel-head small { color: var(--brand-dark); font-size: 15px; }
+.cms-live-panel-head button { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 9px; background: white; color: var(--brand-strong); flex-shrink: 0; }
+.cms-live-panel-head button:hover { border-color: var(--brand-primary); }
+.cms-live-panel-body { flex: 1; overflow-y: auto; padding: 18px; display: grid; gap: 24px; }
+.cms-live-fields { display: grid; gap: 14px; }
+.cms-live-fields label { display: grid; gap: 6px; color: var(--text-dark); font-weight: var(--fw-semibold); }
+.cms-live-fields input, .cms-live-fields textarea { width: 100%; min-height: 44px; border: 2px solid var(--border); border-radius: 9px; background: white; color: var(--text); padding: 10px 14px; font: inherit; }
+.cms-live-fields textarea { resize: vertical; }
+.cms-live-blocks > header, .cms-live-files > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.cms-live-blocks h3, .cms-live-files h3 { margin: 0; color: var(--text-dark); font-size: 19px; }
+.cms-live-files header p { margin: 4px 0 0; color: var(--brand-dark); font-size: 15px; line-height: 1.4; max-width: 42ch; }
+.cms-live-add-block { position: relative; display: inline-flex; align-items: center; }
+.cms-live-add-block select { min-height: 40px; border: 1px solid var(--border); border-radius: 9px; background: white; color: var(--brand-strong); padding: 0 38px 0 14px; font-weight: var(--fw-semibold); appearance: none; }
+.cms-live-add-block svg { position: absolute; right: 12px; width: 16px; height: 16px; color: var(--brand-strong); pointer-events: none; }
+.cms-live-files-empty { margin: 0; border: 1px dashed var(--border); border-radius: 12px; background: var(--mint-soft); padding: 18px; color: var(--brand-dark); text-align: center; }
+.cms-live-panel-foot { border-top: 1px solid var(--border); background: white; padding: 14px 18px; display: grid; gap: 10px; }
+.cms-live-panel-foot > div { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.cms-live-panel-notice { margin: 0; color: var(--brand-strong); font-weight: var(--fw-semibold); }
+@media (max-width: 1180px) { .cms-live-stage.is-editing { grid-template-columns: minmax(0, 1fr); } .cms-live-panel { max-height: none; } }
 .cms-live-frame-wrap { border: 1px solid var(--border); border-radius: 16px; background: #f1f4f6; overflow: hidden; box-shadow: 0 12px 30px rgba(16, 63, 58, .08); }
 .cms-live-frame { display: block; width: 100%; height: min(76vh, 900px); border: 0; background: white; }
 @media (max-width: 900px) { .cms-live-frame { height: 60vh; } .cms-live-actions { width: 100%; } }

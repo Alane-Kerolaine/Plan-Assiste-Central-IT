@@ -260,7 +260,7 @@ export function CmsPagesPage(props: PublicPageProps) {
   )
 }
 
-function BlockEditor({ block, index, total, onChange, onMove, onDelete }: { block: CmsBlock, index: number, total: number, onChange: (block: CmsBlock) => void, onMove: (direction: -1 | 1) => void, onDelete: () => void }) {
+export function BlockEditor({ block, index, total, onChange, onMove, onDelete }: { block: CmsBlock, index: number, total: number, onChange: (block: CmsBlock) => void, onMove: (direction: -1 | 1) => void, onDelete: () => void }) {
   const library = getSiteContent()
   function changeType(type: CmsBlockType) {
     onChange({ ...block, type, cardVariant: type === 'card' ? block.cardVariant || 'navigation' : block.cardVariant, faqCategories: type === 'faq' ? block.faqCategories || ['Geral'] : block.faqCategories, faqItems: type === 'faq' ? block.faqItems || [] : block.faqItems, organizationItems: type === 'organization' ? block.organizationItems || [] : block.organizationItems, tableHeaders: type === 'table' ? block.tableHeaders || ['Coluna 1', 'Coluna 2'] : block.tableHeaders, tableRows: type === 'table' ? block.tableRows || [['', '']] : block.tableRows, tableVariant: type === 'table' ? block.tableVariant || 'standard' : block.tableVariant, buttonVariant: type === 'button' ? block.buttonVariant || 'primary' : block.buttonVariant })
@@ -356,6 +356,33 @@ export function CmsMediaPage(props: PublicPageProps) {
   return <AdminFrame {...props} title="Mídia"><section className="simple-page-heading cms-admin-heading"><div><h1>Biblioteca de mídia</h1><p>Hospede e reutilize imagens, vídeos e áudios nos conteúdos do portal.</p></div><label className="primary-button cms-upload-button"><Upload /> Enviar mídia<input hidden multiple type="file" accept="image/*,video/*,audio/*" onChange={upload} /></label></section><p className="cms-demo-limit">O acervo incorporado ao site é catalogado automaticamente. Novos itens de demonstração podem ter até 1 MB.</p><div className="cms-media-grid">{visible.map((asset) => <article key={asset.id}><MediaPreview asset={asset} /><div><strong>{asset.name}</strong><small>{asset.type} · {(asset.size / 1024).toFixed(1)} KB</small></div><div><a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a><label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" accept="image/*,video/*,audio/*" onChange={(event) => replace(asset, event.target.files?.[0])} /></label>{!asset.bundled && <button type="button" onClick={() => remove(asset.id)}><Trash2 /> Excluir</button>}</div></article>)}</div><AdminPagination page={page} total={content.media.length} onChange={setPage} /></AdminFrame>
 }
 
+/** Arquivos que pertencem a páginas, reunidos aqui só para consulta do acervo completo. */
+function ArquivosPorPagina() {
+  const paginas = useCmsSnapshot().pages.filter((pagina) => (pagina.files?.length ?? 0) > 0)
+  if (paginas.length === 0) return null
+  return (
+    <section className="cms-files-by-page">
+      <h2>Arquivos vinculados a páginas</h2>
+      <p>Enviados dentro de uma página, pela seção “Navegar e editar”. Cada um pertence à página indicada.</p>
+      <div className="portal-table-wrap">
+        <table className="portal-table">
+          <thead><tr><th>Título</th><th>Página</th><th>Tamanho</th><th>Estado</th></tr></thead>
+          <tbody>
+            {paginas.flatMap((pagina) => (pagina.files ?? []).map((arquivo) => (
+              <tr key={arquivo.id}>
+                <td><a href={arquivo.url} target="_blank" rel="noreferrer">{arquivo.name}</a></td>
+                <td><Link to={`/area-da-equipe/administracao-do-portal/navegar/${pagina.slug}`}>{pagina.title || pagina.slug}</Link></td>
+                <td>{(arquivo.size / 1024).toFixed(1)} KB</td>
+                <td>{arquivo.status === 'published' ? 'Publicado' : 'Rascunho'}</td>
+              </tr>
+            )))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
 export function CmsFilesPage(props: PublicPageProps) {
   const [content, setContent] = useState(getSiteContent)
   const [query, setQuery] = useState('')
@@ -365,7 +392,7 @@ export function CmsFilesPage(props: PublicPageProps) {
   async function replace(asset: (typeof content.files)[number], file?: File) { if (!file || file.size > 1_000_000) { if (file) window.alert('O arquivo excede 1 MB.'); return }; const reader = new FileReader(); reader.onload = () => { const url = String(reader.result); replaceAssetReferences(asset.url, url); const next = { ...content, files: content.files.map((item) => item.id === asset.id ? { ...item, name: file.name, type: file.type || file.name.split('.').at(-1) || 'arquivo', size: file.size, url, createdAt: new Date().toISOString(), bundled: false } : item) }; setContent(next); saveSiteContent(next) }; reader.readAsDataURL(file) }
   const visible = content.files.filter((asset) => asset.name.toLowerCase().includes(query.toLowerCase()) || asset.url.toLowerCase().includes(query.toLowerCase()))
   const paginated = visible.slice((page - 1) * adminPageSize, page * adminPageSize)
-  return <AdminFrame {...props} title="Arquivos"><section className="simple-page-heading cms-admin-heading"><div><h1>Biblioteca de arquivos</h1><p>Acervo de PDFs, planilhas, documentos de texto e demais arquivos publicados no site.</p></div><label className="primary-button cms-upload-button"><Upload /> Enviar arquivos<input hidden multiple type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.odt,.ods,.txt" onChange={upload} /></label></section><label className="cms-library-search">Buscar no acervo<input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Nome ou caminho do arquivo" /></label><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Arquivo</th><th>Tipo</th><th>Tamanho</th><th>Caminho</th><th>Ações</th></tr></thead><tbody>{paginated.map((asset) => <tr key={asset.id}><td>{asset.name}</td><td>{asset.type.toUpperCase()}</td><td>{(asset.size / 1024).toFixed(1)} KB</td><td><code>{asset.url.startsWith('data:') ? 'Armazenado no navegador' : asset.url}</code></td><td><div className="cms-table-actions"><a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a><label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" onChange={(event) => replace(asset, event.target.files?.[0])} /></label>{!asset.bundled && <button type="button" onClick={() => remove(asset.id)}><Trash2 /> Excluir</button>}</div></td></tr>)}</tbody></table></div><AdminPagination page={page} total={visible.length} onChange={setPage} /><p className="cms-demo-limit">{visible.length} arquivo(s) encontrado(s). O catálogo é regenerado automaticamente no build.</p></AdminFrame>
+  return <AdminFrame {...props} title="Arquivos"><section className="simple-page-heading cms-admin-heading"><div><h1>Biblioteca de arquivos</h1><p>Acervo de PDFs, planilhas, documentos de texto e demais arquivos publicados no site.</p></div><label className="primary-button cms-upload-button"><Upload /> Enviar arquivos<input hidden multiple type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.odt,.ods,.txt" onChange={upload} /></label></section><label className="cms-library-search">Buscar no acervo<input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Nome ou caminho do arquivo" /></label><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Arquivo</th><th>Tipo</th><th>Tamanho</th><th>Caminho</th><th>Ações</th></tr></thead><tbody>{paginated.map((asset) => <tr key={asset.id}><td>{asset.name}</td><td>{asset.type.toUpperCase()}</td><td>{(asset.size / 1024).toFixed(1)} KB</td><td><code>{asset.url.startsWith('data:') ? 'Armazenado no navegador' : asset.url}</code></td><td><div className="cms-table-actions"><a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a><label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" onChange={(event) => replace(asset, event.target.files?.[0])} /></label>{!asset.bundled && <button type="button" onClick={() => remove(asset.id)}><Trash2 /> Excluir</button>}</div></td></tr>)}</tbody></table></div><ArquivosPorPagina /><AdminPagination page={page} total={visible.length} onChange={setPage} /><p className="cms-demo-limit">{visible.length} arquivo(s) encontrado(s). O catálogo é regenerado automaticamente no build.</p></AdminFrame>
 }
 
 const emptyNews = (category: string): CmsNewsItem => ({ id: crypto.randomUUID(), title: '', summary: '', category, author: '', publishDate: new Date().toISOString().slice(0, 10), status: 'draft', audience: 'Ambos', scope: 'Nacional', coverUrl: '', bodyImageUrl: '', content: '', updatedAt: new Date().toISOString() })

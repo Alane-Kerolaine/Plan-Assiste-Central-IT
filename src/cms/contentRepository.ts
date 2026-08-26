@@ -28,6 +28,17 @@ export type CmsBlock = {
   caption?: string
 }
 
+/** Arquivo que pertence a uma página, listado na tabela daquela página. */
+export type CmsPageFile = {
+  id: string
+  name: string
+  type: string
+  size: number
+  url: string
+  status: 'draft' | 'published'
+  updatedAt: string
+}
+
 export type CmsPage = {
   id: string
   slug: string
@@ -37,6 +48,8 @@ export type CmsPage = {
   summary: string
   status: 'draft' | 'published'
   blocks: CmsBlock[]
+  /** Documentos exclusivos desta página. */
+  files?: CmsPageFile[]
   updatedAt: string
 }
 
@@ -184,6 +197,7 @@ export function createCmsPage(slug = ''): CmsPage {
     summary: '',
     status: 'draft',
     blocks: [createCmsBlock()],
+    files: [],
     updatedAt: new Date().toISOString(),
   }
 }
