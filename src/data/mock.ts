@@ -1,3 +1,4 @@
+import type { CmsBlock } from '../cms/contentRepository'
 export type IconName =
   | 'home'
   | 'card'
@@ -58,6 +59,12 @@ export type NewsItem = {
   bodyImageUrl?: string
   summary: string
   body: string[]
+  /** Corpo escrito no editor, com formatacao. Quando existe, substitui body. */
+  bodyHtml?: string
+  /** Relacionados escolhidos a mao; vazio mantem a selecao automatica. */
+  related?: Array<{ kind: 'news' | 'page', id: string }>
+  /** Blocos montados no editor, exibidos depois do texto. */
+  blocks?: CmsBlock[]
 }
 
 export const mockUser = {

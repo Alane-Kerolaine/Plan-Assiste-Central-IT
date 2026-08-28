@@ -3,7 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Home, Pencil, RefreshCw } from 'lucide-react'
 import { PublicBreadcrumb, PublicShell, type PublicPageProps } from './PublicPages'
 import { useCmsSnapshot } from '../cms/contentRepository'
-import { estadoDaPagina, paginaParaEdicao } from '../cms/portalNavegacao'
+import { edicaoTemEfeito, estadoDaPagina } from '../cms/portalNavegacao'
+import { sementeDaPagina } from './sementeDaPagina'
+import { CmsLiveNewsPanel } from './CmsLiveNewsPanel'
+import { CmsLiveConteudo } from './CmsLiveConteudo'
+import { ehAreaDeNoticias, idDaNoticia, noticiaParaEdicao } from '../cms/noticiaDoCaminho'
 import { CmsLivePanel } from './CmsLivePanel'
 
 const RAIZ = '/area-da-equipe/administracao-do-portal/navegar'
@@ -24,8 +28,8 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
   const [caminho, setCaminho] = useState(destino.url)
   const paginas = useCmsSnapshot().pages
   const [editando, setEditando] = useState(false)
-  // Recarrega o quadro apos salvar, para o resultado publicado aparecer na hora.
-  const [versao, setVersao] = useState(0)
+  // Muda a cada "Nova notícia" para o painel remontar em branco.
+  const [novaNoticia, setNovaNoticia] = useState(0)
 
   /** Aceita caminho digitado, colado com o endereço completo ou sem a barra inicial. */
   function navegarPara(valor: string) {
@@ -64,7 +68,11 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
     }
   }, [caminho, navigate])
 
-  const estado = estadoDaPagina(paginas, caminho)
+  const noticias = ehAreaDeNoticias(caminho)
+  const editavel = noticias || edicaoTemEfeito(caminho)
+  const estado = noticias
+    ? { rotulo: idDaNoticia(caminho) ? 'Notícia' : 'Notícias', tom: 'publicada' as const, descricao: idDaNoticia(caminho) ? 'Edite esta notícia sem sair da visualização. A tela de Gestão de notícias continua disponível.' : 'Crie uma notícia a partir daqui. Ela aparece na listagem assim que for publicada.', pagina: undefined }
+    : estadoDaPagina(paginas, caminho)
 
   return (
     <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
@@ -124,7 +132,7 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
             <a className="secondary-button" href={caminho} target="_blank" rel="noreferrer">
               <ExternalLink aria-hidden="true" /> Abrir no portal
             </a>
-            <button className="primary-button" type="button" onClick={() => setEditando(true)}>
+            <button className="primary-button" type="button" onClick={() => setEditando(true)} disabled={!editavel}>
               <Pencil aria-hidden="true" /> {editando ? 'Editando…' : 'Editar esta página'}
             </button>
           </div>
@@ -136,22 +144,44 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
           <div className="cms-live-frame-wrap">
             <iframe
               className="cms-live-frame"
-              key={`${destino.tentativa}-${versao}`}
+              key={destino.tentativa}
               ref={quadro}
               src={destino.url}
               title="Portal Plan-Assiste — visualização para edição"
             />
           </div>
 
-          {editando && (
+          {editando && noticias && (
+            <CmsLiveNewsPanel
+              key={`${caminho}-${novaNoticia}`}
+              noticiaInicial={noticiaParaEdicao(caminho)}
+              existente={Boolean(idDaNoticia(caminho))}
+              onFechar={() => setEditando(false)}
+              onSalvo={(destino) => { setEditando(false); setDestino((atual) => ({ url: destino, tentativa: atual.tentativa + 1 })); setCaminho(destino) }}
+            />
+          )}
+
+          {editando && !noticias && (
             <CmsLivePanel
               key={estado.pagina?.id ?? caminho}
-              paginaInicial={paginaParaEdicao(estado, caminho)}
+              paginaInicial={estado.pagina ?? sementeDaPagina(caminho)}
+              personalizada={Boolean(estado.pagina)}
               onFechar={() => setEditando(false)}
-              onSalvo={() => setVersao((atual) => atual + 1)}
+              // Recarrega no caminho aberto, nao no de montagem, senao volta ao inicio.
+              onSalvo={() => setDestino((atual) => ({ url: caminho, tentativa: atual.tentativa + 1 }))}
             />
           )}
         </div>
+
+        <CmsLiveConteudo
+          caminho={caminho}
+          onNavegar={navegarPara}
+          onNovaNoticia={() => {
+            navegarPara('/noticias')
+            setNovaNoticia((atual) => atual + 1)
+            setEditando(true)
+          }}
+        />
       </main>
     </PublicShell>
   )

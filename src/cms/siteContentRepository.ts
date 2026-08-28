@@ -1,10 +1,11 @@
 import { news as publicNews } from '../data/mock'
 import { bundledAssetCatalog } from '../data/assetCatalog.generated'
+import type { CmsBlock, CmsRelatedRef } from './contentRepository'
 
 export type CmsMediaAsset = { id: string; name: string; type: string; size: number; url: string; createdAt: string; bundled?: boolean }
 export type CmsFileAsset = CmsMediaAsset
 export type CmsBanner = { id: string; slideshow: 'home' | 'beneficiary' | 'provider' | 'team'; eyebrow: string; title: string; description: string; actionLabel: string; destination: string; imageUrl: string; alt: string; tone: string; startDate: string; endDate: string; order: number; active: boolean }
-export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string; scope: string; coverUrl: string; bodyImageUrl: string; content: string; updatedAt: string }
+export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string; scope: string; coverUrl: string; bodyImageUrl: string; content: string; blocks?: CmsBlock[]; related?: CmsRelatedRef[]; updatedAt: string }
 export type CmsSocialLink = { id: string; network: 'youtube' | 'whatsapp' | 'linkedin'; label: string; url: string; order: number; active: boolean }
 export type CmsContactChannel = { id: string; kind: 'phone' | 'whatsapp' | 'email'; label: string; value: string; order: number; active: boolean }
 export type CmsAddress = { id: string; label: string; note: string; detail: string; phone: string; email: string; order: number; active: boolean }

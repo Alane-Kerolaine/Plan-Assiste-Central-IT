@@ -57,6 +57,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { getCmsSlideshow } from '../cms/siteContentRepository'
+import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Breadcrumb,
@@ -78,10 +79,14 @@ import {
 } from '../data/mock'
 import {
   defaultUserProfile,
+  geocodeAddressForPrototype,
   getStoredUserProfile,
   saveStoredUserProfile,
+  type UserAddress,
   type UserProfile,
 } from '../utils/userProfile'
+import { maskCep } from '../utils/inputMasks'
+import { UF_OPTIONS } from '../data/serviceFormSchemas'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { BrazilianDateInput } from '../components/BrazilianDateInput'
 import { FileAttachmentField } from '../components/FileAttachmentField'
@@ -333,6 +338,7 @@ function BeneficiaryCampaignCarousel() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
+      <AtalhoDeEdicao para="/banners" titulo="Editar os banners desta vitrine" />
       <div className="beneficiary-campaign-copy" aria-live="polite">
         <h1>{campaign.title}</h1>
         <p>{campaign.description}</p>
@@ -3627,10 +3633,17 @@ export function MyDataPage() {
     : (profile.avatar || defaultUserProfile.avatar || '')
   const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : nomeExibicao(profile)
   const accountEmail = isProviderAccount ? (profile.providerEmail || 'contato@saudeevida.com.br') : profile.email
-  const addressHasCoordinates = profile.address.latitude !== undefined && profile.address.longitude !== undefined
+  // A referencia precisa acompanhar o endereco em edicao: as coordenadas guardadas
+  // sao do endereco anterior e so sao recalculadas ao salvar.
+  const enderecoLocalizado = geocodeAddressForPrototype(profile.address)
+  const addressHasCoordinates = enderecoLocalizado.latitude !== undefined && enderecoLocalizado.longitude !== undefined
 
   function updateProfile(key: keyof Pick<UserProfile, 'email' | 'providerEmail' | 'providerWhatsapp' | 'phone' | 'whatsapp'>, value: string) {
     setProfile((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateAddress(key: keyof UserAddress, value: string) {
+    setProfile((current) => ({ ...current, address: { ...current.address, [key]: value } }))
   }
 
   function updateAvatar(event: ChangeEvent<HTMLInputElement>) {
@@ -3781,17 +3794,23 @@ export function MyDataPage() {
             <MapPin aria-hidden="true" />
             <div>
               <h2>{isProviderAccount ? 'Endereço de atendimento' : 'Endereço residencial'}</h2>
-              <p>{isProviderAccount ? 'Endereço cadastral do credenciado, disponível apenas para consulta.' : 'Endereço cadastral disponível apenas para consulta e usado como referência de distância na busca logada.'}</p>
+              <p>{isProviderAccount ? 'Endereço cadastral do credenciado. Atualize e salve para que a alteração valha no portal.' : 'Mantenha o endereço atualizado: ele é a referência de distância usada na busca da Rede credenciada.'}</p>
             </div>
           </div>
           <div className="my-data-grid">
-            <label className="my-data-wide">Logradouro<input value={profile.address.street} disabled /></label>
-            <label>Número<input value={profile.address.number} disabled /></label>
-            <label>Complemento<input value={profile.address.complement} disabled /></label>
-            <label>Bairro<input value={profile.address.district} disabled /></label>
-            <label>Cidade<input value={profile.address.city} disabled /></label>
-            <label>UF<input value={profile.address.state} disabled /></label>
-            <label>CEP<input value={profile.address.zipCode} disabled /></label>
+            <label className="my-data-wide">Logradouro<input value={profile.address.street} onChange={(event) => updateAddress('street', event.target.value)} placeholder="Rua, avenida, quadra…" /></label>
+            <label>Número<input value={profile.address.number} onChange={(event) => updateAddress('number', event.target.value)} placeholder="Número ou bloco" /></label>
+            <label>Complemento<input value={profile.address.complement} onChange={(event) => updateAddress('complement', event.target.value)} placeholder="Apartamento, sala (opcional)" /></label>
+            <label>Bairro<input value={profile.address.district} onChange={(event) => updateAddress('district', event.target.value)} placeholder="Nome do bairro" /></label>
+            <label>Cidade<input value={profile.address.city} onChange={(event) => updateAddress('city', event.target.value)} placeholder="Nome da cidade" /></label>
+            <label>
+              UF
+              <select value={profile.address.state} onChange={(event) => updateAddress('state', event.target.value)}>
+                <option value="">Selecione</option>
+                {UF_OPTIONS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+              </select>
+            </label>
+            <label>CEP<input value={profile.address.zipCode} maxLength={9} inputMode="numeric" onChange={(event) => updateAddress('zipCode', maskCep(event.target.value))} placeholder="00000-000" /></label>
           </div>
           <section className="my-data-reference" aria-live="polite">
             <MapPin aria-hidden="true" />

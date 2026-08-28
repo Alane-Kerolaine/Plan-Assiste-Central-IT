@@ -3,11 +3,32 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCmsSnapshot, type CmsBlock, type CmsPage } from '../cms/contentRepository'
 import { renderCmsIcon } from '../cms/iconCatalog'
+import { caminhoDoSlug } from '../cms/portalNavegacao'
 import { InlineLinkedText } from './InlineLinkedText'
 import { stripHtml } from '../utils/html'
+import { incorporacaoDoYoutube } from '../cms/youtube'
+import { htmlSeguro } from '../utils/htmlSeguro'
+import { ConteudosRelacionados } from './ConteudosRelacionados'
+import { CmsGaleria } from './CmsGaleria'
 
-function safeHtml(html: string) {
-  return { __html: html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*(['"]).*?\1/gi, '') }
+/**
+ * Vídeo do YouTube dentro da página. Se o endereço guardado não for do YouTube,
+ * a página avisa em vez de exibir um quadro vazio.
+ */
+function YoutubeIncorporado({ url, titulo }: { url: string, titulo: string }) {
+  const incorporacao = incorporacaoDoYoutube(url)
+  if (!incorporacao) return <p className="cms-youtube-invalido">Vídeo do YouTube não configurado: o endereço informado não é reconhecido.</p>
+  return (
+    <div className="cms-youtube">
+      <iframe
+        src={incorporacao}
+        title={titulo}
+        loading="lazy"
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    </div>
+  )
 }
 
 function CmsFaqBlock({ block, className }: { block: CmsBlock, className: string }) {
@@ -45,7 +66,7 @@ export function CmsBlockRenderer({ block }: { block: CmsBlock }) {
   if (block.type === 'rich-text') return (
     <section className={className}>
       {block.title && <h2>{block.title}</h2>}
-      <div className="cms-rich-content" dangerouslySetInnerHTML={safeHtml(block.content)} />
+      <div className="cms-rich-content" dangerouslySetInnerHTML={htmlSeguro(block.content)} />
     </section>
   )
   if (block.type === 'card') return (
@@ -62,7 +83,43 @@ export function CmsBlockRenderer({ block }: { block: CmsBlock }) {
   )
   if (block.type === 'table') return <section className={className}>{block.title && <h2>{block.title}</h2>}<div className="portal-table-wrap"><table className={`portal-table cms-table-${block.tableVariant || 'standard'}`}><thead><tr>{(block.tableHeaders || []).map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{(block.tableRows || []).map((row, rowIndex) => <tr key={rowIndex}>{(block.tableHeaders || []).map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex]}</td>)}</tr>)}</tbody></table></div></section>
   if (block.type === 'button') return <div className={`${className} cms-button-block`}>{block.href?.startsWith('/') ? <Link className={block.buttonVariant === 'link' ? 'text-link' : block.buttonVariant === 'secondary' ? 'secondary-button' : 'primary-button'} to={block.href}>{block.buttonLabel || 'Abrir'} <ArrowRight /></Link> : <a className={block.buttonVariant === 'link' ? 'text-link' : block.buttonVariant === 'secondary' ? 'secondary-button' : 'primary-button'} href={block.href || '#'} target="_blank" rel="noreferrer">{block.buttonLabel || 'Abrir'} <ExternalLink /></a>}</div>
-  if (block.type === 'media') return <figure className={`${className} cms-public-media`}>{block.title && <h2>{block.title}</h2>}{block.mediaKind === 'video' ? <video src={block.mediaUrl} controls preload="metadata" /> : block.mediaKind === 'audio' ? <audio src={block.mediaUrl} controls preload="metadata" /> : <img src={block.mediaUrl} alt={block.caption || ''} />}{block.caption && <figcaption>{block.caption}</figcaption>}</figure>
+  if (block.type === 'gallery') return (
+    <section className={className}>
+      {block.title && <h2>{block.title}</h2>}
+      <CmsGaleria itens={block.galleryItems || []} autoplay={block.galleryAutoplay} titulo={block.title} />
+    </section>
+  )
+  if (block.type === 'media') {
+    const lado = block.mediaLayout === 'left' || block.mediaLayout === 'right'
+    const midia = block.mediaKind === 'youtube'
+      ? <YoutubeIncorporado url={block.mediaUrl || ''} titulo={block.title || block.caption || 'Vídeo do YouTube'} />
+      : block.mediaKind === 'video' ? <video src={block.mediaUrl} controls preload="metadata" />
+      : block.mediaKind === 'audio' ? <audio src={block.mediaUrl} controls preload="metadata" />
+      : <img src={block.mediaUrl} alt={block.caption || ''} />
+
+    if (lado) {
+      return (
+        <section className={`${className} cms-media-lado is-${block.mediaLayout}`}>
+          {block.title && <h2>{block.title}</h2>}
+          <div className="cms-media-lado-corpo">
+            <div className="cms-media-lado-figura">
+              {midia}
+              {block.caption && <small>{block.caption}</small>}
+            </div>
+            <div className="cms-media-lado-texto cms-rich-content" dangerouslySetInnerHTML={htmlSeguro(block.content)} />
+          </div>
+        </section>
+      )
+    }
+
+    return (
+      <figure className={`${className} cms-public-media`}>
+        {block.title && <h2>{block.title}</h2>}
+        {midia}
+        {block.caption && <figcaption>{block.caption}</figcaption>}
+      </figure>
+    )
+  }
   if (block.type === 'document') return (
     <section className={className}>
       {block.title && <h2>{block.title}</h2>}
@@ -78,13 +135,37 @@ export function CmsBlockRenderer({ block }: { block: CmsBlock }) {
   )
 }
 
+/**
+ * Paginas filhas publicadas de uma pagina, em cards. Fica num componente porque
+ * o indice do Plan-Assiste nao passa por CmsPageBlocks e tambem precisa listar
+ * o que a equipe criou abaixo dele.
+ */
+export function CmsPaginasFilhas({ parentSlug }: { parentSlug: string }) {
+  const filhas = useCmsSnapshot().pages.filter((item) => item.parentSlug === parentSlug && item.status === 'published')
+  if (filhas.length === 0) return null
+
+  return (
+    <section className="cms-child-pages">
+      <h2>Páginas desta seção</h2>
+      <div className="plan-card-grid plan-card-grid-secondary">
+        {filhas.map((filha) => (
+          <Link className="plan-section-card" to={caminhoDoSlug(filha.slug)} key={filha.id}>
+            <span>{filha.navigationTitle || filha.title}</span>
+            {filha.summary && <p>{filha.summary}</p>}
+            <strong>Abrir página <ExternalLink aria-hidden="true" /></strong>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function CmsPageBlocks({ page, editing }: { page: CmsPage, editing?: boolean }) {
-  const snapshot = useCmsSnapshot()
-  const children = snapshot.pages.filter((item) => item.parentSlug === page.slug && item.status === 'published')
   return (
     <div className="cms-public-grid">
       {page.blocks.map((block) => <CmsBlockRenderer block={block} key={block.id} />)}
-      {children.length > 0 && <section className="cms-child-pages"><h2>Páginas desta seção</h2><div className="plan-card-grid plan-card-grid-secondary">{children.map((child) => <Link className="plan-section-card" to={`/plan-assiste/${child.slug}`} key={child.id}><span>{child.navigationTitle}</span><p>{child.summary}</p><strong>Abrir página <ExternalLink aria-hidden="true" /></strong></Link>)}</div></section>}
+      <CmsPaginasFilhas parentSlug={page.slug} />
+      <ConteudosRelacionados refs={page.related} />
       {editing && <Link className="cms-context-edit" to={`/area-da-equipe/administracao-do-portal/paginas/${page.id}`}><Pencil aria-hidden="true" /> Editar conteúdo desta página</Link>}
     </div>
   )

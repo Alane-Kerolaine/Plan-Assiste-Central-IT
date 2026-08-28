@@ -1,7 +1,10 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, FileArchive, FileImage, FilePlus2, Globe2, Images, MapPin, Newspaper, Pencil, Phone, Plus, Save, Trash2, Upload, X } from 'lucide-react'
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { contentRepository, createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsBlockType, type CmsPage } from '../cms/contentRepository'
+import { miniaturaDoYoutube } from '../cms/youtube'
+import { CmsGaleriaEditor } from './CmsGaleriaEditor'
+import { TIPOS_DE_BLOCO } from '../cms/tiposDeBloco'
 import { cmsIconGroups } from '../cms/iconCatalog'
 import { getCmsFaqCategories, getCmsFaqs, resetCmsFaqCategories, resetCmsFaqs, type CmsFaqItem } from '../cms/specialContent'
 import { getSiteContent, saveSiteContent, type CmsAddress, type CmsBanner, type CmsContactChannel, type CmsMediaAsset, type CmsNewsItem, type CmsSocialLink } from '../cms/siteContentRepository'
@@ -142,19 +145,151 @@ function OrganizationItemsEditor({ items, onChange }: { items: OrgItem[], onChan
 function TableBlockEditor({ block, onChange, onDelete }: { block: CmsBlock, onChange: (block: CmsBlock) => void, onDelete: () => void }) {
   const headers = block.tableHeaders || ['Coluna 1', 'Coluna 2']
   const rows = block.tableRows || [['', '']]
+
   function setHeaders(tableHeaders: string[]) { onChange({ ...block, tableHeaders }) }
   function setRows(tableRows: string[][]) { onChange({ ...block, tableRows }) }
-  return <section className="cms-table-editor">
-    <label className="cms-table-style">Estilo da tabela
-      <select value={block.tableVariant || 'standard'} onChange={(event) => onChange({ ...block, tableVariant: event.target.value as CmsBlock['tableVariant'] })}>
-        <option value="standard">Normal</option>
-        <option value="hover">Destacar linha ao passar o mouse</option>
-        <option value="striped">Zebrada (linhas alternadas)</option>
-      </select>
-    </label>
-    <div className="cms-table-editor-actions"><button type="button" onClick={() => onChange({ ...block, tableHeaders: [...headers, `Coluna ${headers.length + 1}`], tableRows: rows.map((row) => [...row, '']) })}><Plus /> Coluna</button><button type="button" disabled={headers.length <= 1} onClick={() => onChange({ ...block, tableHeaders: headers.slice(0, -1), tableRows: rows.map((row) => row.slice(0, -1)) })}><Trash2 /> Última coluna</button><button type="button" onClick={() => setRows([...rows, headers.map(() => '')])}><Plus /> Linha</button><button type="button" disabled={rows.length <= 1} onClick={() => setRows(rows.slice(0, -1))}><Trash2 /> Última linha</button><button className="cms-table-delete" type="button" onClick={() => { if (window.confirm('Excluir esta tabela?')) onDelete() }}><Trash2 /> Excluir tabela</button></div>
-    <div className="portal-table-wrap"><table className={`portal-table cms-table-${block.tableVariant || 'standard'}`}><thead><tr>{headers.map((header, column) => <th key={column}><input value={header} onChange={(event) => setHeaders(headers.map((value, index) => index === column ? event.target.value : value))} aria-label={`Cabeçalho ${column + 1}`} /></th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={rowIndex}>{headers.map((_, column) => <td key={column}><textarea value={row[column] || ''} onChange={(event) => setRows(rows.map((value, index) => index === rowIndex ? headers.map((__, cellIndex) => cellIndex === column ? event.target.value : value[cellIndex] || '') : value))} aria-label={`Linha ${rowIndex + 1}, coluna ${column + 1}`} /></td>)}</tr>)}</tbody></table></div>
-  </section>
+
+  /** Mantém toda linha com exatamente uma célula por coluna. */
+  function normalizar(lista: string[][], total: number): string[][] {
+    return lista.map((linha) => Array.from({ length: total }, (_, indice) => linha[indice] ?? ''))
+  }
+
+  function adicionarColuna() {
+    onChange({
+      ...block,
+      tableHeaders: [...headers, `Coluna ${headers.length + 1}`],
+      tableRows: normalizar(rows, headers.length + 1),
+    })
+  }
+
+  /** Remove a coluna escolhida, e não apenas a última. */
+  function removerColuna(alvo: number) {
+    if (headers.length <= 1) return
+    onChange({
+      ...block,
+      tableHeaders: headers.filter((_, indice) => indice !== alvo),
+      tableRows: rows.map((linha) => linha.filter((_, indice) => indice !== alvo)),
+    })
+  }
+
+  function inserirLinha(depoisDe: number) {
+    const vazia = headers.map(() => '')
+    setRows([...rows.slice(0, depoisDe + 1), vazia, ...rows.slice(depoisDe + 1)])
+  }
+
+  /** Remove a linha escolhida. Antes só dava para apagar a última, o que
+      obrigava a destruir todas as seguintes para corrigir uma do meio. */
+  function removerLinha(alvo: number) {
+    if (rows.length <= 1) return
+    setRows(rows.filter((_, indice) => indice !== alvo))
+  }
+
+  function moverLinha(alvo: number, passo: -1 | 1) {
+    const destino = alvo + passo
+    if (destino < 0 || destino >= rows.length) return
+    const copia = [...rows]
+    ;[copia[alvo], copia[destino]] = [copia[destino], copia[alvo]]
+    setRows(copia)
+  }
+
+  /**
+   * Cola de planilha: o navegador entrega TSV, então cada linha vira uma linha
+   * da tabela. Uma agenda anual tem dezenas de linhas — digitá-las uma a uma
+   * era o caminho mais lento possível.
+   */
+  function colar(evento: ClipboardEvent<HTMLTextAreaElement>, linha: number, coluna: number) {
+    const texto = evento.clipboardData.getData('text/plain')
+    if (!texto.includes('\t') && !texto.includes('\n')) return
+    evento.preventDefault()
+
+    const grade = texto.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map((l) => l.split('\t'))
+    const colunasNecessarias = Math.max(headers.length, coluna + Math.max(...grade.map((l) => l.length)))
+    const cabecalhos = Array.from({ length: colunasNecessarias }, (_, i) => headers[i] ?? `Coluna ${i + 1}`)
+
+    const total = Math.max(rows.length, linha + grade.length)
+    const atualizadas = normalizar(Array.from({ length: total }, (_, i) => rows[i] ?? []), colunasNecessarias)
+    grade.forEach((valores, i) => {
+      valores.forEach((valor, j) => { atualizadas[linha + i][coluna + j] = valor })
+    })
+
+    onChange({ ...block, tableHeaders: cabecalhos, tableRows: atualizadas })
+  }
+
+  return (
+    <section className="cms-table-editor">
+      <label className="cms-table-style">
+        Estilo da tabela
+        <select value={block.tableVariant || 'standard'} onChange={(event) => onChange({ ...block, tableVariant: event.target.value as CmsBlock['tableVariant'] })}>
+          <option value="standard">Normal</option>
+          <option value="hover">Destacar linha ao passar o mouse</option>
+          <option value="striped">Zebrada (linhas alternadas)</option>
+        </select>
+      </label>
+
+      <p className="cms-table-dica">Cole direto de uma planilha em qualquer célula para preencher várias linhas de uma vez.</p>
+
+      <div className="cms-table-editor-actions">
+        <button type="button" onClick={adicionarColuna}><Plus /> Coluna</button>
+        <button type="button" onClick={() => inserirLinha(rows.length - 1)}><Plus /> Linha</button>
+        <button className="cms-table-delete" type="button" onClick={() => { if (window.confirm('Excluir esta tabela?')) onDelete() }}><Trash2 /> Excluir tabela</button>
+      </div>
+
+      <div className="portal-table-wrap">
+        <table className={`portal-table cms-table-${block.tableVariant || 'standard'}`}>
+          <thead>
+            <tr>
+              {headers.map((header, coluna) => (
+                <th key={coluna}>
+                  <div className="cms-table-col">
+                    <input
+                      value={header}
+                      onChange={(event) => setHeaders(headers.map((valor, indice) => indice === coluna ? event.target.value : valor))}
+                      aria-label={`Cabeçalho ${coluna + 1}`}
+                    />
+                    <button
+                      type="button"
+                      className="cms-table-remover"
+                      disabled={headers.length <= 1}
+                      title={`Excluir a coluna ${header || coluna + 1}`}
+                      aria-label={`Excluir a coluna ${header || coluna + 1}`}
+                      onClick={() => removerColuna(coluna)}
+                    >
+                      <Trash2 />
+                    </button>
+                  </div>
+                </th>
+              ))}
+              <th className="cms-table-acoes-col"><span className="sr-only">Ações da linha</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {headers.map((_, coluna) => (
+                  <td key={coluna}>
+                    <textarea
+                      value={row[coluna] || ''}
+                      onPaste={(evento) => colar(evento, rowIndex, coluna)}
+                      onChange={(event) => setRows(rows.map((valor, indice) => indice === rowIndex ? headers.map((__, celula) => celula === coluna ? event.target.value : valor[celula] || '') : valor))}
+                      aria-label={`Linha ${rowIndex + 1}, coluna ${coluna + 1}`}
+                    />
+                  </td>
+                ))}
+                <td className="cms-table-acoes-col">
+                  <div className="cms-table-acoes">
+                    <button type="button" title="Mover para cima" aria-label={`Mover a linha ${rowIndex + 1} para cima`} disabled={rowIndex === 0} onClick={() => moverLinha(rowIndex, -1)}><ArrowUp /></button>
+                    <button type="button" title="Mover para baixo" aria-label={`Mover a linha ${rowIndex + 1} para baixo`} disabled={rowIndex === rows.length - 1} onClick={() => moverLinha(rowIndex, 1)}><ArrowDown /></button>
+                    <button type="button" title="Inserir linha abaixo" aria-label={`Inserir linha abaixo da ${rowIndex + 1}`} onClick={() => inserirLinha(rowIndex)}><Plus /></button>
+                    <button type="button" className="cms-table-remover" title="Excluir esta linha" aria-label={`Excluir a linha ${rowIndex + 1}`} disabled={rows.length <= 1} onClick={() => removerLinha(rowIndex)}><Trash2 /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
 }
 
 function AdminFrame({ children, title, loggedIn, onLogout }: PublicPageProps & { children: React.ReactNode, title: string }) {
@@ -260,10 +395,31 @@ export function CmsPagesPage(props: PublicPageProps) {
   )
 }
 
+/**
+ * Endereço do vídeo do YouTube. A miniatura serve de conferência: quem edita vê
+ * qual vídeo será exibido antes de publicar, sem precisar abrir o portal.
+ */
+function YoutubeCampo({ url, onChange }: { url: string, onChange: (url: string) => void }) {
+  const miniatura = miniaturaDoYoutube(url)
+  return (
+    <label className="wide cms-youtube-campo">
+      Endereço do vídeo no YouTube
+      <input
+        value={url}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="https://www.youtube.com/watch?v=..."
+        spellCheck={false}
+      />
+      {url.trim() && !miniatura && <small className="cms-youtube-erro">Endereço não reconhecido. Cole o endereço da página do vídeo no YouTube.</small>}
+      {miniatura && <img className="cms-youtube-miniatura" src={miniatura} alt="Miniatura do vídeo escolhido" />}
+    </label>
+  )
+}
+
 export function BlockEditor({ block, index, total, onChange, onMove, onDelete }: { block: CmsBlock, index: number, total: number, onChange: (block: CmsBlock) => void, onMove: (direction: -1 | 1) => void, onDelete: () => void }) {
   const library = getSiteContent()
   function changeType(type: CmsBlockType) {
-    onChange({ ...block, type, cardVariant: type === 'card' ? block.cardVariant || 'navigation' : block.cardVariant, faqCategories: type === 'faq' ? block.faqCategories || ['Geral'] : block.faqCategories, faqItems: type === 'faq' ? block.faqItems || [] : block.faqItems, organizationItems: type === 'organization' ? block.organizationItems || [] : block.organizationItems, tableHeaders: type === 'table' ? block.tableHeaders || ['Coluna 1', 'Coluna 2'] : block.tableHeaders, tableRows: type === 'table' ? block.tableRows || [['', '']] : block.tableRows, tableVariant: type === 'table' ? block.tableVariant || 'standard' : block.tableVariant, buttonVariant: type === 'button' ? block.buttonVariant || 'primary' : block.buttonVariant })
+    onChange({ ...block, type, cardVariant: type === 'card' ? block.cardVariant || 'navigation' : block.cardVariant, faqCategories: type === 'faq' ? block.faqCategories || ['Geral'] : block.faqCategories, faqItems: type === 'faq' ? block.faqItems || [] : block.faqItems, organizationItems: type === 'organization' ? block.organizationItems || [] : block.organizationItems, tableHeaders: type === 'table' ? block.tableHeaders || ['Coluna 1', 'Coluna 2'] : block.tableHeaders, tableRows: type === 'table' ? block.tableRows || [['', '']] : block.tableRows, tableVariant: type === 'table' ? block.tableVariant || 'standard' : block.tableVariant, galleryItems: type === 'gallery' ? block.galleryItems || [] : block.galleryItems, galleryAutoplay: type === 'gallery' ? block.galleryAutoplay ?? true : block.galleryAutoplay, buttonVariant: type === 'button' ? block.buttonVariant || 'primary' : block.buttonVariant })
   }
   function attachFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -279,20 +435,21 @@ export function BlockEditor({ block, index, total, onChange, onMove, onDelete }:
   return <article className={`cms-block-editor cms-width-${block.width.replace('/', '-')}`}>
     <header><strong>Bloco {index + 1}</strong><div><button type="button" disabled={index === 0} onClick={() => onMove(-1)} title="Mover para cima"><ArrowLeft /></button><button type="button" disabled={index === total - 1} onClick={() => onMove(1)} title="Mover para baixo"><ArrowRight /></button><button type="button" onClick={onDelete} title="Excluir bloco"><Trash2 /></button></div></header>
     <div className="cms-block-fields">
-      <label>Tipo<select value={block.type} onChange={(event) => changeType(event.target.value as CmsBlockType)}><option value="rich-text">Texto rico</option><option value="card">Card</option><option value="document">Documento ou arquivo</option><option value="button">Botão</option><option value="media">Mídia</option><option value="table">Tabela</option><option value="notice">Destaque</option><option value="faq">Dúvidas frequentes</option><option value="organization">Organograma</option></select></label>
+      <label>Tipo<select value={block.type} onChange={(event) => changeType(event.target.value as CmsBlockType)}><option value="rich-text">Texto rico</option><option value="card">Card</option><option value="document">Documento ou arquivo</option><option value="button">Botão</option><option value="media">Mídia</option><option value="table">Tabela</option><option value="notice">Destaque</option><option value="faq">Dúvidas frequentes</option><option value="gallery">Carrossel de imagens</option><option value="organization">Organograma</option></select></label>
       <label>Largura<select value={block.width} onChange={(event) => onChange({ ...block, width: event.target.value as CmsBlock['width'] })}><option value="1/1">Linha inteira</option><option value="1/2">Metade</option><option value="1/3">Um terço</option><option value="1/4">Um quarto</option></select></label>
       <label className="wide">Título<input value={block.title} onChange={(event) => onChange({ ...block, title: event.target.value })} /></label>
-      {block.type === 'rich-text' && <label className="wide">Conteúdo<RichTextEditor value={block.content} onChange={(content) => onChange({ ...block, content })} minHeight={130} /></label>}
+      {block.type === 'rich-text' && <div className="wide cms-campo"><span className="cms-campo-rotulo">Conteúdo</span><RichTextEditor value={block.content} onChange={(content) => onChange({ ...block, content })} minHeight={130} /></div>}
       {['card', 'document', 'notice'].includes(block.type) && <label className="wide">Descrição<textarea rows={4} value={stripHtml(block.content)} onChange={(event) => onChange({ ...block, content: event.target.value })} /></label>}
       {block.type === 'card' && <><label>Estilo do card<select value={block.cardVariant || 'navigation'} onChange={(event) => onChange({ ...block, cardVariant: event.target.value as CmsBlock['cardVariant'] })}><option value="navigation">Navegação principal</option><option value="navigation-secondary">Card de navegação 2</option><option value="actuarial">Avaliação Atuarial</option><option value="information">Informativo</option><option value="operational">Operacional</option><option value="result">Resultado</option></select></label><label>Ícone do topo<select value={block.icon || 'none'} disabled={block.cardVariant === 'actuarial'} onChange={(event) => onChange({ ...block, icon: event.target.value })}><option value="none">Sem ícone</option>{cmsIconGroups.map((group) => <optgroup label={group.label} key={group.label}>{group.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</optgroup>)}</select></label><label>Identificador ou ano<input value={block.badge || ''} disabled={block.cardVariant !== 'actuarial'} onChange={(event) => onChange({ ...block, badge: event.target.value })} placeholder={block.cardVariant === 'actuarial' ? 'Ex.: 2026' : 'Disponível no card atuarial'} /></label><label>Metadado ou período<input value={block.meta || ''} onChange={(event) => onChange({ ...block, meta: event.target.value })} placeholder="Ex.: Período-base: julho/2025 a junho/2026" /></label></>}
       {(block.type === 'card' || block.type === 'document') && <><label className="wide">Link ou caminho do arquivo<input value={block.href || ''} onChange={(event) => onChange({ ...block, href: event.target.value })} placeholder="/assets/documento.pdf" /></label>{block.type === 'document' && <label className="wide">Hospedar arquivo nesta demonstração<input type="file" onChange={attachFile} /></label>}<label className="wide">Texto do botão<input value={block.buttonLabel || ''} onChange={(event) => onChange({ ...block, buttonLabel: event.target.value })} /></label></>}
       {block.type === 'document' && <label className="wide">Selecionar na Biblioteca de arquivos<Combobox value={block.href || ''} options={library.files.map((asset) => ({ value: asset.url, label: asset.name }))} onSelect={(href) => { const asset = library.files.find((item) => item.url === href); onChange({ ...block, href, buttonLabel: block.buttonLabel || asset?.name || 'Baixar arquivo' }) }} placeholder="Digite para buscar um arquivo existente" /></label>}
       {block.type === 'button' && <><label>Estilo<select value={block.buttonVariant || 'primary'} onChange={(event) => onChange({ ...block, buttonVariant: event.target.value as CmsBlock['buttonVariant'] })}><option value="primary">Primário</option><option value="secondary">Secundário</option><option value="link">Link textual</option></select></label><label>Texto do botão<input value={block.buttonLabel || ''} onChange={(event) => onChange({ ...block, buttonLabel: event.target.value })} /></label><label className="wide">Destino<input value={block.href || ''} onChange={(event) => onChange({ ...block, href: event.target.value })} /></label><label className="wide">Vincular a arquivo<select value={library.files.some((asset) => asset.url === block.href) ? block.href : ''} onChange={(event) => onChange({ ...block, href: event.target.value })}><option value="">Nenhum arquivo</option>{library.files.map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label></>}
-      {block.type === 'media' && <><label>Tipo<select value={block.mediaKind || 'image'} onChange={(event) => onChange({ ...block, mediaKind: event.target.value as CmsBlock['mediaKind'], mediaUrl: '' })}><option value="image">Imagem</option><option value="video">Vídeo</option><option value="audio">Áudio</option></select></label><label className="wide">Item da Biblioteca de mídia<select value={block.mediaUrl || ''} onChange={(event) => onChange({ ...block, mediaUrl: event.target.value })}><option value="">Selecione</option>{library.media.filter((asset) => block.mediaKind === 'video' ? ['mp4','webm'].includes(asset.type) || asset.type.startsWith('video/') : block.mediaKind === 'audio' ? ['mp3','wav','ogg','m4a'].includes(asset.type) || asset.type.startsWith('audio/') : ['png','jpg','jpeg','webp','gif','svg'].includes(asset.type) || asset.type.startsWith('image/')).map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label><label className="wide">Legenda ou texto alternativo<input value={block.caption || ''} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></label></>}
+      {block.type === 'media' && <><label>Tipo<select value={block.mediaKind || 'image'} onChange={(event) => onChange({ ...block, mediaKind: event.target.value as CmsBlock['mediaKind'], mediaUrl: '' })}><option value="image">Imagem</option><option value="video">Vídeo</option><option value="audio">Áudio</option><option value="youtube">Vídeo do YouTube</option></select></label>{block.mediaKind === 'youtube' && <YoutubeCampo url={block.mediaUrl || ''} onChange={(mediaUrl) => onChange({ ...block, mediaUrl })} />}{block.mediaKind !== 'youtube' && <label className="wide">Item da Biblioteca de mídia<select value={block.mediaUrl || ''} onChange={(event) => onChange({ ...block, mediaUrl: event.target.value })}><option value="">Selecione</option>{library.media.filter((asset) => block.mediaKind === 'video' ? ['mp4','webm'].includes(asset.type) || asset.type.startsWith('video/') : block.mediaKind === 'audio' ? ['mp3','wav','ogg','m4a'].includes(asset.type) || asset.type.startsWith('audio/') : ['png','jpg','jpeg','webp','gif','svg'].includes(asset.type) || asset.type.startsWith('image/')).map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label>}<label className="wide">Legenda ou texto alternativo<input value={block.caption || ''} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></label><label>Arranjo<select value={block.mediaLayout || 'full'} onChange={(event) => onChange({ ...block, mediaLayout: event.target.value as CmsBlock['mediaLayout'] })}><option value="full">Ocupando a linha</option><option value="left">Imagem à esquerda, descrição ao lado</option><option value="right">Imagem à direita, descrição ao lado</option></select></label>{(block.mediaLayout === 'left' || block.mediaLayout === 'right') && <div className="wide cms-campo"><span className="cms-campo-rotulo">Descrição ao lado</span><RichTextEditor value={block.content} onChange={(content) => onChange({ ...block, content })} minHeight={130} /></div>}</>}
     </div>
     {block.type === 'faq' && <FaqCollectionEditor categories={block.faqCategories || ['Geral']} items={block.faqItems || []} onCategoriesChange={(faqCategories) => onChange({ ...block, faqCategories })} onItemsChange={(faqItems) => onChange({ ...block, faqItems })} />}
     {block.type === 'organization' && <OrganizationItemsEditor items={block.organizationItems || []} onChange={(organizationItems) => onChange({ ...block, organizationItems })} />}
     {block.type === 'table' && <TableBlockEditor block={block} onChange={onChange} onDelete={onDelete} />}
+    {block.type === 'gallery' && <CmsGaleriaEditor block={block} onChange={onChange} />}
   </article>
 }
 
@@ -439,7 +596,7 @@ export function CmsNewsPage(props: PublicPageProps) {
   const visibleNews = site.news.slice((page - 1) * adminPageSize, page * adminPageSize)
   function renameCategory(category: string) { const value = normalizeCategory(window.prompt('Novo nome da categoria:', category) || ''); if (!value || value === category || site.newsCategories.some((item) => item.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'))) return; commit({ ...site, newsCategories: site.newsCategories.map((item) => item === category ? value : item), news: site.news.map((item) => item.category === category ? { ...item, category: value } : item) }) }
   return <AdminFrame {...props} title="Notícias"><section className="simple-page-heading cms-admin-heading"><div><h1>Gestão de notícias</h1><p>Crie, edite, categorize, publique ou retire notícias do portal.</p></div><button className="primary-button" type="button" onClick={() => setEditing(emptyNews(site.newsCategories[0] || 'Geral'))}><Plus /> Nova notícia</button></section><section className="cms-category-manager"><h2>Categorias</h2><div className="cms-category-list">{site.newsCategories.map((category) => <span key={category}>{category}<button type="button" title="Renomear categoria e atualizar notícias" onClick={() => renameCategory(category)}><Pencil /></button><button type="button" title="Excluir categoria" onClick={() => { if (site.news.some((item) => item.category === category)) { window.alert('Altere a categoria das notícias vinculadas antes de excluí-la.'); return }; commit({ ...site, newsCategories: site.newsCategories.filter((item) => item !== category) }) }}><Trash2 /></button></span>)}</div><div className="cms-category-add"><input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="Nova categoria" /><button className="secondary-button" type="button" onClick={() => { const value = normalizeCategory(newCategory); if (value && !site.newsCategories.some((item) => item.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'))) { commit({ ...site, newsCategories: [...site.newsCategories, value] }); setNewCategory('') } }}><Plus /> Adicionar</button></div></section>
-    {editing && <section className="cms-management-form"><header><h2>{site.news.some((item) => item.id === editing.id) ? 'Editar notícia' : 'Nova notícia'}</h2><button type="button" onClick={() => setEditing(null)} title="Cancelar edição"><X /></button></header><div className="cms-page-fields"><label className="wide">Título<input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label><label className="wide">Resumo<textarea value={editing.summary} onChange={(event) => setEditing({ ...editing, summary: event.target.value })} /></label><label>Categoria<Combobox value={editing.category} options={site.newsCategories.map((category) => ({ value: category, label: category }))} onSelect={(category) => setEditing({ ...editing, category })} placeholder="Digite para buscar uma categoria" /></label><label>Autor<input value={editing.author} onChange={(event) => setEditing({ ...editing, author: event.target.value })} /></label><label>Publicação<input type="date" lang="pt-BR" value={editing.publishDate} onChange={(event) => setEditing({ ...editing, publishDate: event.target.value })} /></label><label>Status<select value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value as CmsNewsItem['status'] })}><option value="draft">Rascunho</option><option value="published">Publicada</option></select></label><label>Público<select value={editing.audience} onChange={(event) => setEditing({ ...editing, audience: event.target.value })}><option>Ambos</option><option>Beneficiários</option><option>Credenciados</option><option>Equipe</option></select></label><label>Abrangência<select value={editing.scope} onChange={(event) => setEditing({ ...editing, scope: event.target.value })}><option>Nacional</option><option>Regional</option></select></label><NewsImagePicker label="Imagem de capa" value={editing.coverUrl} images={newsImages} onSelect={(coverUrl) => setEditing({ ...editing, coverUrl })} onUpload={(file) => uploadNewsImage(file, (coverUrl) => setEditing((current) => current && { ...current, coverUrl }))} /><NewsImagePicker label="Imagem interna da notícia" value={editing.bodyImageUrl} images={newsImages} onSelect={(bodyImageUrl) => setEditing({ ...editing, bodyImageUrl })} onUpload={(file) => uploadNewsImage(file, (bodyImageUrl) => setEditing((current) => current && { ...current, bodyImageUrl }))} /><label className="wide">Conteúdo<RichTextEditor value={editing.content} onChange={(content) => setEditing({ ...editing, content })} minHeight={220} /></label></div><div className="cms-editor-footer"><span /><button className="secondary-button" type="button" onClick={() => setEditing(null)}><X /> Cancelar edição</button><button className="primary-button" type="button" onClick={saveNews}><Save /> Salvar notícia</button></div></section>}
+    {editing && <section className="cms-management-form"><header><h2>{site.news.some((item) => item.id === editing.id) ? 'Editar notícia' : 'Nova notícia'}</h2><button type="button" onClick={() => setEditing(null)} title="Cancelar edição"><X /></button></header><div className="cms-page-fields"><label className="wide">Título<input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label><label className="wide">Resumo<textarea value={editing.summary} onChange={(event) => setEditing({ ...editing, summary: event.target.value })} /></label><label>Categoria<Combobox value={editing.category} options={site.newsCategories.map((category) => ({ value: category, label: category }))} onSelect={(category) => setEditing({ ...editing, category })} placeholder="Digite para buscar uma categoria" /></label><label>Autor<input value={editing.author} onChange={(event) => setEditing({ ...editing, author: event.target.value })} /></label><label>Publicação<input type="date" lang="pt-BR" value={editing.publishDate} onChange={(event) => setEditing({ ...editing, publishDate: event.target.value })} /></label><label>Status<select value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value as CmsNewsItem['status'] })}><option value="draft">Rascunho</option><option value="published">Publicada</option></select></label><label>Público<select value={editing.audience} onChange={(event) => setEditing({ ...editing, audience: event.target.value })}><option>Ambos</option><option>Beneficiários</option><option>Credenciados</option><option>Equipe</option></select></label><label>Abrangência<select value={editing.scope} onChange={(event) => setEditing({ ...editing, scope: event.target.value })}><option>Nacional</option><option>Regional</option></select></label><NewsImagePicker label="Imagem de capa" value={editing.coverUrl} images={newsImages} onSelect={(coverUrl) => setEditing({ ...editing, coverUrl })} onUpload={(file) => uploadNewsImage(file, (coverUrl) => setEditing((current) => current && { ...current, coverUrl }))} /><NewsImagePicker label="Imagem interna da notícia" value={editing.bodyImageUrl} images={newsImages} onSelect={(bodyImageUrl) => setEditing({ ...editing, bodyImageUrl })} onUpload={(file) => uploadNewsImage(file, (bodyImageUrl) => setEditing((current) => current && { ...current, bodyImageUrl }))} /><div className="wide cms-campo"><span className="cms-campo-rotulo">Conteúdo</span><RichTextEditor value={editing.content} onChange={(content) => setEditing({ ...editing, content })} minHeight={220} /></div><div className="wide cms-noticia-blocos"><header><h3>Blocos depois do texto</h3><div className="cms-live-add-block"><select value="" onChange={(event) => { if (!event.target.value) return; setEditing({ ...editing, blocks: [...(editing.blocks ?? []), createCmsBlock(event.target.value as CmsBlockType)] }) }}><option value="">Adicionar bloco…</option>{TIPOS_DE_BLOCO.map(([tipo, rotulo]) => <option key={tipo} value={tipo}>{rotulo}</option>)}</select><Plus aria-hidden="true" /></div></header>{(editing.blocks ?? []).map((bloco, indice) => <BlockEditor key={bloco.id} block={bloco} index={indice} total={(editing.blocks ?? []).length} onChange={(alterado) => setEditing({ ...editing, blocks: (editing.blocks ?? []).map((item) => item.id === alterado.id ? alterado : item) })} onMove={(direcao) => { const lista = [...(editing.blocks ?? [])]; const alvo = indice + direcao; if (alvo < 0 || alvo >= lista.length) return; [lista[indice], lista[alvo]] = [lista[alvo], lista[indice]]; setEditing({ ...editing, blocks: lista }) }} onDelete={() => setEditing({ ...editing, blocks: (editing.blocks ?? []).filter((item) => item.id !== bloco.id) })} />)}</div></div><div className="cms-editor-footer"><span /><button className="secondary-button" type="button" onClick={() => setEditing(null)}><X /> Cancelar edição</button><button className="primary-button" type="button" onClick={saveNews}><Save /> Salvar notícia</button></div></section>}
     <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Título</th><th>Categoria</th><th>Autor</th><th>Publicação</th><th>Status</th><th>Ações</th></tr></thead><tbody>{visibleNews.map((item) => <tr key={item.id}><td>{item.title}</td><td>{item.category}</td><td>{item.author || '—'}</td><td>{formatBrazilianDate(item.publishDate)}</td><td>{item.status === 'published' ? 'Publicada' : 'Rascunho'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditing(item)}><Pencil /> Editar</button><button type="button" onClick={() => { if (window.confirm('Excluir esta notícia?')) commit({ ...site, news: site.news.filter((news) => news.id !== item.id), deletedNewsIds: [...new Set([...site.deletedNewsIds, item.id])] }) }}><Trash2 /> Excluir</button></div></td></tr>)}</tbody></table></div><AdminPagination page={page} total={site.news.length} onChange={setPage} />
   </AdminFrame>
 }

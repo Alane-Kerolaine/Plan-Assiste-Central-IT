@@ -37,6 +37,7 @@ import {
 import { getStoredSession, hasProfile, setActiveProfile, type PortalProfile } from '../utils/session'
 import { generateCaptchaCode } from '../utils/captcha'
 import { getCmsSlideshow } from '../cms/siteContentRepository'
+import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 
 const heroSlides = [
   {
@@ -381,6 +382,7 @@ function HeroCarousel() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
+      <AtalhoDeEdicao para="/banners" titulo="Editar os banners desta vitrine" />
       <div className="hero-track">
         {slides.map((item, index) => (
           <article

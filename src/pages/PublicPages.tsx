@@ -44,6 +44,8 @@ import {
 } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { FileAttachmentField } from '../components/FileAttachmentField'
+import { EmailTextInput } from '../components/EmailTextInput'
+import { isValidEmail } from '../utils/validation'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { Footer, Header, MainMenu, RestrictedAreaSidebar, SupportIcon, type AreaSidebarGroup, type SupportIconType } from '../components/PortalComponents'
 import {
@@ -60,16 +62,22 @@ import {
   type FavoriteState,
 } from '../utils/favorites'
 import { UF_OPTIONS, getServiceFormSchema } from '../data/serviceFormSchemas'
+import { normalizaTexto } from '../utils/texto'
 import { findServicoByPaginaSlug, servicoFormSlug, servicoPaginaSlug, servicoRotaFormulario } from '../utils/servicoPlanAssiste'
 import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
+import { htmlSeguro } from '../utils/htmlSeguro'
 import { getStoredSession } from '../utils/session'
 import { NewsCard } from './HomePage'
 import { createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsPage } from '../cms/contentRepository'
-import { CmsPageBlocks } from '../components/CmsBlocks'
+import { CmsBlockRenderer, CmsPageBlocks, CmsPaginasFilhas } from '../components/CmsBlocks'
+import { ConteudosRelacionados } from '../components/ConteudosRelacionados'
 import { InlineLinkedText } from '../components/InlineLinkedText'
 import { getCmsFaqCategories, getCmsFaqs, getCmsOrgHierarchy } from '../cms/specialContent'
 import { getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
+import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
+import { dentroDoEditor } from '../utils/modoEdicao'
+import { caminhoDoSlug, trilhaDaPagina } from '../cms/portalNavegacao'
 import { supportChannels } from '../data/supportChannels'
 import { getStoredUserProfile } from '../utils/userProfile'
 import { getProviderPublicProfile, providerTagOptions, saveProviderPublicProfile, testProviderId, type ProviderPublicProfile } from '../utils/providerPublicProfile'
@@ -84,7 +92,7 @@ const newsPerPage = 12
 function getPortalNews(): NewsItem[] {
   const managed = getSiteContent().news.filter((item) => item.status === 'published').map((item) => {
     const [year, month, day] = item.publishDate.split('-')
-    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean) }
+    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean), bodyHtml: item.content, related: item.related, blocks: item.blocks }
   })
   return [...managed, ...news.filter((item) => !managed.some((managedItem) => managedItem.id === item.id))]
 }
@@ -2154,6 +2162,8 @@ export function PlanAssisteIndexPage({ loggedIn, onLogout }: PublicPageProps) {
                     )
                   })}
                 </section>
+
+                <CmsPaginasFilhas parentSlug="plan-assiste" />
               </>
             )}
           </div>
@@ -2176,7 +2186,10 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
   if (section) return <PlanAssisteSectionPage section={section} loggedIn={loggedIn} onLogout={onLogout} />
 
   const article = planAssisteArticles.find((item) => item.slug === slug)
-  const cmsPage = slug ? cmsSnapshot.pages.find((page) => page.slug === slug && page.status === 'published') : undefined
+  // Dentro do navegador da Area da equipe o rascunho tambem e exibido: caso
+  // contrario a pagina recem-criada seria expulsa antes de poder ser editada.
+  const editorAberto = dentroDoEditor()
+  const cmsPage = slug ? cmsSnapshot.pages.find((page) => page.slug === slug && (page.status === 'published' || editorAberto)) : undefined
 
   if (!article && !cmsPage) return <Navigate to="/plan-assiste" replace />
 
@@ -2195,10 +2208,22 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
       ]
     : [{ label: 'Plan-Assiste', to: '/plan-assiste' }]
 
+  // Página criada pela equipe: a trilha sai da hierarquia salva, senão uma filha
+  // apareceria pendurada direto na raiz e a página mãe sumiria do caminho.
+  const trilha = cmsPage && !article ? trilhaDaPagina(cmsSnapshot.pages, cmsPage.slug) : []
+  const parentsFinal = trilha.length > 0
+    ? [
+        { label: 'Plan-Assiste', to: '/plan-assiste' },
+        ...trilha
+          .filter((ancestral) => ancestral.slug !== 'plan-assiste')
+          .map((ancestral) => ({ label: ancestral.navigationTitle || ancestral.title, to: caminhoDoSlug(ancestral.slug) })),
+      ]
+    : parents
+
   return (
     <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
       <main className="container public-page">
-        <PublicBreadcrumb current={cmsPage?.navigationTitle || article?.navigationTitle || ''} parents={parents} />
+        <PublicBreadcrumb current={cmsPage?.navigationTitle || article?.navigationTitle || ''} parents={parentsFinal} />
 
         <div className="public-content-layout plan-content-layout">
         <PlanAssisteSidebar currentSlug={article?.slug || cmsPage?.slug || ''} />
@@ -2461,18 +2486,13 @@ function PlanAssisteSectionPage({
 // Seção "Serviços" do Plan-Assiste
 // ---------------------------------------------------------------------------
 
-// Busca sem acentuação e sem caixa, para "medico" encontrar "médico".
-function normalizaBusca(texto: string): string {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
 function PlanAssisteServicosPage({ section, loggedIn, onLogout }: PublicPageProps & { section: PlanAssisteSection }) {
   const Icon = section.icon
   const [busca, setBusca] = useState('')
 
-  const termo = normalizaBusca(busca.trim())
+  const termo = normalizaTexto(busca.trim())
   const encontrados = termo
-    ? beneficiaryRequests.filter((request) => normalizaBusca(
+    ? beneficiaryRequests.filter((request) => normalizaTexto(
         [request.title, request.description, request.category, ...request.tags].join(' '),
       ).includes(termo))
     : beneficiaryRequests
@@ -2646,6 +2666,10 @@ function PlanAssisteServicoPage({ slug, loggedIn, onLogout }: PublicPageProps & 
 
 export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
   const navigate = useNavigate()
+  // Paginas criadas pela equipe tambem navegam por aqui: sem isso elas so
+  // seriam alcancaveis por endereco direto.
+  const criadas = useCmsSnapshot().pages.filter((item) => item.status === 'published')
+  const criadasNaRaiz = criadas.filter((item) => item.parentSlug === 'plan-assiste')
   const currentPath = currentSlug === 'plan-assiste' ? '/plan-assiste' : `/plan-assiste/${currentSlug}`
 
   return (
@@ -2717,6 +2741,18 @@ export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
               </div>
             )
           })}
+
+          {criadasNaRaiz.map((pagina) => (
+            <div className="plan-side-group" key={pagina.id}>
+              <Link
+                className={`plan-side-section-link${currentSlug === pagina.slug ? ' active' : ''}`}
+                to={caminhoDoSlug(pagina.slug)}
+                aria-current={currentSlug === pagina.slug ? 'page' : undefined}
+              >
+                <span>{pagina.navigationTitle || pagina.title}</span>
+              </Link>
+            </div>
+          ))}
         </div>
       </div>
     </aside>
@@ -3222,7 +3258,16 @@ export function NewsDetailPage({ loggedIn, onLogout }: PublicPageProps) {
 
               <section className="news-detail-body">
                 {currentItem.bodyImageUrl && <img className="news-detail-inline-image" src={currentItem.bodyImageUrl} alt="" />}
-                {currentItem.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                {currentItem.bodyHtml
+                  ? <div className="cms-rich-content" dangerouslySetInnerHTML={htmlSeguro(currentItem.bodyHtml)} />
+                  : currentItem.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                {/* Blocos montados no editor: tabela, carrossel, documento… A grade
+                    de 12 colunas e o que da efeito a largura escolhida em cada bloco. */}
+                {currentItem.blocks && currentItem.blocks.length > 0 && (
+                  <div className="cms-public-grid">
+                    {currentItem.blocks.map((bloco) => <CmsBlockRenderer block={bloco} key={bloco.id} />)}
+                  </div>
+                )}
                 <div className="news-detail-category">
                   <strong>Categoria:</strong>
                   <Link className="request-category" to={newsCategoryLink}>
@@ -3232,17 +3277,22 @@ export function NewsDetailPage({ loggedIn, onLogout }: PublicPageProps) {
               </section>
             </article>
 
-            <section className="news-related" aria-label="Notícias relacionadas">
-              <div className="section-heading">
-                <h2>Notícias relacionadas</h2>
-                <Link className="text-link" to={newsCategoryLink}>Ver mais <ArrowRight aria-hidden="true" /></Link>
-              </div>
-              <div className="news-grid news-detail-related-grid">
-                {relatedItems.map((related) => (
-                  <CompactNewsCard item={related} key={related.id} />
-                ))}
-              </div>
-            </section>
+            {/* Escolha manual da equipe substitui a lista automática por categoria. */}
+            {currentItem.related && currentItem.related.length > 0 ? (
+              <ConteudosRelacionados refs={currentItem.related} />
+            ) : (
+              <section className="news-related" aria-label="Notícias relacionadas">
+                <div className="section-heading">
+                  <h2>Notícias relacionadas</h2>
+                  <Link className="text-link" to={newsCategoryLink}>Ver mais <ArrowRight aria-hidden="true" /></Link>
+                </div>
+                <div className="news-grid news-detail-related-grid">
+                  {relatedItems.map((related) => (
+                    <CompactNewsCard item={related} key={related.id} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
@@ -4173,6 +4223,7 @@ function DashboardNewsCarousel({
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
+      <AtalhoDeEdicao para="/banners" titulo="Editar os banners desta vitrine" />
       <div className="provider-news-main" aria-live="polite">
         <span className="eyebrow">{eyebrow}</span>
         <h2>{item.title}</h2>
@@ -4867,6 +4918,10 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
           : 'Preencha nome, e-mail, assunto e descrição para enviar sua avaliação.')
       return
     }
+    if (!isValidEmail(email)) {
+      setNotice('Informe um e-mail válido para que possamos retornar.')
+      return
+    }
     setNotice('')
     setSubmitted(true)
   }
@@ -4929,7 +4984,8 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
                 </label>
                 <label className={isComplaint ? 'half-width' : undefined}>
                   E-mail *
-                  <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Digite o seu e-mail de contato" />
+                  {/* Mesma validação dos formulários do catálogo: acusa o erro ao sair do campo. */}
+                  <EmailTextInput value={email} onChange={setEmail} placeholder="Digite o seu e-mail de contato" />
                 </label>
                 {isAcompanhamento && (
                   <>
@@ -4988,6 +5044,15 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
                       <input type="checkbox" checked={sigiloDadosPessoais} onChange={(event) => setSigiloDadosPessoais(event.target.checked)} />
                       Deseja manter seus dados pessoais em sigilo?
                     </label>
+                    {sigiloDadosPessoais && (
+                      <p className="aviso-sigilo wide" role="status">
+                        <strong>Atenção:</strong>
+                        <span>
+                          Os dados informados serão de conhecimento da unidade de tratamento da denúncia,
+                          mas anônimos às áreas respondentes, bem como ao denunciado
+                        </span>
+                      </p>
+                    )}
                   </>
                 )}
               </div>

@@ -5,6 +5,7 @@ import { VLibrasWidget } from './components/VLibrasWidget'
 import { AiChatWidget } from './components/AiChatWidget'
 import { CookieConsent } from './components/CookieConsent'
 import { HomePage } from './pages/HomePage'
+import { CmsPaginaCriadaPage } from './pages/CmsPaginaCriadaPage'
 import { LoginPage } from './pages/LoginPage'
 import { BecomeBeneficiaryPage } from './pages/LandingPages'
 import {
@@ -219,6 +220,7 @@ function App() {
             </Suspense>
           }
         />
+        <Route path="/transparencia/*" element={<CmsPaginaCriadaPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/busca" element={<SearchPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route
           path="/credenciado"

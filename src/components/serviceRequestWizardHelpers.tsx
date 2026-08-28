@@ -111,6 +111,14 @@ export function renderField(field: ServiceField, value: string, onChange: (value
   const somenteLeitura = Boolean(field.disabled)
 
   if (field.type === 'note') {
+    if (field.noteTone === 'atencao') {
+      return (
+        <p className="aviso-sigilo wide" role="status" key={field.id}>
+          <strong>Atenção:</strong>
+          <span>{field.label}</span>
+        </p>
+      )
+    }
     return (
       <p className="service-field-note wide" key={field.id}>{field.label}</p>
     )

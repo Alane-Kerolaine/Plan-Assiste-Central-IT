@@ -30,6 +30,8 @@ export type ServiceField = {
   helpText?: string
   infoText?: string
   showIf?: ServiceFieldCondition
+  /** Aviso em destaque, com a tarja "Atencao:". So vale para campos do tipo note. */
+  noteTone?: 'atencao'
   format?: ServiceFieldFormat
 }
 
@@ -441,6 +443,8 @@ const emissaoDocumentos = withExtraFields(
 // Denúncia / Reclamação: quem registra informa os próprios dados, digitados à mão.
 // Por isso não usa baseSchema — não há seleção de beneficiário nem campos travados
 // preenchidos a partir do cadastro.
+const TEXTO_AVISO_SIGILO = 'Os dados informados serão de conhecimento da unidade de tratamento da denúncia, mas anônimos às áreas respondentes, bem como ao denunciado'
+
 const denunciaReclamacao: ServiceFormSchema = {
   slug: 'denuncia-reclamacao',
   title: 'Denúncia / Reclamação',
@@ -463,6 +467,14 @@ const denunciaReclamacao: ServiceFormSchema = {
           shortLabel: 'Sigilo dos dados pessoais',
           type: 'checkbox',
           fullWidth: true,
+        },
+        {
+          id: 'avisoSigiloDadosPessoais',
+          label: TEXTO_AVISO_SIGILO,
+          type: 'note',
+          noteTone: 'atencao',
+          fullWidth: true,
+          showIf: { fieldId: 'sigiloDadosPessoais', equals: 'true' },
         },
       ],
     },
