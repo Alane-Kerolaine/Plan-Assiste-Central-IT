@@ -2,21 +2,25 @@ import { news as publicNews } from '../data/mock'
 import { bundledAssetCatalog } from '../data/assetCatalog.generated'
 import type { CmsBlock, CmsRelatedRef } from './contentRepository'
 
-export type CmsMediaAsset = { id: string; name: string; type: string; size: number; url: string; createdAt: string; bundled?: boolean }
+export type CmsMediaAsset = { id: string; name: string; type: string; size: number; url: string; createdAt: string; bundled?: boolean; /** Pasta escolhida a mao, quando o endereco nao traz caminho. */ folder?: string }
 export type CmsFileAsset = CmsMediaAsset
-export type CmsBanner = { id: string; slideshow: 'home' | 'beneficiary' | 'provider' | 'team'; eyebrow: string; title: string; description: string; actionLabel: string; destination: string; imageUrl: string; alt: string; tone: string; startDate: string; endDate: string; order: number; active: boolean }
-export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string; scope: string; coverUrl: string; bodyImageUrl: string; content: string; blocks?: CmsBlock[]; related?: CmsRelatedRef[]; updatedAt: string }
-export type CmsSocialLink = { id: string; network: 'youtube' | 'whatsapp' | 'linkedin'; label: string; url: string; order: number; active: boolean }
-export type CmsContactChannel = { id: string; kind: 'phone' | 'whatsapp' | 'email'; label: string; value: string; order: number; active: boolean }
-export type CmsAddress = { id: string; label: string; note: string; detail: string; phone: string; email: string; order: number; active: boolean }
+export type CmsBanner = { id: string; slideshow: 'home' | 'beneficiary' | 'provider' | 'team'; eyebrow: string; title: string; description: string; actionLabel: string; destination: string; imageUrl: string; alt: string; tone: string; startDate: string; endDate: string; order: number; active: boolean; folder?: string }
+export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string; scope: string; coverUrl: string; bodyImageUrl: string; content: string; blocks?: CmsBlock[]; related?: CmsRelatedRef[]; folder?: string; updatedAt: string }
+export type CmsSocialLink = { id: string; network: 'youtube' | 'whatsapp' | 'linkedin'; label: string; url: string; order: number; active: boolean; folder?: string }
+export type CmsContactChannel = { id: string; kind: 'phone' | 'whatsapp' | 'email'; label: string; value: string; order: number; active: boolean; folder?: string }
+export type CmsAddress = { id: string; label: string; note: string; detail: string; phone: string; email: string; order: number; active: boolean; folder?: string }
 
-type SiteContent = { banners: CmsBanner[]; media: CmsMediaAsset[]; files: CmsFileAsset[]; news: CmsNewsItem[]; newsCategories: string[]; deletedBannerIds: string[]; deletedNewsIds: string[]; socialLinks: CmsSocialLink[]; contactChannels: CmsContactChannel[]; addresses: CmsAddress[] }
+type SiteContent = { banners: CmsBanner[]; media: CmsMediaAsset[]; files: CmsFileAsset[]; news: CmsNewsItem[]; newsCategories: string[]; mediaFolders: string[]; fileFolders: string[]; bannerFolders: string[]; contactFolders: string[]; deletedBannerIds: string[]; deletedNewsIds: string[]; socialLinks: CmsSocialLink[]; contactChannels: CmsContactChannel[]; addresses: CmsAddress[] }
 const KEY = 'planAssisteCmsSiteContentV1'
 const categoryLabel = (value: string) => { const text = value.trim().toLocaleLowerCase('pt-BR'); return text ? text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1) : '' }
 
 const defaults: SiteContent = {
   deletedBannerIds: [],
   deletedNewsIds: [],
+  mediaFolders: [],
+  fileFolders: [],
+  bannerFolders: [],
+  contactFolders: [],
   banners: [
     { id: 'slide-home-1', slideshow: 'home', eyebrow: 'Portal do Plan-Assiste', title: 'Cuidar da sua saúde ficou mais simples', description: 'Encontre credenciados, acesse serviços, acompanhe reembolsos e consulte informações importantes em um só lugar.', actionLabel: 'Conheça os serviços', destination: '#servicos', imageUrl: '/assets/hero-cuidar-saude.png', alt: 'Médica atendendo uma paciente', tone: 'default', startDate: '', endDate: '', order: 1, active: true },
     { id: 'slide-home-2', slideshow: 'home', eyebrow: 'Rede credenciada', title: 'Encontre um credenciado perto de você', description: 'Busque profissionais, clínicas, hospitais e serviços por especialidade, cidade, tipo de rede ou forma de atendimento.', actionLabel: 'Buscar credenciados', destination: '/rede-credenciada', imageUrl: '/assets/hero-prestador.png', alt: 'Beneficiária usando tablet para buscar credenciados de saúde', tone: 'default', startDate: '', endDate: '', order: 2, active: true },
@@ -83,7 +87,7 @@ export function getSiteContent(): SiteContent {
     const socialLinks = mergeFixedCollection(saved.socialLinks, defaults.socialLinks)
     const contactChannels = mergeFixedCollection(saved.contactChannels, defaults.contactChannels)
     const addresses = mergeFixedCollection(saved.addresses, defaults.addresses)
-    return { banners, media, files, news, newsCategories, deletedBannerIds, deletedNewsIds, socialLinks, contactChannels, addresses }
+    return { banners, media, files, news, newsCategories, mediaFolders: saved.mediaFolders || [], fileFolders: saved.fileFolders || [], bannerFolders: saved.bannerFolders || [], contactFolders: saved.contactFolders || [], deletedBannerIds, deletedNewsIds, socialLinks, contactChannels, addresses }
   } catch { return structuredClone(defaults) }
 }
 

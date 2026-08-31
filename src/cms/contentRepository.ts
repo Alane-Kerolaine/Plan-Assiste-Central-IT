@@ -51,6 +51,8 @@ export type CmsPageFile = {
   size: number
   url: string
   status: 'draft' | 'published'
+  /** Pasta escolhida a mao na visao em pastas da pagina. */
+  folder?: string
   updatedAt: string
 }
 
@@ -63,6 +65,10 @@ export type CmsPage = {
   summary: string
   status: 'draft' | 'published'
   blocks: CmsBlock[]
+  /** Pasta escolhida a mao dentro da pagina mae. */
+  folder?: string
+  /** Pastas criadas na visao em pastas desta pagina, mesmo vazias. */
+  contentFolders?: string[]
   /** Conteudos relacionados escolhidos a mao para esta pagina. */
   related?: CmsRelatedRef[]
   /** Documentos exclusivos desta página. */

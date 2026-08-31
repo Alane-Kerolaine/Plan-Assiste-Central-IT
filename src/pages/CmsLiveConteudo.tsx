@@ -14,7 +14,9 @@ import { normalizaTexto } from '../utils/texto'
 import { CmsNovaPaginaDialogo, type OpcaoDeMae } from './CmsNovaPaginaDialogo'
 import { VisaoEmPastas } from '../components/VisaoEmPastas'
 import { AlternadorDeVisao, type Visao } from '../components/AlternadorDeVisao'
-import type { ItemComPasta } from '../cms/pastas'
+import { caminhoDaNovaPasta, folderAposExcluir, folderAposRenomear, segmentosComPastaManual, type ItemComPasta } from '../cms/pastas'
+import { NovaPastaBotao } from '../components/NovaPastaBotao'
+import { getSiteContent as lerSite, saveSiteContent } from '../cms/siteContentRepository'
 
 type Linha =
   | { tipo: 'pagina', grupo: string, id: string, titulo: string, estado: string, modificado: string, tamanho: number, destino: string }
@@ -78,7 +80,7 @@ export function CmsLiveConteudo({
   const linhas: Linha[] = [
     ...noticias.map((noticia): Linha => ({
       tipo: 'pagina',
-      grupo: 'Notícias',
+      grupo: segmentosComPastaManual(noticia.folder, ['Notícias']).join('/'),
       id: noticia.id,
       titulo: noticia.title || '(sem título)',
       estado: noticia.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -88,7 +90,7 @@ export function CmsLiveConteudo({
     })),
     ...filhas.map((filha): Linha => ({
       tipo: 'pagina',
-      grupo: 'Páginas',
+      grupo: segmentosComPastaManual(filha.folder, ['Páginas']).join('/'),
       id: filha.id,
       titulo: filha.title || filha.slug,
       estado: filha.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -98,7 +100,7 @@ export function CmsLiveConteudo({
     })),
     ...arquivos.map((arquivo): Linha => ({
       tipo: 'arquivo',
-      grupo: 'Arquivos',
+      grupo: segmentosComPastaManual(arquivo.folder, ['Arquivos']).join('/'),
       id: arquivo.id,
       titulo: arquivo.name,
       estado: arquivo.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -239,7 +241,90 @@ export function CmsLiveConteudo({
   }
 
   // Cada tipo de conteúdo é uma pasta: notícias, páginas filhas e arquivos.
-  const entradasDeConteudo: Array<ItemComPasta<Linha>> = visiveis.map((linha) => ({ item: linha, segmentos: [linha.grupo] }))
+  const entradasDeConteudo: Array<ItemComPasta<Linha>> = visiveis.map((linha) => ({ item: linha, segmentos: linha.grupo.split('/') }))
+  // As pastas existem mesmo vazias: e dentro delas que se cria o primeiro item.
+  // Renomear ou excluir uma pasta de tipo (Noticias, Paginas, Arquivos) nao a
+  // elimina: ela e recriada a partir dos itens que nao tem pasta manual.
+  /** Pastas criadas aqui ficam guardadas na propria pagina. */
+  const pastasCriadas = (pagina?.contentFolders ?? []).map((caminho) => caminho.split('/'))
+
+  function gravarPastas(lista: string[]) {
+    const base = paginaGravavel()
+    contentRepository.savePage({ ...base, contentFolders: lista, updatedAt: new Date().toISOString() })
+  }
+
+  function criarPastaDeConteudo(nome: string) {
+    const novo = caminhoDaNovaPasta(pasta, nome)
+    if (!novo) return
+    const caminho = novo.join('/')
+    const atuais = pagina?.contentFolders ?? []
+    if (atuais.includes(caminho)) { window.alert(`Já existe uma pasta “${nome}” aqui.`); return }
+    gravarPastas([...atuais, caminho])
+    setPasta(novo)
+  }
+
+  /** Renomear leva junto notícias, páginas filhas e arquivos que estavam dentro. */
+  function renomearPastaDeConteudo(nome: string, novo: string) {
+    const antigo = [...pasta, nome]
+    const destino = [...pasta, novo]
+    const atuais = pagina?.contentFolders ?? []
+    if (atuais.includes(destino.join('/'))) { window.alert(`Já existe uma pasta “${novo}” aqui.`); return }
+    moverConteudo(antigo, destino, false)
+  }
+
+  function excluirPastaDeConteudo(nome: string, total: number) {
+    const alvo = [...pasta, nome]
+    const aviso = total > 0
+      ? `Excluir a pasta “${nome}”? Os ${total} item(ns) sobem para a pasta acima — nada é apagado.`
+      : `Excluir a pasta “${nome}”?`
+    if (!window.confirm(aviso)) return
+    moverConteudo(alvo, [], true)
+  }
+
+  /** Uma unica travessia: as tres origens guardam a pasta do mesmo jeito. */
+  function moverConteudo(antigo: string[], destino: string[], excluindo: boolean) {
+    const novoFolder = (segmentos: string[]) => excluindo
+      ? folderAposExcluir(segmentos, antigo)
+      : folderAposRenomear(segmentos, antigo, destino)
+
+    const base = paginaGravavel()
+    const atuais = base.contentFolders ?? []
+    contentRepository.savePage({
+      ...base,
+      contentFolders: excluindo
+        ? atuais.filter((item) => folderAposExcluir(item.split('/'), antigo) === undefined)
+        : atuais.map((item) => folderAposRenomear(item.split('/'), antigo, destino) ?? item),
+      files: (base.files ?? []).map((arquivo) => {
+        const folder = novoFolder(segmentosComPastaManual(arquivo.folder, ['Arquivos']))
+        return folder === undefined ? arquivo : { ...arquivo, folder: folder || undefined }
+      }),
+      updatedAt: new Date().toISOString(),
+    })
+
+    paginas
+      .filter((item) => item.parentSlug === slug)
+      .forEach((filha) => {
+        const folder = novoFolder(segmentosComPastaManual(filha.folder, ['Páginas']))
+        if (folder !== undefined) contentRepository.savePage({ ...filha, folder: folder || undefined })
+      })
+
+    if (areaDeNoticias) {
+      const site = lerSite()
+      saveSiteContent({
+        ...site,
+        news: site.news.map((item) => {
+          const folder = novoFolder(segmentosComPastaManual(item.folder, ['Notícias']))
+          return folder === undefined ? item : { ...item, folder: folder || undefined }
+        }),
+      })
+    }
+  }
+
+  const pastasFixas: string[][] = [
+    ...(areaDeNoticias ? [['Notícias']] : []),
+    ...(gerenciavel ? [['Páginas'], ['Arquivos']] : []),
+    ...pastasCriadas,
+  ]
 
   /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
   function tabelaDeConteudo(itens: Linha[]) {
@@ -369,6 +454,28 @@ export function CmsLiveConteudo({
 
           {visao === 'pastas'
             ? <VisaoEmPastas
+                acoes={<>
+                  {gerenciavel && <NovaPastaBotao onCriar={criarPastaDeConteudo} />}
+                  {/* Cada pasta é um tipo de conteúdo, então a ação segue a pasta aberta. */}
+                  {(pasta[0] === undefined || pasta[0] === 'Notícias') && areaDeNoticias && (
+                    <button className="secondary-button" type="button" onClick={onNovaNoticia}>
+                      <FilePlus2 aria-hidden="true" /> Nova notícia
+                    </button>
+                  )}
+                  {(pasta[0] === undefined || pasta[0] === 'Páginas') && (
+                    <button className="secondary-button" type="button" onClick={() => setCriando(slug ?? raizDaFamilia)}>
+                      <FolderPlus aria-hidden="true" /> Nova página filha
+                    </button>
+                  )}
+                  {(pasta[0] === undefined || pasta[0] === 'Arquivos') && gerenciavel && (
+                    <button className="secondary-button" type="button" onClick={() => entrada.current?.click()}>
+                      <FileUp aria-hidden="true" /> Adicionar arquivos
+                    </button>
+                  )}
+                </>}
+                onRenomearPasta={renomearPastaDeConteudo}
+                onExcluirPasta={excluirPastaDeConteudo}
+                pastasVazias={pastasFixas}
                 entradas={entradasDeConteudo}
                 caminho={pasta}
                 onNavegar={setPasta}

@@ -8,7 +8,8 @@ import { TIPOS_DE_BLOCO } from '../cms/tiposDeBloco'
 import { referenciasDoArquivo, trocarNasNoticias, trocarNasPaginas } from '../cms/referenciasDeArquivo'
 import { DialogoDeReferencias } from '../components/DialogoDeReferencias'
 import { normalizaTexto } from '../utils/texto'
-import { segmentosDoCaminho, type ItemComPasta } from '../cms/pastas'
+import { caminhoDaNovaPasta, folderAposExcluir, folderAposRenomear, segmentosComPastaManual, segmentosDoAcervo, type ItemComPasta } from '../cms/pastas'
+import { NovaPastaBotao } from '../components/NovaPastaBotao'
 import { VisaoEmPastas } from '../components/VisaoEmPastas'
 import { AlternadorDeVisao, type Visao } from '../components/AlternadorDeVisao'
 import { cmsIconGroups } from '../cms/iconCatalog'
@@ -541,10 +542,59 @@ export function CmsBannersPage(props: PublicPageProps) {
   const NOMES_DE_SLIDESHOW: Record<CmsBanner['slideshow'], string> = { home: 'Home pública', beneficiary: 'Área do beneficiário', provider: 'Área do credenciado', team: 'Área da equipe' }
   const filtered = content.banners.filter((item) => item.slideshow === slideshow).sort((a, b) => a.order - b.order)
   // Em pastas, cada carrossel é uma pasta e o filtro acima não se aplica.
+  // A pasta manual e so organizacao: o slide continua no carrossel do campo
+  // Slideshow, que e o que decide onde ele aparece no portal.
   const entradasDeBanner: Array<ItemComPasta<CmsBanner>> = [...content.banners]
     .sort((a, b) => a.order - b.order)
-    .map((item) => ({ item, segmentos: [NOMES_DE_SLIDESHOW[item.slideshow]] }))
+    .map((item) => ({ item, segmentos: segmentosComPastaManual(item.folder, [NOMES_DE_SLIDESHOW[item.slideshow]]) }))
+  const pastasDeBanner = content.bannerFolders.map((caminho) => caminho.split('/'))
+
+  function criarPastaDeBanner(nome: string) {
+    const novo = caminhoDaNovaPasta(pasta, nome)
+    if (!novo) return
+    const caminho = novo.join('/')
+    if (content.bannerFolders.includes(caminho)) { window.alert(`Já existe uma pasta “${nome}” aqui.`); return }
+    commit({ ...content, bannerFolders: [...content.bannerFolders, caminho] })
+    setPasta(novo)
+  }
+
+  function renomearPastaDeBanner(nome: string, novo: string) {
+    const antigo = [...pasta, nome]
+    const destino = [...pasta, novo]
+    if (content.bannerFolders.includes(destino.join('/'))) { window.alert(`Já existe uma pasta “${novo}” aqui.`); return }
+    commit({
+      ...content,
+      bannerFolders: content.bannerFolders.map((item) => folderAposRenomear(item.split('/'), antigo, destino) ?? item),
+      banners: content.banners.map((item) => {
+        const folder = folderAposRenomear(segmentosComPastaManual(item.folder, [NOMES_DE_SLIDESHOW[item.slideshow]]), antigo, destino)
+        return folder === undefined ? item : { ...item, folder }
+      }),
+    })
+  }
+
+  /** O slide sobe um nivel; nenhum slide e apagado e o carrossel nao muda. */
+  function excluirPastaDeBanner(nome: string, total: number) {
+    const alvo = [...pasta, nome]
+    const aviso = total > 0
+      ? `Excluir a pasta “${nome}”? Os ${total} slide(s) sobem para a pasta acima e continuam no mesmo carrossel.`
+      : `Excluir a pasta “${nome}”?`
+    if (!window.confirm(aviso)) return
+    commit({
+      ...content,
+      bannerFolders: content.bannerFolders.filter((item) => folderAposExcluir(item.split('/'), alvo) === undefined),
+      banners: content.banners.map((item) => {
+        const folder = folderAposExcluir(segmentosComPastaManual(item.folder, [NOMES_DE_SLIDESHOW[item.slideshow]]), alvo)
+        return folder === undefined ? item : { ...item, folder: folder || undefined }
+      }),
+    })
+  }
   const visible = filtered.slice((page - 1) * adminPageSize, page * adminPageSize)
+
+  /** O slide nasce no carrossel da pasta aberta. */
+  function novoSlideNaPasta() {
+    const alvo = (Object.keys(NOMES_DE_SLIDESHOW) as Array<CmsBanner['slideshow']>).find((chave) => NOMES_DE_SLIDESHOW[chave] === pasta[0])
+    setEditing({ ...emptyBanner(), slideshow: alvo ?? slideshow })
+  }
 
   /** A mesma tabela serve à lista filtrada e ao conteúdo de uma pasta. */
   function tabelaDeBanners(itens: CmsBanner[]) {
@@ -571,6 +621,18 @@ export function CmsBannersPage(props: PublicPageProps) {
     </div>
     {visao === 'pastas'
       ? <VisaoEmPastas
+          acoes={<>
+            <button className="secondary-button" type="button" onClick={novoSlideNaPasta}>
+              <Plus /> Novo slide{pasta[0] ? ` em ${pasta[0]}` : ''}
+            </button>
+            <NovaPastaBotao onCriar={criarPastaDeBanner} />
+            <p className="cms-pastas-nota">
+              As quatro pastas de carrossel vêm do portal e voltam sozinhas se ficarem vazias. Pastas criadas aqui organizam os slides sem mudar em que carrossel eles aparecem.
+            </p>
+          </>}
+          onRenomearPasta={renomearPastaDeBanner}
+          onExcluirPasta={excluirPastaDeBanner}
+          pastasVazias={[...Object.values(NOMES_DE_SLIDESHOW).map((nome) => [nome]), ...pastasDeBanner]}
           entradas={entradasDeBanner}
           caminho={pasta}
           onNavegar={setPasta}
@@ -703,7 +765,78 @@ export function CmsMediaPage(props: PublicPageProps) {
     .filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.type).includes(termo))
   const visible = filtrados.slice((page - 1) * adminPageSize, page * adminPageSize)
   // Em pastas o caminho do arquivo é a árvore; o que foi enviado pelo navegador não tem caminho.
-  const entradasDeMidia: Array<ItemComPasta<CmsMediaAsset>> = filtrados.map((asset) => ({ item: asset, segmentos: segmentosDoCaminho(asset.url) }))
+  const entradasDeMidia: Array<ItemComPasta<CmsMediaAsset>> = filtrados.map((asset) => ({ item: asset, segmentos: segmentosDoAcervo(asset) }))
+  const pastasDeMidia = content.mediaFolders.map((caminho) => caminho.split('/'))
+
+  /** A pasta só existe depois de guardada: sem item dentro, nada a derivaria. */
+  function criarPastaDeMidia(nome: string) {
+    const novo = caminhoDaNovaPasta(pasta, nome)
+    if (!novo) return
+    const caminho = novo.join('/')
+    if (content.mediaFolders.includes(caminho)) { window.alert(`Já existe uma pasta “${nome}” aqui.`); return }
+    const next = { ...content, mediaFolders: [...content.mediaFolders, caminho] }
+    setContent(next)
+    saveSiteContent(next)
+    setPasta(novo)
+  }
+
+  /**
+   * Renomear e excluir reorganizam a biblioteca, não o disco: o endereço do
+   * arquivo continua o mesmo e o que muda é a pasta guardada em cada item.
+   * Mexer no endereço quebraria os arquivos servidos estaticamente.
+   */
+  function renomearPastaDeMidia(nome: string, novo: string) {
+    const antigo = [...pasta, nome].join('/')
+    const destino = [...pasta, novo].join('/')
+    if (content.mediaFolders.includes(destino)) { window.alert(`Já existe uma pasta “${novo}” aqui.`); return }
+    const next = {
+      ...content,
+      mediaFolders: content.mediaFolders.map((item) => (item === antigo || item.startsWith(`${antigo}/`) ? destino + item.slice(antigo.length) : item)),
+      media: content.media.map((item) => {
+        const atual = segmentosDoAcervo(item).join('/')
+        if (atual !== antigo && !atual.startsWith(`${antigo}/`)) return item
+        return { ...item, folder: destino + atual.slice(antigo.length) }
+      }),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  }
+
+  /** O conteúdo sobe um nível: apagar arquivo aqui poderia quebrar páginas. */
+  function excluirPastaDeMidia(nome: string, total: number) {
+    const antigo = [...pasta, nome].join('/')
+    const aviso = total > 0
+      ? `Excluir a pasta “${nome}”? Os ${total} item(ns) dentro dela sobem para a pasta acima — nenhum arquivo é apagado.`
+      : `Excluir a pasta “${nome}”?`
+    if (!window.confirm(aviso)) return
+    const next = {
+      ...content,
+      mediaFolders: content.mediaFolders.filter((item) => item !== antigo && !item.startsWith(`${antigo}/`)),
+      media: content.media.map((item) => {
+        const atual = segmentosDoAcervo(item).join('/')
+        if (atual !== antigo && !atual.startsWith(`${antigo}/`)) return item
+        return { ...item, folder: pasta.join('/') || undefined }
+      }),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  }
+
+  /** Envio direto para a pasta aberta, e não para o balde geral. */
+  async function enviarNaPasta(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    const oversized = files.find((file) => file.size > 1_000_000)
+    if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }
+    const additions = await Promise.all(files.map((file) => new Promise<CmsMediaAsset>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || 'application/octet-stream', size: file.size, url: String(reader.result), createdAt: new Date().toISOString(), folder: pasta.join('/') || undefined })
+      reader.readAsDataURL(file)
+    })))
+    const next = { ...content, media: [...content.media, ...additions] }
+    setContent(next)
+    saveSiteContent(next)
+  }
 
   return <AdminFrame {...props} title="Mídia">
     <section className="simple-page-heading cms-admin-heading">
@@ -734,6 +867,16 @@ export function CmsMediaPage(props: PublicPageProps) {
       ? <p className="cms-live-files-empty">Nenhuma mídia encontrada com esses filtros.</p>
       : visao === 'pastas'
         ? <VisaoEmPastas
+            acoes={<>
+              <NovaPastaBotao onCriar={criarPastaDeMidia} />
+              <label className="secondary-button cms-upload-button">
+                <Upload /> Enviar para esta pasta
+                <input hidden multiple type="file" accept="image/*,video/*,audio/*" onChange={enviarNaPasta} />
+              </label>
+            </>}
+            onRenomearPasta={renomearPastaDeMidia}
+            onExcluirPasta={excluirPastaDeMidia}
+            pastasVazias={pastasDeMidia}
             entradas={entradasDeMidia}
             caminho={pasta}
             onNavegar={setPasta}
@@ -823,7 +966,71 @@ export function CmsFilesPage(props: PublicPageProps) {
   const termo = normalizaTexto(query.trim())
   const visible = content.files.filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.url).includes(termo))
   const paginated = visible.slice((page - 1) * adminPageSize, page * adminPageSize)
-  const entradasDeArquivo: Array<ItemComPasta<CmsMediaAsset>> = visible.map((asset) => ({ item: asset, segmentos: segmentosDoCaminho(asset.url) }))
+  const entradasDeArquivo: Array<ItemComPasta<CmsMediaAsset>> = visible.map((asset) => ({ item: asset, segmentos: segmentosDoAcervo(asset) }))
+  const pastasDeArquivo = content.fileFolders.map((caminho) => caminho.split('/'))
+
+  function criarPastaDeArquivo(nome: string) {
+    const novo = caminhoDaNovaPasta(pasta, nome)
+    if (!novo) return
+    const caminho = novo.join('/')
+    if (content.fileFolders.includes(caminho)) { window.alert(`Já existe uma pasta “${nome}” aqui.`); return }
+    const next = { ...content, fileFolders: [...content.fileFolders, caminho] }
+    setContent(next)
+    saveSiteContent(next)
+    setPasta(novo)
+  }
+
+  /** Reorganiza a biblioteca, não o disco: o endereço do arquivo não muda. */
+  function renomearPastaDeArquivo(nome: string, novo: string) {
+    const antigo = [...pasta, nome].join('/')
+    const destino = [...pasta, novo].join('/')
+    if (content.fileFolders.includes(destino)) { window.alert(`Já existe uma pasta “${novo}” aqui.`); return }
+    const next = {
+      ...content,
+      fileFolders: content.fileFolders.map((item) => (item === antigo || item.startsWith(`${antigo}/`) ? destino + item.slice(antigo.length) : item)),
+      files: content.files.map((item) => {
+        const atual = segmentosDoAcervo(item).join('/')
+        if (atual !== antigo && !atual.startsWith(`${antigo}/`)) return item
+        return { ...item, folder: destino + atual.slice(antigo.length) }
+      }),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  }
+
+  function excluirPastaDeArquivo(nome: string, total: number) {
+    const antigo = [...pasta, nome].join('/')
+    const aviso = total > 0
+      ? `Excluir a pasta “${nome}”? Os ${total} item(ns) dentro dela sobem para a pasta acima — nenhum arquivo é apagado.`
+      : `Excluir a pasta “${nome}”?`
+    if (!window.confirm(aviso)) return
+    const next = {
+      ...content,
+      fileFolders: content.fileFolders.filter((item) => item !== antigo && !item.startsWith(`${antigo}/`)),
+      files: content.files.map((item) => {
+        const atual = segmentosDoAcervo(item).join('/')
+        if (atual !== antigo && !atual.startsWith(`${antigo}/`)) return item
+        return { ...item, folder: pasta.join('/') || undefined }
+      }),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  }
+
+  async function enviarNaPasta(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    const oversized = files.find((file) => file.size > 1_000_000)
+    if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }
+    const additions = await Promise.all(files.map((file) => new Promise<CmsMediaAsset>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || file.name.split('.').at(-1) || 'arquivo', size: file.size, url: String(reader.result), createdAt: new Date().toISOString(), folder: pasta.join('/') || undefined })
+      reader.readAsDataURL(file)
+    })))
+    const next = { ...content, files: [...content.files, ...additions] }
+    setContent(next)
+    saveSiteContent(next)
+  }
 
   /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
   function tabelaDeArquivos(itens: CmsMediaAsset[]) {
@@ -859,6 +1066,16 @@ export function CmsFilesPage(props: PublicPageProps) {
 
     {visao === 'pastas'
       ? <VisaoEmPastas
+          acoes={<>
+            <NovaPastaBotao onCriar={criarPastaDeArquivo} />
+            <label className="secondary-button cms-upload-button">
+              <Upload /> Enviar para esta pasta
+              <input hidden multiple type="file" onChange={enviarNaPasta} />
+            </label>
+          </>}
+          onRenomearPasta={renomearPastaDeArquivo}
+          onExcluirPasta={excluirPastaDeArquivo}
+          pastasVazias={pastasDeArquivo}
           entradas={entradasDeArquivo}
           caminho={pasta}
           onNavegar={setPasta}
@@ -912,6 +1129,45 @@ export function CmsNewsPage(props: PublicPageProps) {
   // Notícia não tem caminho de arquivo: a árvore sai da categoria e do ano de publicação.
   const entradasDeNoticia: Array<ItemComPasta<CmsNewsItem>> = site.news.map((item) => ({ item, segmentos: [item.category || 'Sem categoria', item.publishDate.slice(0, 4) || 'Sem data'] }))
 
+  // Só a categoria, no primeiro nível, é editável: o ano do segundo vem da data.
+  /** Renomear a categoria acompanha as notícias que estavam nela. */
+  function renomearPastaDeNoticia(nome: string, novo: string) {
+    const valor = normalizeCategory(novo)
+    if (!valor) return
+    if (site.newsCategories.some((item) => item !== nome && item.toLocaleLowerCase('pt-BR') === valor.toLocaleLowerCase('pt-BR'))) { window.alert(`A categoria “${valor}” já existe.`); return }
+    commit({
+      ...site,
+      newsCategories: site.newsCategories.map((item) => (item === nome ? valor : item)),
+      news: site.news.map((item) => (item.category === nome ? { ...item, category: valor } : item)),
+    })
+  }
+
+  /** Categoria com notícia dentro não sai: as notícias ficariam sem classificação. */
+  function excluirPastaDeNoticia(nome: string, total: number) {
+    if (total > 0) {
+      window.alert(`A categoria “${nome}” tem ${total} notícia(s). Mude a categoria delas antes de excluí-la.`)
+      return
+    }
+    if (!window.confirm(`Excluir a categoria “${nome}”?`)) return
+    commit({ ...site, newsCategories: site.newsCategories.filter((item) => item !== nome) })
+  }
+
+  function criarCategoria(nome: string) {
+    const valor = normalizeCategory(nome)
+    if (!valor) return
+    if (site.newsCategories.some((item) => item.toLocaleLowerCase('pt-BR') === valor.toLocaleLowerCase('pt-BR'))) { window.alert(`A categoria “${valor}” já existe.`); return }
+    commit({ ...site, newsCategories: [...site.newsCategories, valor] })
+    setPasta([valor])
+  }
+
+  /** Já nasce na pasta aberta: categoria do primeiro nível, ano do segundo. */
+  function novaNoticiaNaPasta() {
+    const categoria = pasta[0] || site.newsCategories[0] || 'Geral'
+    const base = emptyNews(categoria)
+    const ano = pasta[1]
+    setEditing(ano ? { ...base, publishDate: `${ano}${base.publishDate.slice(4)}` } : base)
+  }
+
   /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
   function tabelaDeNoticias(itens: CmsNewsItem[]) {
     return <div className="portal-table-wrap"><table className="portal-table">
@@ -947,6 +1203,17 @@ export function CmsNewsPage(props: PublicPageProps) {
     </div>
     {visao === 'pastas'
       ? <VisaoEmPastas
+          acoes={<>
+            {/* No primeiro nível a pasta é a categoria; no segundo é o ano, que vem da data. */}
+            {pasta.length === 0 && <NovaPastaBotao rotulo="Nova categoria" onCriar={criarCategoria} />}
+            <button className="secondary-button" type="button" onClick={novaNoticiaNaPasta}>
+              <Plus /> Nova notícia{pasta[0] ? ` em ${pasta[0]}` : ''}
+            </button>
+          </>}
+          onRenomearPasta={renomearPastaDeNoticia}
+          onExcluirPasta={excluirPastaDeNoticia}
+          pastaEditavel={() => pasta.length === 0}
+          pastasVazias={site.newsCategories.map((categoria) => [categoria])}
           entradas={entradasDeNoticia}
           caminho={pasta}
           onNavegar={setPasta}
@@ -975,10 +1242,54 @@ export function CmsContactPage(props: PublicPageProps) {
   const addresses = [...content.addresses].sort((a, b) => a.order - b.order)
   // Cada tipo de contato é uma pasta: a página inteira vira um seletor de três.
   const entradasDeContato: Array<ItemComPasta<{ id: string }>> = [
-    ...socialLinks.map((item) => ({ item, segmentos: ['Redes sociais'] })),
-    ...channels.map((item) => ({ item, segmentos: ['Canais de contato'] })),
-    ...addresses.map((item) => ({ item, segmentos: ['Endereços e unidades'] })),
+    ...socialLinks.map((item) => ({ item, segmentos: segmentosComPastaManual(item.folder, ['Redes sociais']) })),
+    ...channels.map((item) => ({ item, segmentos: segmentosComPastaManual(item.folder, ['Canais de contato']) })),
+    ...addresses.map((item) => ({ item, segmentos: segmentosComPastaManual(item.folder, ['Endereços e unidades']) })),
   ]
+  const pastasDeContato = content.contactFolders.map((caminho) => caminho.split('/'))
+
+  function criarPastaDeContato(nome: string) {
+    const novo = caminhoDaNovaPasta(pasta, nome)
+    if (!novo) return
+    const caminho = novo.join('/')
+    if (content.contactFolders.includes(caminho)) { window.alert(`Já existe uma pasta “${nome}” aqui.`); return }
+    commit({ ...content, contactFolders: [...content.contactFolders, caminho] })
+    setPasta(novo)
+  }
+
+  /** Move os tres tipos de registro de uma vez: todos guardam a pasta igual. */
+  function moverContatos(antigo: string[], destino: string[], excluindo: boolean) {
+    const novoFolder = (segmentos: string[]) => excluindo
+      ? folderAposExcluir(segmentos, antigo)
+      : folderAposRenomear(segmentos, antigo, destino)
+    const aplicar = <T extends { folder?: string }>(lista: T[], padrao: string) => lista.map((item) => {
+      const folder = novoFolder(segmentosComPastaManual(item.folder, [padrao]))
+      return folder === undefined ? item : { ...item, folder: folder || undefined }
+    })
+    commit({
+      ...content,
+      contactFolders: excluindo
+        ? content.contactFolders.filter((item) => folderAposExcluir(item.split('/'), antigo) === undefined)
+        : content.contactFolders.map((item) => folderAposRenomear(item.split('/'), antigo, destino) ?? item),
+      socialLinks: aplicar(content.socialLinks, 'Redes sociais'),
+      contactChannels: aplicar(content.contactChannels, 'Canais de contato'),
+      addresses: aplicar(content.addresses, 'Endereços e unidades'),
+    })
+  }
+
+  function renomearPastaDeContato(nome: string, novo: string) {
+    const destino = [...pasta, novo]
+    if (content.contactFolders.includes(destino.join('/'))) { window.alert(`Já existe uma pasta “${novo}” aqui.`); return }
+    moverContatos([...pasta, nome], destino, false)
+  }
+
+  function excluirPastaDeContato(nome: string, total: number) {
+    const aviso = total > 0
+      ? `Excluir a pasta “${nome}”? Os ${total} registro(s) sobem para a pasta acima — nada é apagado.`
+      : `Excluir a pasta “${nome}”?`
+    if (!window.confirm(aviso)) return
+    moverContatos([...pasta, nome], [], true)
+  }
 
   /** As mesmas seções servem à lista inteira e ao conteúdo de uma pasta. */
   function secaoDoGrupo(grupo?: string) {
@@ -1039,11 +1350,20 @@ export function CmsContactPage(props: PublicPageProps) {
 
     {visao === 'pastas'
       ? <VisaoEmPastas
+          onRenomearPasta={renomearPastaDeContato}
+          onExcluirPasta={excluirPastaDeContato}
+          pastasVazias={[['Redes sociais'], ['Canais de contato'], ['Endereços e unidades'], ...pastasDeContato]}
           entradas={entradasDeContato}
           caminho={pasta}
           onNavegar={setPasta}
           rotuloRaiz="Contatos"
           vazio="Nada cadastrado aqui."
+          acoes={<>
+            <NovaPastaBotao onCriar={criarPastaDeContato} />
+            <p className="cms-pastas-nota">
+              As três pastas de tipo vêm do portal e voltam sozinhas se ficarem vazias. Pastas criadas aqui organizam os registros sem mudar o que cada um é.
+            </p>
+          </>}
           renderItens={() => secaoDoGrupo(pasta[0])}
         />
       : <>

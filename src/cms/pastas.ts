@@ -61,3 +61,47 @@ export function segmentosDoCaminho(url: string, rotuloSemCaminho = 'Enviados pel
   // A ultima parte e o proprio arquivo.
   return partes.slice(0, -1)
 }
+
+/** Segmentos de um item do acervo: a pasta escolhida a mao vence o endereco. */
+export function segmentosDoAcervo(asset: { url: string, folder?: string }): string[] {
+  if (asset.folder) return asset.folder.split('/').filter(Boolean)
+  return segmentosDoCaminho(asset.url)
+}
+
+/** Junta o caminho aberto e o nome digitado, recusando o que ficaria vazio. */
+export function caminhoDaNovaPasta(caminho: string[], nome: string): string[] | undefined {
+  // Barra separa niveis: no nome de uma pasta ela viraria hierarquia sem querer.
+  const limpo = nome.trim().replace(/[/\\]/g, ' ').replace(/\s+/g, ' ').trim()
+  return limpo ? [...caminho, limpo] : undefined
+}
+
+/**
+ * Pasta de um item que tem pasta natural e pode ganhar uma escolhida a mao.
+ *
+ * A pasta manual e apenas organizacao: nao muda o que o item e nem onde ele
+ * aparece no portal. Um slide movido de pasta continua no mesmo carrossel.
+ */
+export function segmentosComPastaManual(folder: string | undefined, padrao: string[]): string[] {
+  if (folder) return folder.split('/').filter(Boolean)
+  return padrao
+}
+
+/** True quando o item esta na pasta indicada ou em alguma abaixo dela. */
+export function dentroDaPasta(segmentos: string[], caminho: string[]): boolean {
+  return caminho.every((parte, indice) => segmentos[indice] === parte)
+}
+
+/**
+ * Renomeia uma pasta: devolve o novo valor de `folder` para cada item que
+ * estava nela ou abaixo dela, e undefined para os que nao mudam.
+ */
+export function folderAposRenomear(segmentos: string[], antigo: string[], novo: string[]): string | undefined {
+  if (!dentroDaPasta(segmentos, antigo) || segmentos.length < antigo.length) return undefined
+  return [...novo, ...segmentos.slice(antigo.length)].join('/')
+}
+
+/** Exclusao de pasta: o conteudo sobe um nivel em vez de ser apagado. */
+export function folderAposExcluir(segmentos: string[], alvo: string[]): string | undefined {
+  if (!dentroDaPasta(segmentos, alvo) || segmentos.length < alvo.length) return undefined
+  return alvo.slice(0, -1).join('/')
+}
