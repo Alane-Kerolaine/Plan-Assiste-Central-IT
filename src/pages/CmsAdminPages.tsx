@@ -14,7 +14,8 @@ import { VisaoEmPastas } from '../components/VisaoEmPastas'
 import { AlternadorDeVisao, type Visao } from '../components/AlternadorDeVisao'
 import { cmsIconGroups } from '../cms/iconCatalog'
 import { getCmsFaqCategories, getCmsFaqs, resetCmsFaqCategories, resetCmsFaqs, type CmsFaqItem } from '../cms/specialContent'
-import { getSiteContent, saveSiteContent, type CmsAddress, type CmsBanner, type CmsContactChannel, type CmsMediaAsset, type CmsNewsItem, type CmsSocialLink } from '../cms/siteContentRepository'
+import {
+  comEnviadosPrimeiro, getSiteContent, saveSiteContent, type CmsAddress, type CmsBanner, type CmsContactChannel, type CmsMediaAsset, type CmsNewsItem, type CmsSocialLink } from '../cms/siteContentRepository'
 import { Combobox, type ComboboxOption } from '../components/Combobox'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { stripHtml } from '../utils/html'
@@ -760,7 +761,7 @@ export function CmsMediaPage(props: PublicPageProps) {
   }
 
   const termo = normalizaTexto(query.trim())
-  const filtrados = content.media
+  const filtrados = comEnviadosPrimeiro(content.media)
     .filter((asset) => tipo === 'todos' || asset.type.startsWith(tipo))
     .filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.type).includes(termo))
   const visible = filtrados.slice((page - 1) * adminPageSize, page * adminPageSize)
@@ -964,7 +965,7 @@ export function CmsFilesPage(props: PublicPageProps) {
   })
 
   const termo = normalizaTexto(query.trim())
-  const visible = content.files.filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.url).includes(termo))
+  const visible = comEnviadosPrimeiro(content.files).filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.url).includes(termo))
   const paginated = visible.slice((page - 1) * adminPageSize, page * adminPageSize)
   const entradasDeArquivo: Array<ItemComPasta<CmsMediaAsset>> = visible.map((asset) => ({ item: asset, segmentos: segmentosDoAcervo(asset) }))
   const pastasDeArquivo = content.fileFolders.map((caminho) => caminho.split('/'))

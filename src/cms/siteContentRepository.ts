@@ -116,3 +116,18 @@ export function getCmsContactChannels() {
 export function getCmsAddresses() {
   return activeSorted(getSiteContent().addresses)
 }
+
+/**
+ * Acervo com os envios da equipe na frente, do mais recente para o mais antigo.
+ *
+ * O catalogo incorporado ao site mantem a ordem em que foi gerado: ordenar tudo
+ * por data embaralharia centenas de itens que a equipe ja sabe onde encontrar.
+ * O que muda de lugar e so o que a propria equipe acabou de enviar.
+ */
+export function comEnviadosPrimeiro<T extends { createdAt: string, bundled?: boolean }>(acervo: T[]): T[] {
+  const enviados = acervo
+    .filter((item) => !item.bundled)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const doCatalogo = acervo.filter((item) => item.bundled)
+  return [...enviados, ...doCatalogo]
+}
