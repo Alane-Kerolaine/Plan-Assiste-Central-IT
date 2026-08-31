@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Save, Trash2, X } from 'lucide-react'
+import { Maximize2, Minimize2, Plus, Save, Trash2, X } from 'lucide-react'
 import {
   contentRepository,
   createCmsBlock,
@@ -21,12 +21,17 @@ export function CmsLivePanel({
   onFechar,
   onSalvo,
   personalizada,
+  ampliado,
+  onAlternarLargura,
 }: {
   paginaInicial: CmsPage
   onFechar: () => void
   onSalvo: () => void
   /** Já existe versão salva: permite descartar e voltar ao conteúdo original. */
   personalizada: boolean
+  /** Painel ocupando a largura maior do palco. */
+  ampliado: boolean
+  onAlternarLargura: () => void
 }) {
   const [pagina, setPagina] = useState<CmsPage>(paginaInicial)
   const [aviso, setAviso] = useState('')
@@ -65,9 +70,20 @@ export function CmsLivePanel({
           <strong>{pagina.title || 'Nova página'}</strong>
           <small>/{pagina.slug}</small>
         </div>
-        <button type="button" onClick={onFechar} title="Fechar edição" aria-label="Fechar edição">
-          <X aria-hidden="true" />
-        </button>
+        <div className="cms-live-panel-head-acoes">
+          <button
+            type="button"
+            onClick={onAlternarLargura}
+            title={ampliado ? 'Reduzir o quadro de edição' : 'Ampliar o quadro de edição'}
+            aria-label={ampliado ? 'Reduzir o quadro de edição' : 'Ampliar o quadro de edição'}
+            aria-pressed={ampliado}
+          >
+            {ampliado ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+          </button>
+          <button type="button" onClick={onFechar} title="Fechar edição" aria-label="Fechar edição">
+            <X aria-hidden="true" />
+          </button>
+        </div>
       </header>
 
       <div className="cms-live-panel-body">

@@ -30,6 +30,8 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
   const [editando, setEditando] = useState(false)
   // Muda a cada "Nova notícia" para o painel remontar em branco.
   const [novaNoticia, setNovaNoticia] = useState(0)
+  // Troca as proporções do palco: o painel assume a largura do quadro.
+  const [painelAmplo, setPainelAmplo] = useState(false)
 
   /** Aceita caminho digitado, colado com o endereço completo ou sem a barra inicial. */
   function navegarPara(valor: string) {
@@ -140,7 +142,7 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
 
         <p className="cms-live-hint" role="status">{estado.descricao}</p>
 
-        <div className={`cms-live-stage${editando ? ' is-editing' : ''}`}>
+        <div className={`cms-live-stage${editando ? ' is-editing' : ''}${editando && painelAmplo ? ' is-painel-amplo' : ''}`}>
           <div className="cms-live-frame-wrap">
             <iframe
               className="cms-live-frame"
@@ -157,6 +159,8 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
               noticiaInicial={noticiaParaEdicao(caminho)}
               existente={Boolean(idDaNoticia(caminho))}
               onFechar={() => setEditando(false)}
+              ampliado={painelAmplo}
+              onAlternarLargura={() => setPainelAmplo((atual) => !atual)}
               onSalvo={(destino) => { setEditando(false); setDestino((atual) => ({ url: destino, tentativa: atual.tentativa + 1 })); setCaminho(destino) }}
             />
           )}
@@ -167,6 +171,8 @@ export function CmsLiveBrowserPage({ loggedIn, onLogout }: PublicPageProps) {
               paginaInicial={estado.pagina ?? sementeDaPagina(caminho)}
               personalizada={Boolean(estado.pagina)}
               onFechar={() => setEditando(false)}
+              ampliado={painelAmplo}
+              onAlternarLargura={() => setPainelAmplo((atual) => !atual)}
               // Recarrega no caminho aberto, nao no de montagem, senao volta ao inicio.
               onSalvo={() => setDestino((atual) => ({ url: caminho, tentativa: atual.tentativa + 1 }))}
             />

@@ -12,10 +12,13 @@ import { ehAreaDeNoticias } from '../cms/noticiaDoCaminho'
 import { getSiteContent } from '../cms/siteContentRepository'
 import { normalizaTexto } from '../utils/texto'
 import { CmsNovaPaginaDialogo, type OpcaoDeMae } from './CmsNovaPaginaDialogo'
+import { VisaoEmPastas } from '../components/VisaoEmPastas'
+import { AlternadorDeVisao, type Visao } from '../components/AlternadorDeVisao'
+import type { ItemComPasta } from '../cms/pastas'
 
 type Linha =
-  | { tipo: 'pagina', id: string, titulo: string, estado: string, modificado: string, tamanho: number, destino: string }
-  | { tipo: 'arquivo', id: string, titulo: string, estado: string, modificado: string, tamanho: number, url: string }
+  | { tipo: 'pagina', grupo: string, id: string, titulo: string, estado: string, modificado: string, tamanho: number, destino: string }
+  | { tipo: 'arquivo', grupo: string, id: string, titulo: string, estado: string, modificado: string, tamanho: number, url: string }
 
 function tamanhoLegivel(bytes: number): string {
   if (bytes <= 0) return '—'
@@ -57,6 +60,8 @@ export function CmsLiveConteudo({
   const [busca, setBusca] = useState('')
   // Guarda a mae pre-selecionada; undefined mantem o dialogo fechado.
   const [criando, setCriando] = useState<string>()
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
 
   const slug = slugDoCaminho(caminho)
   const areaDeNoticias = ehAreaDeNoticias(caminho)
@@ -73,6 +78,7 @@ export function CmsLiveConteudo({
   const linhas: Linha[] = [
     ...noticias.map((noticia): Linha => ({
       tipo: 'pagina',
+      grupo: 'Notícias',
       id: noticia.id,
       titulo: noticia.title || '(sem título)',
       estado: noticia.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -82,6 +88,7 @@ export function CmsLiveConteudo({
     })),
     ...filhas.map((filha): Linha => ({
       tipo: 'pagina',
+      grupo: 'Páginas',
       id: filha.id,
       titulo: filha.title || filha.slug,
       estado: filha.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -91,6 +98,7 @@ export function CmsLiveConteudo({
     })),
     ...arquivos.map((arquivo): Linha => ({
       tipo: 'arquivo',
+      grupo: 'Arquivos',
       id: arquivo.id,
       titulo: arquivo.name,
       estado: arquivo.status === 'published' ? 'Publicado' : 'Esboço público',
@@ -230,6 +238,63 @@ export function CmsLiveConteudo({
     setSelecionados([])
   }
 
+  // Cada tipo de conteúdo é uma pasta: notícias, páginas filhas e arquivos.
+  const entradasDeConteudo: Array<ItemComPasta<Linha>> = visiveis.map((linha) => ({ item: linha, segmentos: [linha.grupo] }))
+
+  /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
+  function tabelaDeConteudo(itens: Linha[]) {
+    return (
+    <div className="portal-table-wrap">
+      <table className="portal-table cms-conteudo-tabela">
+        <thead>
+          <tr>
+            <th className="cms-conteudo-selecao">
+              <input
+                type="checkbox"
+                aria-label="Selecionar todos"
+                checked={itens.length > 0 && selecionados.length === itens.length}
+                onChange={(evento) => setSelecionados(evento.target.checked ? itens.map((linha) => linha.id) : [])}
+              />
+            </th>
+            <th>Título</th>
+            <th>Tamanho</th>
+            <th>Modificado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map((linha) => (
+            <tr key={linha.id}>
+              <td className="cms-conteudo-selecao">
+                <input
+                  type="checkbox"
+                  aria-label={`Selecionar ${linha.titulo}`}
+                  checked={selecionados.includes(linha.id)}
+                  onChange={() => alternar(linha.id)}
+                />
+              </td>
+              <td>
+                {linha.tipo === 'pagina' ? (
+                  <button className="cms-conteudo-link" type="button" onClick={() => onNavegar(linha.destino)}>
+                    <Folder aria-hidden="true" /> {linha.titulo}
+                  </button>
+                ) : (
+                  <a className="cms-conteudo-link" href={linha.url} target="_blank" rel="noreferrer">
+                    <FileText aria-hidden="true" /> {linha.titulo}
+                  </a>
+                )}
+              </td>
+              <td>{tamanhoLegivel(linha.tamanho)}</td>
+              <td>{dataLegivel(linha.modificado)}</td>
+              <td>{linha.estado}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    )
+  }
+
   return (
     <section className="cms-conteudo" aria-label="Conteúdo desta página">
       <header className="cms-conteudo-head">
@@ -298,54 +363,20 @@ export function CmsLiveConteudo({
         </p>
       ) : (
         <>
-          <div className="portal-table-wrap">
-            <table className="portal-table cms-conteudo-tabela">
-              <thead>
-                <tr>
-                  <th className="cms-conteudo-selecao">
-                    <input
-                      type="checkbox"
-                      aria-label="Selecionar todos"
-                      checked={visiveis.length > 0 && selecionados.length === visiveis.length}
-                      onChange={(evento) => setSelecionados(evento.target.checked ? visiveis.map((linha) => linha.id) : [])}
-                    />
-                  </th>
-                  <th>Título</th>
-                  <th>Tamanho</th>
-                  <th>Modificado</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visiveis.map((linha) => (
-                  <tr key={linha.id}>
-                    <td className="cms-conteudo-selecao">
-                      <input
-                        type="checkbox"
-                        aria-label={`Selecionar ${linha.titulo}`}
-                        checked={selecionados.includes(linha.id)}
-                        onChange={() => alternar(linha.id)}
-                      />
-                    </td>
-                    <td>
-                      {linha.tipo === 'pagina' ? (
-                        <button className="cms-conteudo-link" type="button" onClick={() => onNavegar(linha.destino)}>
-                          <Folder aria-hidden="true" /> {linha.titulo}
-                        </button>
-                      ) : (
-                        <a className="cms-conteudo-link" href={linha.url} target="_blank" rel="noreferrer">
-                          <FileText aria-hidden="true" /> {linha.titulo}
-                        </a>
-                      )}
-                    </td>
-                    <td>{tamanhoLegivel(linha.tamanho)}</td>
-                    <td>{dataLegivel(linha.modificado)}</td>
-                    <td>{linha.estado}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="cms-acervo-filtros">
+            <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
           </div>
+
+          {visao === 'pastas'
+            ? <VisaoEmPastas
+                entradas={entradasDeConteudo}
+                caminho={pasta}
+                onNavegar={setPasta}
+                rotuloRaiz="Conteúdo"
+                vazio="Nada nesta pasta."
+                renderItens={tabelaDeConteudo}
+              />
+            : tabelaDeConteudo(visiveis)}
 
           <div className="cms-conteudo-acoes">
             <button type="button" disabled={selecionados.length === 0} onClick={renomear}>Renomear</button>

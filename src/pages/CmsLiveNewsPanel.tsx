@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-import { ImageUp, Save, Trash2, X } from 'lucide-react'
+import { ImageUp, Maximize2, Minimize2, Save, Trash2, X } from 'lucide-react'
 import { getSiteContent, saveSiteContent, type CmsMediaAsset, type CmsNewsItem } from '../cms/siteContentRepository'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { CmsRelacionados } from './CmsRelacionados'
@@ -79,12 +79,17 @@ export function CmsLiveNewsPanel({
   existente,
   onFechar,
   onSalvo,
+  ampliado,
+  onAlternarLargura,
 }: {
   noticiaInicial: CmsNewsItem
   /** Já publicada no acervo: permite excluir. */
   existente: boolean
   onFechar: () => void
   onSalvo: (destino: string) => void
+  /** Painel ocupando a largura maior do palco. */
+  ampliado: boolean
+  onAlternarLargura: () => void
 }) {
   const [noticia, setNoticia] = useState<CmsNewsItem>(noticiaInicial)
   const [aviso, setAviso] = useState('')
@@ -151,9 +156,20 @@ export function CmsLiveNewsPanel({
           <strong>{noticia.title || 'Sem título'}</strong>
           <small>{existente ? `/noticias/${noticia.id}` : 'Será publicada em /noticias'}</small>
         </div>
-        <button type="button" onClick={onFechar} title="Fechar edição" aria-label="Fechar edição">
-          <X aria-hidden="true" />
-        </button>
+        <div className="cms-live-panel-head-acoes">
+          <button
+            type="button"
+            onClick={onAlternarLargura}
+            title={ampliado ? 'Reduzir o quadro de edição' : 'Ampliar o quadro de edição'}
+            aria-label={ampliado ? 'Reduzir o quadro de edição' : 'Ampliar o quadro de edição'}
+            aria-pressed={ampliado}
+          >
+            {ampliado ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+          </button>
+          <button type="button" onClick={onFechar} title="Fechar edição" aria-label="Fechar edição">
+            <X aria-hidden="true" />
+          </button>
+        </div>
       </header>
 
       <div className="cms-live-panel-body">

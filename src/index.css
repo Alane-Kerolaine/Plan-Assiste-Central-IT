@@ -1600,6 +1600,26 @@ select:not([multiple]) {
 .login-access-card h2,
 .login-access-card h3 { margin: 0; color: var(--text-dark); font-size: 22px; line-height: 1.2; }
 .login-access-card p { margin: 0; color: var(--brand-dark); font-size: 17px; line-height: 1.42; }
+/* Acesso por codigo, dentro do cartao de beneficiarios e equipe. */
+.login-divider-interno { margin: 18px 0 14px; }
+.login-token-form { display: grid; gap: 12px; }
+.login-token-form h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-dark); font-size: 18px; }
+.login-token-form h3 svg { width: 18px; height: 18px; color: var(--brand-strong); }
+.login-token-form > p { margin: 0; color: var(--brand-dark); font-size: 15px; line-height: 1.45; }
+.login-token-form label { display: grid; gap: 6px; min-width: 0; color: var(--text-dark); font-weight: var(--fw-semibold); }
+.login-token-form input { width: 100%; min-width: 0; min-height: 48px; border: 2px solid var(--border); border-radius: 9px; background: white; color: var(--text); padding: 0 14px; font: inherit; }
+.login-token-codigo { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: var(--fw-semibold); }
+.login-token-canais { display: grid; gap: 10px; }
+.login-token-canais button { display: flex; align-items: center; gap: 12px; border: 2px solid var(--border); border-radius: 12px; background: white; padding: 12px 14px; text-align: left; }
+.login-token-canais button:hover { border-color: var(--brand-primary); background: var(--mint-soft); }
+.login-token-canais svg { flex: none; width: 22px; height: 22px; color: var(--brand-strong); }
+.login-token-canais span { display: grid; gap: 2px; min-width: 0; }
+.login-token-canais strong { color: var(--text-dark); font-size: 16px; }
+.login-token-canais small { color: var(--brand-dark); font-size: 14px; overflow-wrap: anywhere; }
+.login-token-acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+.login-token-acoes button, .login-token-voltar { border: 0; background: none; color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: underline; padding: 0; }
+.login-token-voltar { justify-self: center; }
+
 .login-divider { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin: 12px 0; color: var(--brand-dark); font-size: 16px; font-weight: var(--fw-semibold); text-transform: lowercase; }
 .login-divider::before,
 .login-divider::after { content: ""; height: 1px; background: var(--border); }
@@ -1957,10 +1977,13 @@ select:not([multiple]) {
 /* Palco: quadro do portal e, quando em edição, o painel ao lado. */
 .cms-live-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .cms-live-stage.is-editing { grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); }
+/* Ampliado: o painel assume a largura do quadro e o quadro, a do painel. */
+.cms-live-stage.is-editing.is-painel-amplo { grid-template-columns: minmax(360px, 480px) minmax(0, 1fr); }
 .cms-live-panel { display: flex; flex-direction: column; max-height: min(76vh, 900px); border: 1px solid var(--border); border-radius: 16px; background: white; overflow: hidden; box-shadow: 0 12px 30px rgba(16, 63, 58, .1); }
 .cms-live-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); background: var(--mint-soft); padding: 14px 18px; }
 .cms-live-panel-head strong { display: block; color: var(--text-dark); font-size: 19px; line-height: 1.2; }
 .cms-live-panel-head small { color: var(--brand-dark); font-size: 15px; }
+.cms-live-panel-head-acoes { flex-shrink: 0; display: flex; gap: 8px; }
 .cms-live-panel-head button { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 9px; background: white; color: var(--brand-strong); flex-shrink: 0; }
 .cms-live-panel-head button:hover { border-color: var(--brand-primary); }
 /* Atalho de edicao sobreposto a elementos do portal, visivel so dentro do editor. */
@@ -2015,15 +2038,15 @@ select:not([multiple]) {
 /* Carrossel de imagens publicado: legenda, palco, contador e miniaturas. */
 .cms-galeria { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: white; }
 .cms-galeria-legenda { margin: 0; border-bottom: 1px solid var(--border); background: var(--mint-soft); padding: 12px 18px; color: var(--text-dark); font-weight: var(--fw-semibold); }
-.cms-galeria-palco { position: relative; display: flex; align-items: center; justify-content: center; background: #0d2b28; }
+.cms-galeria-palco { position: relative; display: flex; align-items: center; justify-content: center; background: #eef2f2; }
 .cms-galeria-palco img { display: block; width: 100%; max-height: 560px; object-fit: contain; }
-.cms-galeria-seta, .cms-galeria-girar { position: absolute; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 0; border-radius: 999px; background: rgba(13, 43, 40, .58); color: white; }
+.cms-galeria-seta, .cms-galeria-girar { position: absolute; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 0; border-radius: 999px; background: rgba(13, 43, 40, .72); color: white; }
 .cms-galeria-seta:hover, .cms-galeria-girar:hover { background: rgba(13, 43, 40, .82); }
 .cms-galeria-seta svg, .cms-galeria-girar svg { width: 20px; height: 20px; }
 .cms-galeria-seta.is-anterior { left: 12px; }
 .cms-galeria-seta.is-proxima { right: 12px; }
 .cms-galeria-girar { top: 12px; right: 12px; }
-.cms-galeria-contador { position: absolute; left: 16px; bottom: 14px; border-radius: 999px; background: rgba(13, 43, 40, .58); color: white; padding: 4px 12px; font-size: 14px; }
+.cms-galeria-contador { position: absolute; left: 16px; bottom: 14px; border-radius: 999px; background: rgba(13, 43, 40, .72); color: white; padding: 4px 12px; font-size: 14px; }
 .cms-galeria-miniaturas { display: flex; gap: 8px; overflow-x: auto; border-top: 1px solid var(--border); background: var(--mint-soft); padding: 10px 12px; }
 .cms-galeria-miniaturas button { flex: none; width: 84px; height: 56px; overflow: hidden; border: 2px solid transparent; border-radius: 6px; background: white; padding: 0; }
 .cms-galeria-miniaturas button.is-atual { border-color: var(--brand-primary); }
@@ -2146,7 +2169,7 @@ select:not([multiple]) {
 .cms-live-descartar:hover { border-color: #a33a3a; background: #fdf2f2; }
 .cms-live-descartar svg { width: 16px; height: 16px; }
 .cms-live-panel-notice { margin: 0; color: var(--brand-strong); font-weight: var(--fw-semibold); }
-@media (max-width: 1180px) { .cms-live-stage.is-editing { grid-template-columns: minmax(0, 1fr); } .cms-live-panel { max-height: none; } }
+@media (max-width: 1180px) { .cms-live-stage.is-editing, .cms-live-stage.is-editing.is-painel-amplo { grid-template-columns: minmax(0, 1fr); } .cms-live-panel { max-height: none; } }
 /* Tabela de conteudo abaixo do quadro: filhas e arquivos da pagina aberta. */
 .cms-conteudo { margin-top: 20px; border: 1px solid var(--border); border-radius: 16px; background: white; padding: 20px 22px; box-shadow: 0 6px 18px rgba(16, 63, 58, .05); }
 .cms-conteudo-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -2338,7 +2361,7 @@ select:not([multiple]) {
 .cms-pages-table .cms-table-actions button, .cms-pages-table .cms-table-actions a { white-space: nowrap; }
 .cms-table-actions svg, .cms-media-grid article > div:last-child svg { width: 15px; }
 .cms-upload-button { cursor: pointer; }
-.cms-demo-limit { margin: -20px 0 24px; color: var(--text-muted); }
+.cms-demo-limit { margin: 0 0 24px; color: var(--text-muted); }
 .cms-pages-table { table-layout: fixed; }
 .cms-pages-table .cms-pages-title-column { width: 25%; }
 .cms-pages-table .cms-pages-path-column { width: 45%; }
@@ -2361,6 +2384,44 @@ select:not([multiple]) {
 .cms-empty-state { padding: 32px; border: 1px dashed var(--border); border-radius: 14px; text-align: center; color: var(--text-muted); }
 .cms-media-grid video { width: 100%; height: 180px; background: #062f38; }
 .cms-media-grid audio { width: calc(100% - 24px); margin: 24px 12px; }
+/* Alternador entre a lista corrida e a navegacao em pastas. */
+.cms-visao { display: inline-flex; gap: 0; border: 2px solid var(--border); border-radius: 999px; background: white; padding: 3px; margin-left: auto; }
+.cms-visao button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 999px; background: none; color: var(--brand-dark); padding: 8px 16px; font-weight: var(--fw-semibold); }
+.cms-visao button.is-ativa { background: var(--brand-strong); color: white; }
+.cms-visao svg { width: 16px; height: 16px; }
+
+/* Navegacao em pastas dos acervos. */
+.cms-pastas { display: grid; gap: 16px; }
+.cms-pastas-trilha { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--mint-soft); padding: 8px 12px; }
+.cms-pastas-trilha span { display: inline-flex; align-items: center; gap: 2px; }
+.cms-pastas-trilha svg { width: 15px; height: 15px; color: var(--brand-dark); }
+.cms-pastas-trilha button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 7px; background: none; color: var(--brand-strong); padding: 4px 8px; font-weight: var(--fw-semibold); }
+.cms-pastas-trilha button:hover:not(:disabled) { background: white; }
+/* O nivel atual nao e um destino: fica sem acao, mas legivel. */
+.cms-pastas-trilha button:disabled { color: var(--text-dark); opacity: 1; }
+.cms-pastas-grade { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.cms-pastas-grade button { width: 100%; display: flex; align-items: center; gap: 12px; border: 2px solid var(--border); border-radius: 12px; background: white; padding: 14px; text-align: left; }
+.cms-pastas-grade button:hover { border-color: var(--brand-primary); background: var(--mint-soft); }
+.cms-pastas-grade svg { flex: none; width: 26px; height: 26px; color: var(--brand-strong); }
+.cms-pastas-grade span { display: grid; gap: 2px; min-width: 0; }
+.cms-pastas-grade strong { color: var(--text-dark); font-size: 16px; overflow-wrap: anywhere; }
+.cms-pastas-grade small { color: var(--brand-dark); font-size: 14px; }
+.cms-pastas-itens { display: grid; gap: 16px; }
+
+/* Busca e filtro lado a lado no acervo de midia. */
+.cms-acervo-filtros { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin-bottom: 20px; }
+.cms-acervo-filtros .cms-library-search { flex: 1 1 260px; margin-bottom: 0; }
+
+/* Lista de onde o arquivo esta em uso, no dialogo de substituir ou excluir. */
+.cms-referencias-arquivo { margin: 0; color: var(--text-dark); overflow-wrap: anywhere; }
+.cms-dialogo-corpo > p svg { width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; }
+.cms-referencias-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
+.cms-referencias-lista li { display: grid; gap: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--mint-soft); padding: 10px 12px; }
+.cms-referencias-lista strong { color: var(--text-dark); font-size: 15px; overflow-wrap: anywhere; }
+.cms-referencias-lista code { color: var(--brand-strong); font-size: 13px; overflow-wrap: anywhere; }
+.cms-referencias-lista small { color: var(--brand-dark); font-size: 13px; }
+.cms-dialogo > footer .cms-live-descartar { margin-right: 0; }
+
 .cms-library-search { display: grid; gap: 6px; max-width: 680px; margin-bottom: 20px; color: var(--brand-dark); font-weight: var(--fw-semibold); }
 .cms-library-search input, .cms-library-search select { width: 100%; min-height: 46px; border: 2px solid var(--border); border-radius: 9px; padding: 8px 12px; }
 .cms-library-search select { padding-right: 44px; }

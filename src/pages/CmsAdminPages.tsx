@@ -5,6 +5,12 @@ import { contentRepository, createCmsBlock, createCmsPage, useCmsSnapshot, type 
 import { miniaturaDoYoutube } from '../cms/youtube'
 import { CmsGaleriaEditor } from './CmsGaleriaEditor'
 import { TIPOS_DE_BLOCO } from '../cms/tiposDeBloco'
+import { referenciasDoArquivo, trocarNasNoticias, trocarNasPaginas } from '../cms/referenciasDeArquivo'
+import { DialogoDeReferencias } from '../components/DialogoDeReferencias'
+import { normalizaTexto } from '../utils/texto'
+import { segmentosDoCaminho, type ItemComPasta } from '../cms/pastas'
+import { VisaoEmPastas } from '../components/VisaoEmPastas'
+import { AlternadorDeVisao, type Visao } from '../components/AlternadorDeVisao'
 import { cmsIconGroups } from '../cms/iconCatalog'
 import { getCmsFaqCategories, getCmsFaqs, resetCmsFaqCategories, resetCmsFaqs, type CmsFaqItem } from '../cms/specialContent'
 import { getSiteContent, saveSiteContent, type CmsAddress, type CmsBanner, type CmsContactChannel, type CmsMediaAsset, type CmsNewsItem, type CmsSocialLink } from '../cms/siteContentRepository'
@@ -43,10 +49,6 @@ function AdminPagination({ page, total, onChange }: { page: number, total: numbe
   const pages = Math.max(1, Math.ceil(total / adminPageSize))
   if (pages <= 1) return null
   return <nav className="cms-admin-pagination" aria-label="Paginação"><button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)}>Anterior</button><span>Página {page} de {pages}</span><button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)}>Próxima</button></nav>
-}
-
-function replaceAssetReferences(oldUrl: string, newUrl: string) {
-  contentRepository.getSnapshot().pages.forEach((page) => contentRepository.savePage({ ...page, blocks: page.blocks.map((block) => ({ ...block, href: block.href === oldUrl ? newUrl : block.href, mediaUrl: block.mediaUrl === oldUrl ? newUrl : block.mediaUrl, content: block.content.replaceAll(oldUrl, newUrl) })) }))
 }
 
 function isImageAsset(type: string) {
@@ -399,6 +401,45 @@ export function CmsPagesPage(props: PublicPageProps) {
  * Endereço do vídeo do YouTube. A miniatura serve de conferência: quem edita vê
  * qual vídeo será exibido antes de publicar, sem precisar abrir o portal.
  */
+/**
+ * Troca do arquivo raiz sem sair da edição da página.
+ *
+ * Só aparece quando o bloco aponta para um item do acervo: o arquivo enviado
+ * direto no bloco pertence àquele bloco e não é referenciado em outro lugar.
+ */
+function SubstituirNoAcervo({ href }: { href?: string }) {
+  const acervo = getSiteContent().files
+  const asset = acervo.find((item) => item.url === href)
+  const { pedirSubstituicao, dialogo } = useAcervo((antigo, novo, alvo, arquivo) => {
+    if (novo === undefined) return
+    const atual = getSiteContent()
+    contentRepository.getSnapshot().pages.forEach((pagina, indice, todas) => {
+      const atualizada = trocarNasPaginas(todas, antigo, novo)[indice]
+      if (JSON.stringify(atualizada) !== JSON.stringify(pagina)) contentRepository.savePage(atualizada)
+    })
+    saveSiteContent({
+      ...atual,
+      files: atual.files.map((item) => item.id === alvo.id
+        ? { ...item, name: arquivo?.name ?? item.name, type: arquivo?.type || item.type, size: arquivo?.size ?? item.size, url: novo, createdAt: new Date().toISOString(), bundled: false }
+        : item),
+      news: trocarNasNoticias(atual.news, antigo, novo),
+    })
+  })
+
+  if (!asset) return null
+
+  return (
+    <div className="wide cms-campo">
+      <span className="cms-campo-rotulo">Arquivo no acervo</span>
+      <label className="secondary-button cms-upload-button">
+        <Upload /> Substituir “{asset.name}” em todo o portal
+        <input hidden type="file" onChange={(event) => { pedirSubstituicao(asset, event.target.files?.[0]); event.target.value = '' }} />
+      </label>
+      {dialogo}
+    </div>
+  )
+}
+
 function YoutubeCampo({ url, onChange }: { url: string, onChange: (url: string) => void }) {
   const miniatura = miniaturaDoYoutube(url)
   return (
@@ -442,7 +483,7 @@ export function BlockEditor({ block, index, total, onChange, onMove, onDelete }:
       {['card', 'document', 'notice'].includes(block.type) && <label className="wide">Descrição<textarea rows={4} value={stripHtml(block.content)} onChange={(event) => onChange({ ...block, content: event.target.value })} /></label>}
       {block.type === 'card' && <><label>Estilo do card<select value={block.cardVariant || 'navigation'} onChange={(event) => onChange({ ...block, cardVariant: event.target.value as CmsBlock['cardVariant'] })}><option value="navigation">Navegação principal</option><option value="navigation-secondary">Card de navegação 2</option><option value="actuarial">Avaliação Atuarial</option><option value="information">Informativo</option><option value="operational">Operacional</option><option value="result">Resultado</option></select></label><label>Ícone do topo<select value={block.icon || 'none'} disabled={block.cardVariant === 'actuarial'} onChange={(event) => onChange({ ...block, icon: event.target.value })}><option value="none">Sem ícone</option>{cmsIconGroups.map((group) => <optgroup label={group.label} key={group.label}>{group.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</optgroup>)}</select></label><label>Identificador ou ano<input value={block.badge || ''} disabled={block.cardVariant !== 'actuarial'} onChange={(event) => onChange({ ...block, badge: event.target.value })} placeholder={block.cardVariant === 'actuarial' ? 'Ex.: 2026' : 'Disponível no card atuarial'} /></label><label>Metadado ou período<input value={block.meta || ''} onChange={(event) => onChange({ ...block, meta: event.target.value })} placeholder="Ex.: Período-base: julho/2025 a junho/2026" /></label></>}
       {(block.type === 'card' || block.type === 'document') && <><label className="wide">Link ou caminho do arquivo<input value={block.href || ''} onChange={(event) => onChange({ ...block, href: event.target.value })} placeholder="/assets/documento.pdf" /></label>{block.type === 'document' && <label className="wide">Hospedar arquivo nesta demonstração<input type="file" onChange={attachFile} /></label>}<label className="wide">Texto do botão<input value={block.buttonLabel || ''} onChange={(event) => onChange({ ...block, buttonLabel: event.target.value })} /></label></>}
-      {block.type === 'document' && <label className="wide">Selecionar na Biblioteca de arquivos<Combobox value={block.href || ''} options={library.files.map((asset) => ({ value: asset.url, label: asset.name }))} onSelect={(href) => { const asset = library.files.find((item) => item.url === href); onChange({ ...block, href, buttonLabel: block.buttonLabel || asset?.name || 'Baixar arquivo' }) }} placeholder="Digite para buscar um arquivo existente" /></label>}
+      {block.type === 'document' && <label className="wide">Selecionar na Biblioteca de arquivos<Combobox value={block.href || ''} options={library.files.map((asset) => ({ value: asset.url, label: asset.name }))} onSelect={(href) => { const asset = library.files.find((item) => item.url === href); onChange({ ...block, href, buttonLabel: block.buttonLabel || asset?.name || 'Baixar arquivo' }) }} placeholder="Digite para buscar um arquivo existente" /></label>}{block.type === 'document' && <SubstituirNoAcervo href={block.href} />}
       {block.type === 'button' && <><label>Estilo<select value={block.buttonVariant || 'primary'} onChange={(event) => onChange({ ...block, buttonVariant: event.target.value as CmsBlock['buttonVariant'] })}><option value="primary">Primário</option><option value="secondary">Secundário</option><option value="link">Link textual</option></select></label><label>Texto do botão<input value={block.buttonLabel || ''} onChange={(event) => onChange({ ...block, buttonLabel: event.target.value })} /></label><label className="wide">Destino<input value={block.href || ''} onChange={(event) => onChange({ ...block, href: event.target.value })} /></label><label className="wide">Vincular a arquivo<select value={library.files.some((asset) => asset.url === block.href) ? block.href : ''} onChange={(event) => onChange({ ...block, href: event.target.value })}><option value="">Nenhum arquivo</option>{library.files.map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label></>}
       {block.type === 'media' && <><label>Tipo<select value={block.mediaKind || 'image'} onChange={(event) => onChange({ ...block, mediaKind: event.target.value as CmsBlock['mediaKind'], mediaUrl: '' })}><option value="image">Imagem</option><option value="video">Vídeo</option><option value="audio">Áudio</option><option value="youtube">Vídeo do YouTube</option></select></label>{block.mediaKind === 'youtube' && <YoutubeCampo url={block.mediaUrl || ''} onChange={(mediaUrl) => onChange({ ...block, mediaUrl })} />}{block.mediaKind !== 'youtube' && <label className="wide">Item da Biblioteca de mídia<select value={block.mediaUrl || ''} onChange={(event) => onChange({ ...block, mediaUrl: event.target.value })}><option value="">Selecione</option>{library.media.filter((asset) => block.mediaKind === 'video' ? ['mp4','webm'].includes(asset.type) || asset.type.startsWith('video/') : block.mediaKind === 'audio' ? ['mp3','wav','ogg','m4a'].includes(asset.type) || asset.type.startsWith('audio/') : ['png','jpg','jpeg','webp','gif','svg'].includes(asset.type) || asset.type.startsWith('image/')).map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label>}<label className="wide">Legenda ou texto alternativo<input value={block.caption || ''} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></label><label>Arranjo<select value={block.mediaLayout || 'full'} onChange={(event) => onChange({ ...block, mediaLayout: event.target.value as CmsBlock['mediaLayout'] })}><option value="full">Ocupando a linha</option><option value="left">Imagem à esquerda, descrição ao lado</option><option value="right">Imagem à direita, descrição ao lado</option></select></label>{(block.mediaLayout === 'left' || block.mediaLayout === 'right') && <div className="wide cms-campo"><span className="cms-campo-rotulo">Descrição ao lado</span><RichTextEditor value={block.content} onChange={(content) => onChange({ ...block, content })} minHeight={130} /></div>}</>}
     </div>
@@ -493,24 +534,218 @@ export function CmsBannersPage(props: PublicPageProps) {
   const [editing, setEditing] = useState<CmsBanner | null>(null)
   const [slideshow, setSlideshow] = useState<CmsBanner['slideshow']>('home')
   const [page, setPage] = useState(1)
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
   function commit(next: typeof content) { setContent(next); saveSiteContent(next) }
   function saveBanner() { if (!editing?.title.trim()) { window.alert('Informe o título do banner.'); return }; const banners = content.banners.some((item) => item.id === editing.id) ? content.banners.map((item) => item.id === editing.id ? editing : item) : [...content.banners, editing]; commit({ ...content, banners }); setEditing(null) }
+  const NOMES_DE_SLIDESHOW: Record<CmsBanner['slideshow'], string> = { home: 'Home pública', beneficiary: 'Área do beneficiário', provider: 'Área do credenciado', team: 'Área da equipe' }
   const filtered = content.banners.filter((item) => item.slideshow === slideshow).sort((a, b) => a.order - b.order)
+  // Em pastas, cada carrossel é uma pasta e o filtro acima não se aplica.
+  const entradasDeBanner: Array<ItemComPasta<CmsBanner>> = [...content.banners]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => ({ item, segmentos: [NOMES_DE_SLIDESHOW[item.slideshow]] }))
   const visible = filtered.slice((page - 1) * adminPageSize, page * adminPageSize)
-  return <AdminFrame {...props} title="Slideshows"><section className="simple-page-heading cms-admin-heading"><div><h1>Slides dos perfis</h1><p>Gerencie os slideshows da Home e das áreas de Beneficiário, Credenciado e Equipe.</p></div><button className="primary-button" type="button" onClick={() => setEditing({ ...emptyBanner(), slideshow })}><Plus /> Novo slide</button></section><label className="cms-library-search cms-library-filter">Slideshow<select value={slideshow} onChange={(event) => { setSlideshow(event.target.value as CmsBanner['slideshow']); setPage(1) }}><option value="home">Home pública</option><option value="beneficiary">Área do beneficiário</option><option value="provider">Área do credenciado</option><option value="team">Área da equipe</option></select></label>
+
+  /** A mesma tabela serve à lista filtrada e ao conteúdo de uma pasta. */
+  function tabelaDeBanners(itens: CmsBanner[]) {
+    return <div className="portal-table-wrap"><table className="portal-table">
+      <thead><tr><th>Ordem</th><th>Título</th><th>Botão</th><th>Período</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>{itens.map((banner) => <tr key={banner.id}>
+        <td>{banner.order}</td>
+        <td>{banner.title}</td>
+        <td>{banner.actionLabel}</td>
+        <td>{banner.startDate || 'Sempre'} a {banner.endDate || 'sem término'}</td>
+        <td>{banner.active ? 'Ativo' : 'Inativo'}</td>
+        <td><div className="cms-table-actions">
+          <button type="button" onClick={() => setEditing(banner)}><Pencil /> Editar</button>
+          <button type="button" onClick={() => { if (window.confirm('Excluir este slide?')) commit({ ...content, banners: content.banners.filter((item) => item.id !== banner.id), deletedBannerIds: [...new Set([...content.deletedBannerIds, banner.id])] }) }}><Trash2 /> Excluir</button>
+        </div></td>
+      </tr>)}</tbody>
+    </table></div>
+  }
+
+  return <AdminFrame {...props} title="Slideshows"><section className="simple-page-heading cms-admin-heading"><div><h1>Slides dos perfis</h1><p>Gerencie os slideshows da Home e das áreas de Beneficiário, Credenciado e Equipe.</p></div><button className="primary-button" type="button" onClick={() => setEditing({ ...emptyBanner(), slideshow })}><Plus /> Novo slide</button></section>{visao === 'lista' && <label className="cms-library-search cms-library-filter">Slideshow<select value={slideshow} onChange={(event) => { setSlideshow(event.target.value as CmsBanner['slideshow']); setPage(1) }}><option value="home">Home pública</option><option value="beneficiary">Área do beneficiário</option><option value="provider">Área do credenciado</option><option value="team">Área da equipe</option></select></label>}
     {editing && <section className="cms-management-form"><header><h2>{content.banners.some((item) => item.id === editing.id) ? 'Editar slide' : 'Novo slide'}</h2><button type="button" onClick={() => setEditing(null)} title="Fechar"><X /></button></header><div className="cms-page-fields"><label>Slideshow<select value={editing.slideshow} onChange={(event) => setEditing({ ...editing, slideshow: event.target.value as CmsBanner['slideshow'] })}><option value="home">Home</option><option value="beneficiary">Beneficiário</option><option value="provider">Credenciado</option><option value="team">Equipe</option></select></label><label>Chamada superior<input value={editing.eyebrow} onChange={(event) => setEditing({ ...editing, eyebrow: event.target.value })} /></label><label className="wide">Título<input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label><label className="wide">Descrição<textarea value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label><label>Texto do botão<input value={editing.actionLabel} onChange={(event) => setEditing({ ...editing, actionLabel: event.target.value })} /></label><label>Destino<input value={editing.destination} onChange={(event) => setEditing({ ...editing, destination: event.target.value })} /></label><label className="wide">Imagem<select value={editing.imageUrl} onChange={(event) => setEditing({ ...editing, imageUrl: event.target.value })}><option value="">Sem imagem</option>{content.media.filter((asset) => ['png','jpg','jpeg','webp','gif','svg'].includes(asset.type) || asset.type.startsWith('image/')).map((asset) => <option value={asset.url} key={asset.id}>{asset.name}</option>)}</select></label><label className="wide">Texto alternativo<input value={editing.alt} onChange={(event) => setEditing({ ...editing, alt: event.target.value })} /></label><label>Tom visual<select value={editing.tone} onChange={(event) => setEditing({ ...editing, tone: event.target.value })}><option value="default">Padrão</option><option value="green">Verde</option><option value="teal">Azul-petróleo</option><option value="blue">Azul</option></select></label><label>Ordem<input type="number" min="1" value={editing.order} onChange={(event) => setEditing({ ...editing, order: Number(event.target.value) })} /></label><label>Início<input type="date" lang="pt-BR" value={editing.startDate} onChange={(event) => setEditing({ ...editing, startDate: event.target.value })} /></label><label>Fim<input type="date" lang="pt-BR" value={editing.endDate} onChange={(event) => setEditing({ ...editing, endDate: event.target.value })} /></label><label>Status<select value={editing.active ? 'active' : 'inactive'} onChange={(event) => setEditing({ ...editing, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label></div><button className="primary-button" type="button" onClick={saveBanner}><Save /> Salvar slide</button></section>}
-    <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Ordem</th><th>Título</th><th>Botão</th><th>Período</th><th>Status</th><th>Ações</th></tr></thead><tbody>{visible.map((banner) => <tr key={banner.id}><td>{banner.order}</td><td>{banner.title}</td><td>{banner.actionLabel}</td><td>{banner.startDate || 'Sempre'} a {banner.endDate || 'sem término'}</td><td>{banner.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditing(banner)}><Pencil /> Editar</button><button type="button" onClick={() => { if (window.confirm('Excluir este slide?')) commit({ ...content, banners: content.banners.filter((item) => item.id !== banner.id), deletedBannerIds: [...new Set([...content.deletedBannerIds, banner.id])] }) }}><Trash2 /> Excluir</button></div></td></tr>)}</tbody></table></div><AdminPagination page={page} total={filtered.length} onChange={setPage} />
+    <div className="cms-acervo-filtros">
+      <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
+    </div>
+    {visao === 'pastas'
+      ? <VisaoEmPastas
+          entradas={entradasDeBanner}
+          caminho={pasta}
+          onNavegar={setPasta}
+          rotuloRaiz="Slideshows"
+          vazio="Nenhum slide neste carrossel."
+          renderItens={tabelaDeBanners}
+        />
+      : tabelaDeBanners(visible)}
+    {visao === 'lista' && <AdminPagination page={page} total={filtered.length} onChange={setPage} />}
   </AdminFrame>
 }
 
+/** Arquivo escolhido para substituir ou excluir, aguardando confirmação. */
+type PendenteDoAcervo = { acao: 'substituir' | 'excluir', asset: CmsMediaAsset, arquivo?: File }
+
+/**
+ * Substituição e exclusão no acervo, sempre passando pela lista de onde o
+ * arquivo está em uso. Serve às duas bibliotecas — mídia e arquivos — porque a
+ * regra é a mesma e duplicá-la deixaria as duas telas divergirem.
+ */
+function useAcervo(aplicar: (antigo: string, novo: string | undefined, asset: CmsMediaAsset, arquivo?: File) => void) {
+  const [pendente, setPendente] = useState<PendenteDoAcervo>()
+  const paginas = useCmsSnapshot().pages
+
+  const referencias = pendente
+    ? referenciasDoArquivo(paginas, getSiteContent().news, pendente.asset.url)
+    : []
+
+  function pedirSubstituicao(asset: CmsMediaAsset, arquivo?: File) {
+    if (!arquivo) return
+    if (arquivo.size > 1_000_000) { window.alert(`${arquivo.name} excede 1 MB, limite desta demonstração.`); return }
+    setPendente({ acao: 'substituir', asset, arquivo })
+  }
+
+  function pedirExclusao(asset: CmsMediaAsset) {
+    setPendente({ acao: 'excluir', asset })
+  }
+
+  function confirmar() {
+    if (!pendente) return
+    if (pendente.acao === 'excluir') {
+      aplicar(pendente.asset.url, undefined, pendente.asset)
+      setPendente(undefined)
+      return
+    }
+    const leitor = new FileReader()
+    leitor.onload = () => {
+      aplicar(pendente.asset.url, String(leitor.result), pendente.asset, pendente.arquivo)
+      setPendente(undefined)
+    }
+    leitor.readAsDataURL(pendente.arquivo!)
+  }
+
+  const dialogo = pendente ? (
+    <DialogoDeReferencias
+      acao={pendente.acao}
+      arquivo={pendente.asset.name}
+      referencias={referencias}
+      onCancelar={() => setPendente(undefined)}
+      onConfirmar={confirmar}
+    />
+  ) : null
+
+  return { pedirSubstituicao, pedirExclusao, dialogo }
+}
 export function CmsMediaPage(props: PublicPageProps) {
   const [content, setContent] = useState(getSiteContent)
   const [page, setPage] = useState(1)
-  async function upload(event: ChangeEvent<HTMLInputElement>) { const files = Array.from(event.target.files || []); const oversized = files.find((file) => file.size > 1_000_000); if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }; const additions = await Promise.all(files.map((file) => new Promise<(typeof content.media)[number]>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || 'application/octet-stream', size: file.size, url: String(reader.result), createdAt: new Date().toISOString() }); reader.readAsDataURL(file) }))); const next = { ...content, media: [...content.media, ...additions] }; setContent(next); saveSiteContent(next); event.target.value = '' }
-  async function replace(asset: (typeof content.media)[number], file?: File) { if (!file || file.size > 1_000_000) { if (file) window.alert('O arquivo excede 1 MB.'); return }; const reader = new FileReader(); reader.onload = () => { const url = String(reader.result); replaceAssetReferences(asset.url, url); const next = { ...content, media: content.media.map((item) => item.id === asset.id ? { ...item, name: file.name, type: file.type, size: file.size, url, createdAt: new Date().toISOString(), bundled: false } : item), banners: content.banners.map((item) => item.imageUrl === asset.url ? { ...item, imageUrl: url } : item), news: content.news.map((item) => item.coverUrl === asset.url ? { ...item, coverUrl: url } : item) }; setContent(next); saveSiteContent(next) }; reader.readAsDataURL(file) }
-  function remove(id: string) { if (!window.confirm('Excluir este arquivo da biblioteca? Referências existentes poderão deixar de funcionar.')) return; const next = { ...content, media: content.media.filter((asset) => asset.id !== id) }; setContent(next); saveSiteContent(next) }
-  const visible = content.media.slice((page - 1) * adminPageSize, page * adminPageSize)
-  return <AdminFrame {...props} title="Mídia"><section className="simple-page-heading cms-admin-heading"><div><h1>Biblioteca de mídia</h1><p>Hospede e reutilize imagens, vídeos e áudios nos conteúdos do portal.</p></div><label className="primary-button cms-upload-button"><Upload /> Enviar mídia<input hidden multiple type="file" accept="image/*,video/*,audio/*" onChange={upload} /></label></section><p className="cms-demo-limit">O acervo incorporado ao site é catalogado automaticamente. Novos itens de demonstração podem ter até 1 MB.</p><div className="cms-media-grid">{visible.map((asset) => <article key={asset.id}><MediaPreview asset={asset} /><div><strong>{asset.name}</strong><small>{asset.type} · {(asset.size / 1024).toFixed(1)} KB</small></div><div><a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a><label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" accept="image/*,video/*,audio/*" onChange={(event) => replace(asset, event.target.files?.[0])} /></label>{!asset.bundled && <button type="button" onClick={() => remove(asset.id)}><Trash2 /> Excluir</button>}</div></article>)}</div><AdminPagination page={page} total={content.media.length} onChange={setPage} /></AdminFrame>
+  const [query, setQuery] = useState('')
+  const [tipo, setTipo] = useState('todos')
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
+
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    const oversized = files.find((file) => file.size > 1_000_000)
+    if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }
+    const additions = await Promise.all(files.map((file) => new Promise<CmsMediaAsset>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || 'application/octet-stream', size: file.size, url: String(reader.result), createdAt: new Date().toISOString() })
+      reader.readAsDataURL(file)
+    })))
+    const next = { ...content, media: [...content.media, ...additions] }
+    setContent(next)
+    saveSiteContent(next)
+    event.target.value = ''
+  }
+
+  const { pedirSubstituicao, pedirExclusao, dialogo } = useAcervo((antigo, novo, asset, arquivo) => {
+    const atual = getSiteContent()
+    if (novo === undefined) {
+      const next = { ...atual, media: atual.media.filter((item) => item.id !== asset.id) }
+      setContent(next)
+      saveSiteContent(next)
+      return
+    }
+    // A troca vale para todo lugar que apontava para o endereço antigo.
+    contentRepository.getSnapshot().pages.forEach((pagina, indice, todas) => {
+      const atualizada = trocarNasPaginas(todas, antigo, novo)[indice]
+      if (JSON.stringify(atualizada) !== JSON.stringify(pagina)) contentRepository.savePage(atualizada)
+    })
+    const next = {
+      ...atual,
+      media: atual.media.map((item) => item.id === asset.id
+        ? { ...item, name: arquivo?.name ?? item.name, type: arquivo?.type ?? item.type, size: arquivo?.size ?? item.size, url: novo, createdAt: new Date().toISOString(), bundled: false }
+        : item),
+      banners: atual.banners.map((item) => item.imageUrl === antigo ? { ...item, imageUrl: novo } : item),
+      news: trocarNasNoticias(atual.news, antigo, novo),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  })
+
+  /** Um cartão só, para a lista e as pastas não divergirem. */
+  function cartaoDeMidia(asset: CmsMediaAsset) {
+    return <article key={asset.id}>
+      <MediaPreview asset={asset} />
+      <div><strong>{asset.name}</strong><small>{asset.type} · {(asset.size / 1024).toFixed(1)} KB</small></div>
+      <div>
+        <a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a>
+        <label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" accept="image/*,video/*,audio/*" onChange={(event) => { pedirSubstituicao(asset, event.target.files?.[0]); event.target.value = '' }} /></label>
+        {!asset.bundled && <button type="button" onClick={() => pedirExclusao(asset)}><Trash2 /> Excluir</button>}
+      </div>
+    </article>
+  }
+
+  const termo = normalizaTexto(query.trim())
+  const filtrados = content.media
+    .filter((asset) => tipo === 'todos' || asset.type.startsWith(tipo))
+    .filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.type).includes(termo))
+  const visible = filtrados.slice((page - 1) * adminPageSize, page * adminPageSize)
+  // Em pastas o caminho do arquivo é a árvore; o que foi enviado pelo navegador não tem caminho.
+  const entradasDeMidia: Array<ItemComPasta<CmsMediaAsset>> = filtrados.map((asset) => ({ item: asset, segmentos: segmentosDoCaminho(asset.url) }))
+
+  return <AdminFrame {...props} title="Mídia">
+    <section className="simple-page-heading cms-admin-heading">
+      <div><h1>Biblioteca de mídia</h1><p>Hospede e reutilize imagens, vídeos e áudios nos conteúdos do portal.</p></div>
+      <label className="primary-button cms-upload-button"><Upload /> Enviar mídia<input hidden multiple type="file" accept="image/*,video/*,audio/*" onChange={upload} /></label>
+    </section>
+
+    <div className="cms-acervo-filtros">
+      <label className="cms-library-search">
+        Buscar no acervo
+        <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Nome do arquivo ou tipo" />
+      </label>
+      <label className="cms-library-search">
+        Tipo de mídia
+        <select value={tipo} onChange={(event) => { setTipo(event.target.value); setPage(1) }}>
+          <option value="todos">Todos</option>
+          <option value="image">Imagens</option>
+          <option value="video">Vídeos</option>
+          <option value="audio">Áudios</option>
+        </select>
+      </label>
+      <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
+    </div>
+
+    <p className="cms-demo-limit">{filtrados.length} de {content.media.length} item(ns). O acervo incorporado ao site é catalogado automaticamente; novos itens de demonstração podem ter até 1 MB.</p>
+
+    {filtrados.length === 0
+      ? <p className="cms-live-files-empty">Nenhuma mídia encontrada com esses filtros.</p>
+      : visao === 'pastas'
+        ? <VisaoEmPastas
+            entradas={entradasDeMidia}
+            caminho={pasta}
+            onNavegar={setPasta}
+            rotuloRaiz="Mídia"
+            vazio="Nenhuma mídia nesta pasta."
+            renderItens={(itens) => <div className="cms-media-grid">{itens.map(cartaoDeMidia)}</div>}
+          />
+        : <div className="cms-media-grid">{visible.map(cartaoDeMidia)}</div>}
+
+    {visao === 'lista' && <AdminPagination page={page} total={filtrados.length} onChange={setPage} />}
+    {dialogo}
+  </AdminFrame>
 }
 
 /** Arquivos que pertencem a páginas, reunidos aqui só para consulta do acervo completo. */
@@ -544,12 +779,100 @@ export function CmsFilesPage(props: PublicPageProps) {
   const [content, setContent] = useState(getSiteContent)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
-  async function upload(event: ChangeEvent<HTMLInputElement>) { const files = Array.from(event.target.files || []); const oversized = files.find((file) => file.size > 1_000_000); if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }; const additions = await Promise.all(files.map((file) => new Promise<(typeof content.files)[number]>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || file.name.split('.').at(-1) || 'arquivo', size: file.size, url: String(reader.result), createdAt: new Date().toISOString() }); reader.readAsDataURL(file) }))); const next = { ...content, files: [...content.files, ...additions] }; setContent(next); saveSiteContent(next); event.target.value = '' }
-  function remove(id: string) { if (!window.confirm('Excluir este arquivo enviado?')) return; const next = { ...content, files: content.files.filter((asset) => asset.id !== id) }; setContent(next); saveSiteContent(next) }
-  async function replace(asset: (typeof content.files)[number], file?: File) { if (!file || file.size > 1_000_000) { if (file) window.alert('O arquivo excede 1 MB.'); return }; const reader = new FileReader(); reader.onload = () => { const url = String(reader.result); replaceAssetReferences(asset.url, url); const next = { ...content, files: content.files.map((item) => item.id === asset.id ? { ...item, name: file.name, type: file.type || file.name.split('.').at(-1) || 'arquivo', size: file.size, url, createdAt: new Date().toISOString(), bundled: false } : item) }; setContent(next); saveSiteContent(next) }; reader.readAsDataURL(file) }
-  const visible = content.files.filter((asset) => asset.name.toLowerCase().includes(query.toLowerCase()) || asset.url.toLowerCase().includes(query.toLowerCase()))
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
+
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    const oversized = files.find((file) => file.size > 1_000_000)
+    if (oversized) { window.alert(`${oversized.name} excede 1 MB, limite desta demonstração.`); return }
+    const additions = await Promise.all(files.map((file) => new Promise<CmsMediaAsset>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type || file.name.split('.').at(-1) || 'arquivo', size: file.size, url: String(reader.result), createdAt: new Date().toISOString() })
+      reader.readAsDataURL(file)
+    })))
+    const next = { ...content, files: [...content.files, ...additions] }
+    setContent(next)
+    saveSiteContent(next)
+    event.target.value = ''
+  }
+
+  const { pedirSubstituicao, pedirExclusao, dialogo } = useAcervo((antigo, novo, asset, arquivo) => {
+    const atual = getSiteContent()
+    if (novo === undefined) {
+      const next = { ...atual, files: atual.files.filter((item) => item.id !== asset.id) }
+      setContent(next)
+      saveSiteContent(next)
+      return
+    }
+    contentRepository.getSnapshot().pages.forEach((pagina, indice, todas) => {
+      const atualizada = trocarNasPaginas(todas, antigo, novo)[indice]
+      if (JSON.stringify(atualizada) !== JSON.stringify(pagina)) contentRepository.savePage(atualizada)
+    })
+    const next = {
+      ...atual,
+      files: atual.files.map((item) => item.id === asset.id
+        ? { ...item, name: arquivo?.name ?? item.name, type: arquivo?.type || arquivo?.name.split('.').at(-1) || item.type, size: arquivo?.size ?? item.size, url: novo, createdAt: new Date().toISOString(), bundled: false }
+        : item),
+      news: trocarNasNoticias(atual.news, antigo, novo),
+    }
+    setContent(next)
+    saveSiteContent(next)
+  })
+
+  const termo = normalizaTexto(query.trim())
+  const visible = content.files.filter((asset) => !termo || normalizaTexto(asset.name).includes(termo) || normalizaTexto(asset.url).includes(termo))
   const paginated = visible.slice((page - 1) * adminPageSize, page * adminPageSize)
-  return <AdminFrame {...props} title="Arquivos"><section className="simple-page-heading cms-admin-heading"><div><h1>Biblioteca de arquivos</h1><p>Acervo de PDFs, planilhas, documentos de texto e demais arquivos publicados no site.</p></div><label className="primary-button cms-upload-button"><Upload /> Enviar arquivos<input hidden multiple type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.odt,.ods,.txt" onChange={upload} /></label></section><label className="cms-library-search">Buscar no acervo<input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Nome ou caminho do arquivo" /></label><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Arquivo</th><th>Tipo</th><th>Tamanho</th><th>Caminho</th><th>Ações</th></tr></thead><tbody>{paginated.map((asset) => <tr key={asset.id}><td>{asset.name}</td><td>{asset.type.toUpperCase()}</td><td>{(asset.size / 1024).toFixed(1)} KB</td><td><code>{asset.url.startsWith('data:') ? 'Armazenado no navegador' : asset.url}</code></td><td><div className="cms-table-actions"><a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a><label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" onChange={(event) => replace(asset, event.target.files?.[0])} /></label>{!asset.bundled && <button type="button" onClick={() => remove(asset.id)}><Trash2 /> Excluir</button>}</div></td></tr>)}</tbody></table></div><ArquivosPorPagina /><AdminPagination page={page} total={visible.length} onChange={setPage} /><p className="cms-demo-limit">{visible.length} arquivo(s) encontrado(s). O catálogo é regenerado automaticamente no build.</p></AdminFrame>
+  const entradasDeArquivo: Array<ItemComPasta<CmsMediaAsset>> = visible.map((asset) => ({ item: asset, segmentos: segmentosDoCaminho(asset.url) }))
+
+  /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
+  function tabelaDeArquivos(itens: CmsMediaAsset[]) {
+    return <div className="portal-table-wrap"><table className="portal-table">
+      <thead><tr><th>Arquivo</th><th>Tipo</th><th>Tamanho</th><th>Caminho</th><th>Ações</th></tr></thead>
+      <tbody>{itens.map((asset) => <tr key={asset.id}>
+        <td>{asset.name}</td>
+        <td>{asset.type.toUpperCase()}</td>
+        <td>{(asset.size / 1024).toFixed(1)} KB</td>
+        <td><code>{asset.url.startsWith('data:') ? 'Armazenado no navegador' : asset.url}</code></td>
+        <td><div className="cms-table-actions">
+          <a href={asset.url} target="_blank" rel="noreferrer"><Eye /> Abrir</a>
+          <label className="cms-replace-button"><Upload /> Substituir<input hidden type="file" onChange={(event) => { pedirSubstituicao(asset, event.target.files?.[0]); event.target.value = '' }} /></label>
+          {!asset.bundled && <button type="button" onClick={() => pedirExclusao(asset)}><Trash2 /> Excluir</button>}
+        </div></td>
+      </tr>)}</tbody>
+    </table></div>
+  }
+
+  return <AdminFrame {...props} title="Arquivos">
+    <section className="simple-page-heading cms-admin-heading">
+      <div><h1>Biblioteca de arquivos</h1><p>Acervo de PDFs, planilhas, documentos de texto e demais arquivos publicados no site.</p></div>
+      <label className="primary-button cms-upload-button"><Upload /> Enviar arquivos<input hidden multiple type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.odt,.ods,.txt" onChange={upload} /></label>
+    </section>
+
+    <div className="cms-acervo-filtros">
+      <label className="cms-library-search">
+        Buscar no acervo
+        <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Nome ou caminho do arquivo" />
+      </label>
+      <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
+    </div>
+
+    {visao === 'pastas'
+      ? <VisaoEmPastas
+          entradas={entradasDeArquivo}
+          caminho={pasta}
+          onNavegar={setPasta}
+          rotuloRaiz="Arquivos"
+          vazio="Nenhum arquivo nesta pasta."
+          renderItens={tabelaDeArquivos}
+        />
+      : tabelaDeArquivos(paginated)}
+
+    <ArquivosPorPagina />
+    {visao === 'lista' && <AdminPagination page={page} total={visible.length} onChange={setPage} />}
+    <p className="cms-demo-limit">{visible.length} arquivo(s) encontrado(s). O catálogo é regenerado automaticamente no build.</p>
+    {dialogo}
+  </AdminFrame>
 }
 
 const emptyNews = (category: string): CmsNewsItem => ({ id: crypto.randomUUID(), title: '', summary: '', category, author: '', publishDate: new Date().toISOString().slice(0, 10), status: 'draft', audience: 'Ambos', scope: 'Nacional', coverUrl: '', bodyImageUrl: '', content: '', updatedAt: new Date().toISOString() })
@@ -580,10 +903,32 @@ export function CmsNewsPage(props: PublicPageProps) {
   const [editing, setEditing] = useState<CmsNewsItem | null>(null)
   const [newCategory, setNewCategory] = useState('')
   const [page, setPage] = useState(1)
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
   const normalizeCategory = (value: string) => { const text = value.trim().toLocaleLowerCase('pt-BR'); return text ? text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1) : '' }
   function commit(next: typeof site) { setSite(next); saveSiteContent(next) }
   function saveNews() { if (!editing?.title.trim() || !editing.category || !editing.publishDate) { window.alert('Informe título, categoria e data de publicação da notícia.'); return }; const value = { ...editing, updatedAt: new Date().toISOString() }; const news = site.news.some((item) => item.id === value.id) ? site.news.map((item) => item.id === value.id ? value : item) : [...site.news, value]; commit({ ...site, news, deletedNewsIds: site.deletedNewsIds.filter((id) => id !== value.id) }); setEditing(null) }
   const newsImages = site.media.filter((asset) => isImageAsset(asset.type))
+  // Notícia não tem caminho de arquivo: a árvore sai da categoria e do ano de publicação.
+  const entradasDeNoticia: Array<ItemComPasta<CmsNewsItem>> = site.news.map((item) => ({ item, segmentos: [item.category || 'Sem categoria', item.publishDate.slice(0, 4) || 'Sem data'] }))
+
+  /** A mesma tabela serve à lista e ao conteúdo de uma pasta. */
+  function tabelaDeNoticias(itens: CmsNewsItem[]) {
+    return <div className="portal-table-wrap"><table className="portal-table">
+      <thead><tr><th>Título</th><th>Categoria</th><th>Autor</th><th>Publicação</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>{itens.map((item) => <tr key={item.id}>
+        <td>{item.title}</td>
+        <td>{item.category}</td>
+        <td>{item.author || '—'}</td>
+        <td>{formatBrazilianDate(item.publishDate)}</td>
+        <td>{item.status === 'published' ? 'Publicada' : 'Rascunho'}</td>
+        <td><div className="cms-table-actions">
+          <button type="button" onClick={() => setEditing(item)}><Pencil /> Editar</button>
+          <button type="button" onClick={() => { if (window.confirm('Excluir esta notícia?')) commit({ ...site, news: site.news.filter((news) => news.id !== item.id), deletedNewsIds: [...new Set([...site.deletedNewsIds, item.id])] }) }}><Trash2 /> Excluir</button>
+        </div></td>
+      </tr>)}</tbody>
+    </table></div>
+  }
   function uploadNewsImage(file: File, apply: (url: string) => void) {
     const reader = new FileReader()
     reader.onload = () => {
@@ -597,7 +942,20 @@ export function CmsNewsPage(props: PublicPageProps) {
   function renameCategory(category: string) { const value = normalizeCategory(window.prompt('Novo nome da categoria:', category) || ''); if (!value || value === category || site.newsCategories.some((item) => item.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'))) return; commit({ ...site, newsCategories: site.newsCategories.map((item) => item === category ? value : item), news: site.news.map((item) => item.category === category ? { ...item, category: value } : item) }) }
   return <AdminFrame {...props} title="Notícias"><section className="simple-page-heading cms-admin-heading"><div><h1>Gestão de notícias</h1><p>Crie, edite, categorize, publique ou retire notícias do portal.</p></div><button className="primary-button" type="button" onClick={() => setEditing(emptyNews(site.newsCategories[0] || 'Geral'))}><Plus /> Nova notícia</button></section><section className="cms-category-manager"><h2>Categorias</h2><div className="cms-category-list">{site.newsCategories.map((category) => <span key={category}>{category}<button type="button" title="Renomear categoria e atualizar notícias" onClick={() => renameCategory(category)}><Pencil /></button><button type="button" title="Excluir categoria" onClick={() => { if (site.news.some((item) => item.category === category)) { window.alert('Altere a categoria das notícias vinculadas antes de excluí-la.'); return }; commit({ ...site, newsCategories: site.newsCategories.filter((item) => item !== category) }) }}><Trash2 /></button></span>)}</div><div className="cms-category-add"><input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="Nova categoria" /><button className="secondary-button" type="button" onClick={() => { const value = normalizeCategory(newCategory); if (value && !site.newsCategories.some((item) => item.toLocaleLowerCase('pt-BR') === value.toLocaleLowerCase('pt-BR'))) { commit({ ...site, newsCategories: [...site.newsCategories, value] }); setNewCategory('') } }}><Plus /> Adicionar</button></div></section>
     {editing && <section className="cms-management-form"><header><h2>{site.news.some((item) => item.id === editing.id) ? 'Editar notícia' : 'Nova notícia'}</h2><button type="button" onClick={() => setEditing(null)} title="Cancelar edição"><X /></button></header><div className="cms-page-fields"><label className="wide">Título<input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label><label className="wide">Resumo<textarea value={editing.summary} onChange={(event) => setEditing({ ...editing, summary: event.target.value })} /></label><label>Categoria<Combobox value={editing.category} options={site.newsCategories.map((category) => ({ value: category, label: category }))} onSelect={(category) => setEditing({ ...editing, category })} placeholder="Digite para buscar uma categoria" /></label><label>Autor<input value={editing.author} onChange={(event) => setEditing({ ...editing, author: event.target.value })} /></label><label>Publicação<input type="date" lang="pt-BR" value={editing.publishDate} onChange={(event) => setEditing({ ...editing, publishDate: event.target.value })} /></label><label>Status<select value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value as CmsNewsItem['status'] })}><option value="draft">Rascunho</option><option value="published">Publicada</option></select></label><label>Público<select value={editing.audience} onChange={(event) => setEditing({ ...editing, audience: event.target.value })}><option>Ambos</option><option>Beneficiários</option><option>Credenciados</option><option>Equipe</option></select></label><label>Abrangência<select value={editing.scope} onChange={(event) => setEditing({ ...editing, scope: event.target.value })}><option>Nacional</option><option>Regional</option></select></label><NewsImagePicker label="Imagem de capa" value={editing.coverUrl} images={newsImages} onSelect={(coverUrl) => setEditing({ ...editing, coverUrl })} onUpload={(file) => uploadNewsImage(file, (coverUrl) => setEditing((current) => current && { ...current, coverUrl }))} /><NewsImagePicker label="Imagem interna da notícia" value={editing.bodyImageUrl} images={newsImages} onSelect={(bodyImageUrl) => setEditing({ ...editing, bodyImageUrl })} onUpload={(file) => uploadNewsImage(file, (bodyImageUrl) => setEditing((current) => current && { ...current, bodyImageUrl }))} /><div className="wide cms-campo"><span className="cms-campo-rotulo">Conteúdo</span><RichTextEditor value={editing.content} onChange={(content) => setEditing({ ...editing, content })} minHeight={220} /></div><div className="wide cms-noticia-blocos"><header><h3>Blocos depois do texto</h3><div className="cms-live-add-block"><select value="" onChange={(event) => { if (!event.target.value) return; setEditing({ ...editing, blocks: [...(editing.blocks ?? []), createCmsBlock(event.target.value as CmsBlockType)] }) }}><option value="">Adicionar bloco…</option>{TIPOS_DE_BLOCO.map(([tipo, rotulo]) => <option key={tipo} value={tipo}>{rotulo}</option>)}</select><Plus aria-hidden="true" /></div></header>{(editing.blocks ?? []).map((bloco, indice) => <BlockEditor key={bloco.id} block={bloco} index={indice} total={(editing.blocks ?? []).length} onChange={(alterado) => setEditing({ ...editing, blocks: (editing.blocks ?? []).map((item) => item.id === alterado.id ? alterado : item) })} onMove={(direcao) => { const lista = [...(editing.blocks ?? [])]; const alvo = indice + direcao; if (alvo < 0 || alvo >= lista.length) return; [lista[indice], lista[alvo]] = [lista[alvo], lista[indice]]; setEditing({ ...editing, blocks: lista }) }} onDelete={() => setEditing({ ...editing, blocks: (editing.blocks ?? []).filter((item) => item.id !== bloco.id) })} />)}</div></div><div className="cms-editor-footer"><span /><button className="secondary-button" type="button" onClick={() => setEditing(null)}><X /> Cancelar edição</button><button className="primary-button" type="button" onClick={saveNews}><Save /> Salvar notícia</button></div></section>}
-    <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Título</th><th>Categoria</th><th>Autor</th><th>Publicação</th><th>Status</th><th>Ações</th></tr></thead><tbody>{visibleNews.map((item) => <tr key={item.id}><td>{item.title}</td><td>{item.category}</td><td>{item.author || '—'}</td><td>{formatBrazilianDate(item.publishDate)}</td><td>{item.status === 'published' ? 'Publicada' : 'Rascunho'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditing(item)}><Pencil /> Editar</button><button type="button" onClick={() => { if (window.confirm('Excluir esta notícia?')) commit({ ...site, news: site.news.filter((news) => news.id !== item.id), deletedNewsIds: [...new Set([...site.deletedNewsIds, item.id])] }) }}><Trash2 /> Excluir</button></div></td></tr>)}</tbody></table></div><AdminPagination page={page} total={site.news.length} onChange={setPage} />
+    <div className="cms-acervo-filtros">
+      <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
+    </div>
+    {visao === 'pastas'
+      ? <VisaoEmPastas
+          entradas={entradasDeNoticia}
+          caminho={pasta}
+          onNavegar={setPasta}
+          rotuloRaiz="Notícias"
+          vazio="Nenhuma notícia nesta pasta."
+          renderItens={tabelaDeNoticias}
+        />
+      : tabelaDeNoticias(visibleNews)}
+    {visao === 'lista' && <AdminPagination page={page} total={site.news.length} onChange={setPage} />}
   </AdminFrame>
 }
 
@@ -606,6 +964,8 @@ export function CmsContactPage(props: PublicPageProps) {
   const [editingSocial, setEditingSocial] = useState<CmsSocialLink | null>(null)
   const [editingChannel, setEditingChannel] = useState<CmsContactChannel | null>(null)
   const [editingAddress, setEditingAddress] = useState<CmsAddress | null>(null)
+  const [visao, setVisao] = useState<Visao>('lista')
+  const [pasta, setPasta] = useState<string[]>([])
   function commit(next: typeof content) { setContent(next); saveSiteContent(next) }
   function saveSocial() { if (!editingSocial) return; commit({ ...content, socialLinks: content.socialLinks.map((item) => item.id === editingSocial.id ? editingSocial : item) }); setEditingSocial(null) }
   function saveChannel() { if (!editingChannel?.value.trim()) { window.alert('Informe o número do contato.'); return }; commit({ ...content, contactChannels: content.contactChannels.map((item) => item.id === editingChannel.id ? editingChannel : item) }); setEditingChannel(null) }
@@ -613,49 +973,119 @@ export function CmsContactPage(props: PublicPageProps) {
   const socialLinks = [...content.socialLinks].sort((a, b) => a.order - b.order)
   const channels = [...content.contactChannels].sort((a, b) => a.order - b.order)
   const addresses = [...content.addresses].sort((a, b) => a.order - b.order)
+  // Cada tipo de contato é uma pasta: a página inteira vira um seletor de três.
+  const entradasDeContato: Array<ItemComPasta<{ id: string }>> = [
+    ...socialLinks.map((item) => ({ item, segmentos: ['Redes sociais'] })),
+    ...channels.map((item) => ({ item, segmentos: ['Canais de contato'] })),
+    ...addresses.map((item) => ({ item, segmentos: ['Endereços e unidades'] })),
+  ]
+
+  /** As mesmas seções servem à lista inteira e ao conteúdo de uma pasta. */
+  function secaoDoGrupo(grupo?: string) {
+    if (grupo === 'Redes sociais') return <>
+        <section className="cms-contact-section">
+          <h2><Globe2 aria-hidden="true" /> Redes sociais</h2>
+          <p>Informe o link real de cada rede. Redes sem link cadastrado ou marcadas como inativas deixam de aparecer no site.</p>
+          {editingSocial && <section className="cms-management-form"><header><h2>Editar {editingSocial.label}</h2><button type="button" onClick={() => setEditingSocial(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label className="wide">Link<input type="url" value={editingSocial.url} onChange={(event) => setEditingSocial({ ...editingSocial, url: event.target.value })} placeholder="https://" /></label>
+              <label>Status<select value={editingSocial.active ? 'active' : 'inactive'} onChange={(event) => setEditingSocial({ ...editingSocial, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveSocial}><Save /> Salvar rede social</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rede</th><th>Link</th><th>Status</th><th>Ações</th></tr></thead><tbody>{socialLinks.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.url ? <code>{item.url}</code> : 'Sem link cadastrado'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingSocial(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+    </>
+    if (grupo === 'Canais de contato') return <>
+        <section className="cms-contact-section">
+          <h2><Phone aria-hidden="true" /> Telefones e WhatsApp</h2>
+          {editingChannel && <section className="cms-management-form"><header><h2>Editar contato</h2><button type="button" onClick={() => setEditingChannel(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label>Rótulo<input value={editingChannel.label} onChange={(event) => setEditingChannel({ ...editingChannel, label: event.target.value })} /></label>
+              <label>Número<input value={editingChannel.value} onChange={(event) => setEditingChannel({ ...editingChannel, value: event.target.value })} /></label>
+              <label>Status<select value={editingChannel.active ? 'active' : 'inactive'} onChange={(event) => setEditingChannel({ ...editingChannel, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveChannel}><Save /> Salvar contato</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rótulo</th><th>Número</th><th>Status</th><th>Ações</th></tr></thead><tbody>{channels.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.value}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingChannel(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+    </>
+    if (grupo === 'Endereços e unidades') return <>
+        <section className="cms-contact-section">
+          <h2><MapPin aria-hidden="true" /> Endereços e unidades</h2>
+          {editingAddress && <section className="cms-management-form"><header><h2>Editar unidade</h2><button type="button" onClick={() => setEditingAddress(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label className="wide">Nome da unidade<input value={editingAddress.label} onChange={(event) => setEditingAddress({ ...editingAddress, label: event.target.value })} /></label>
+              <label>Observação<input value={editingAddress.note} onChange={(event) => setEditingAddress({ ...editingAddress, note: event.target.value })} placeholder="Ex.: (exceto Brasília)" /></label>
+              <label>Telefone<input value={editingAddress.phone} onChange={(event) => setEditingAddress({ ...editingAddress, phone: event.target.value })} placeholder="(00) 0000-0000" /></label>
+              <label>E-mail<input type="email" value={editingAddress.email} onChange={(event) => setEditingAddress({ ...editingAddress, email: event.target.value })} /></label>
+              <label className="wide">Endereço completo<textarea value={editingAddress.detail} onChange={(event) => setEditingAddress({ ...editingAddress, detail: event.target.value })} placeholder="Rua, número, bairro, cidade/UF, CEP" /></label>
+              <label>Status<select value={editingAddress.active ? 'active' : 'inactive'} onChange={(event) => setEditingAddress({ ...editingAddress, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveAddress}><Save /> Salvar unidade</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Unidade</th><th>Telefone</th><th>E-mail</th><th>Endereço</th><th>Status</th><th>Ações</th></tr></thead><tbody>{addresses.map((item) => <tr key={item.id}><td>{item.label}{item.note && <small> {item.note}</small>}</td><td>{item.phone || '—'}</td><td>{item.email || '—'}</td><td>{item.detail || '—'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingAddress(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+    </>
+    return null
+  }
+
   return <AdminFrame {...props} title="Contatos institucionais">
     <section className="simple-page-heading cms-admin-heading"><div><h1>Contatos institucionais</h1><p>Atualize telefones, redes sociais e endereços exibidos no cabeçalho e no rodapé de todo o site.</p></div></section>
 
-    <section className="cms-contact-section">
-      <h2><Globe2 aria-hidden="true" /> Redes sociais</h2>
-      <p>Informe o link real de cada rede. Redes sem link cadastrado ou marcadas como inativas deixam de aparecer no site.</p>
-      {editingSocial && <section className="cms-management-form"><header><h2>Editar {editingSocial.label}</h2><button type="button" onClick={() => setEditingSocial(null)} title="Fechar"><X /></button></header>
-        <div className="cms-page-fields">
-          <label className="wide">Link<input type="url" value={editingSocial.url} onChange={(event) => setEditingSocial({ ...editingSocial, url: event.target.value })} placeholder="https://" /></label>
-          <label>Status<select value={editingSocial.active ? 'active' : 'inactive'} onChange={(event) => setEditingSocial({ ...editingSocial, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
-        </div>
-        <button className="primary-button" type="button" onClick={saveSocial}><Save /> Salvar rede social</button>
-      </section>}
-      <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rede</th><th>Link</th><th>Status</th><th>Ações</th></tr></thead><tbody>{socialLinks.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.url ? <code>{item.url}</code> : 'Sem link cadastrado'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingSocial(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
-    </section>
+    <div className="cms-acervo-filtros">
+      <AlternadorDeVisao visao={visao} onChange={(proxima) => { setVisao(proxima); setPasta([]) }} />
+    </div>
 
-    <section className="cms-contact-section">
-      <h2><Phone aria-hidden="true" /> Telefones e WhatsApp</h2>
-      {editingChannel && <section className="cms-management-form"><header><h2>Editar contato</h2><button type="button" onClick={() => setEditingChannel(null)} title="Fechar"><X /></button></header>
-        <div className="cms-page-fields">
-          <label>Rótulo<input value={editingChannel.label} onChange={(event) => setEditingChannel({ ...editingChannel, label: event.target.value })} /></label>
-          <label>Número<input value={editingChannel.value} onChange={(event) => setEditingChannel({ ...editingChannel, value: event.target.value })} /></label>
-          <label>Status<select value={editingChannel.active ? 'active' : 'inactive'} onChange={(event) => setEditingChannel({ ...editingChannel, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
-        </div>
-        <button className="primary-button" type="button" onClick={saveChannel}><Save /> Salvar contato</button>
-      </section>}
-      <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rótulo</th><th>Número</th><th>Status</th><th>Ações</th></tr></thead><tbody>{channels.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.value}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingChannel(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
-    </section>
-
-    <section className="cms-contact-section">
-      <h2><MapPin aria-hidden="true" /> Endereços e unidades</h2>
-      {editingAddress && <section className="cms-management-form"><header><h2>Editar unidade</h2><button type="button" onClick={() => setEditingAddress(null)} title="Fechar"><X /></button></header>
-        <div className="cms-page-fields">
-          <label className="wide">Nome da unidade<input value={editingAddress.label} onChange={(event) => setEditingAddress({ ...editingAddress, label: event.target.value })} /></label>
-          <label>Observação<input value={editingAddress.note} onChange={(event) => setEditingAddress({ ...editingAddress, note: event.target.value })} placeholder="Ex.: (exceto Brasília)" /></label>
-          <label>Telefone<input value={editingAddress.phone} onChange={(event) => setEditingAddress({ ...editingAddress, phone: event.target.value })} placeholder="(00) 0000-0000" /></label>
-          <label>E-mail<input type="email" value={editingAddress.email} onChange={(event) => setEditingAddress({ ...editingAddress, email: event.target.value })} /></label>
-          <label className="wide">Endereço completo<textarea value={editingAddress.detail} onChange={(event) => setEditingAddress({ ...editingAddress, detail: event.target.value })} placeholder="Rua, número, bairro, cidade/UF, CEP" /></label>
-          <label>Status<select value={editingAddress.active ? 'active' : 'inactive'} onChange={(event) => setEditingAddress({ ...editingAddress, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
-        </div>
-        <button className="primary-button" type="button" onClick={saveAddress}><Save /> Salvar unidade</button>
-      </section>}
-      <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Unidade</th><th>Telefone</th><th>E-mail</th><th>Endereço</th><th>Status</th><th>Ações</th></tr></thead><tbody>{addresses.map((item) => <tr key={item.id}><td>{item.label}{item.note && <small> {item.note}</small>}</td><td>{item.phone || '—'}</td><td>{item.email || '—'}</td><td>{item.detail || '—'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingAddress(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
-    </section>
+    {visao === 'pastas'
+      ? <VisaoEmPastas
+          entradas={entradasDeContato}
+          caminho={pasta}
+          onNavegar={setPasta}
+          rotuloRaiz="Contatos"
+          vazio="Nada cadastrado aqui."
+          renderItens={() => secaoDoGrupo(pasta[0])}
+        />
+      : <>
+        <section className="cms-contact-section">
+          <h2><Globe2 aria-hidden="true" /> Redes sociais</h2>
+          <p>Informe o link real de cada rede. Redes sem link cadastrado ou marcadas como inativas deixam de aparecer no site.</p>
+          {editingSocial && <section className="cms-management-form"><header><h2>Editar {editingSocial.label}</h2><button type="button" onClick={() => setEditingSocial(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label className="wide">Link<input type="url" value={editingSocial.url} onChange={(event) => setEditingSocial({ ...editingSocial, url: event.target.value })} placeholder="https://" /></label>
+              <label>Status<select value={editingSocial.active ? 'active' : 'inactive'} onChange={(event) => setEditingSocial({ ...editingSocial, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveSocial}><Save /> Salvar rede social</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rede</th><th>Link</th><th>Status</th><th>Ações</th></tr></thead><tbody>{socialLinks.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.url ? <code>{item.url}</code> : 'Sem link cadastrado'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingSocial(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+        <section className="cms-contact-section">
+          <h2><Phone aria-hidden="true" /> Telefones e WhatsApp</h2>
+          {editingChannel && <section className="cms-management-form"><header><h2>Editar contato</h2><button type="button" onClick={() => setEditingChannel(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label>Rótulo<input value={editingChannel.label} onChange={(event) => setEditingChannel({ ...editingChannel, label: event.target.value })} /></label>
+              <label>Número<input value={editingChannel.value} onChange={(event) => setEditingChannel({ ...editingChannel, value: event.target.value })} /></label>
+              <label>Status<select value={editingChannel.active ? 'active' : 'inactive'} onChange={(event) => setEditingChannel({ ...editingChannel, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveChannel}><Save /> Salvar contato</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Rótulo</th><th>Número</th><th>Status</th><th>Ações</th></tr></thead><tbody>{channels.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.value}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingChannel(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+        <section className="cms-contact-section">
+          <h2><MapPin aria-hidden="true" /> Endereços e unidades</h2>
+          {editingAddress && <section className="cms-management-form"><header><h2>Editar unidade</h2><button type="button" onClick={() => setEditingAddress(null)} title="Fechar"><X /></button></header>
+            <div className="cms-page-fields">
+              <label className="wide">Nome da unidade<input value={editingAddress.label} onChange={(event) => setEditingAddress({ ...editingAddress, label: event.target.value })} /></label>
+              <label>Observação<input value={editingAddress.note} onChange={(event) => setEditingAddress({ ...editingAddress, note: event.target.value })} placeholder="Ex.: (exceto Brasília)" /></label>
+              <label>Telefone<input value={editingAddress.phone} onChange={(event) => setEditingAddress({ ...editingAddress, phone: event.target.value })} placeholder="(00) 0000-0000" /></label>
+              <label>E-mail<input type="email" value={editingAddress.email} onChange={(event) => setEditingAddress({ ...editingAddress, email: event.target.value })} /></label>
+              <label className="wide">Endereço completo<textarea value={editingAddress.detail} onChange={(event) => setEditingAddress({ ...editingAddress, detail: event.target.value })} placeholder="Rua, número, bairro, cidade/UF, CEP" /></label>
+              <label>Status<select value={editingAddress.active ? 'active' : 'inactive'} onChange={(event) => setEditingAddress({ ...editingAddress, active: event.target.value === 'active' })}><option value="active">Ativo</option><option value="inactive">Inativo</option></select></label>
+            </div>
+            <button className="primary-button" type="button" onClick={saveAddress}><Save /> Salvar unidade</button>
+          </section>}
+          <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Unidade</th><th>Telefone</th><th>E-mail</th><th>Endereço</th><th>Status</th><th>Ações</th></tr></thead><tbody>{addresses.map((item) => <tr key={item.id}><td>{item.label}{item.note && <small> {item.note}</small>}</td><td>{item.phone || '—'}</td><td>{item.email || '—'}</td><td>{item.detail || '—'}</td><td>{item.active ? 'Ativo' : 'Inativo'}</td><td><div className="cms-table-actions"><button type="button" onClick={() => setEditingAddress(item)}><Pencil /> Editar</button></div></td></tr>)}</tbody></table></div>
+        </section>
+      </>}
   </AdminFrame>
 }
