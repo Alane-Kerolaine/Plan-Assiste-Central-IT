@@ -74,7 +74,7 @@ import { CmsBlockRenderer, CmsPageBlocks, CmsPaginasFilhas } from '../components
 import { ConteudosRelacionados } from '../components/ConteudosRelacionados'
 import { InlineLinkedText } from '../components/InlineLinkedText'
 import { getCmsFaqCategories, getCmsFaqs, getCmsOrgHierarchy } from '../cms/specialContent'
-import { getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
+import { REGIOES_DO_BRASIL, getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
 import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 import { dentroDoEditor } from '../utils/modoEdicao'
 import { caminhoDoSlug, trilhaDaPagina } from '../cms/portalNavegacao'
@@ -92,7 +92,7 @@ const newsPerPage = 12
 function getPortalNews(): NewsItem[] {
   const managed = getSiteContent().news.filter((item) => item.status === 'published').map((item) => {
     const [year, month, day] = item.publishDate.split('-')
-    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean), bodyHtml: item.content, related: item.related, blocks: item.blocks }
+    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean), bodyHtml: item.content, related: item.related, blocks: item.blocks, regions: item.regions }
   })
   return [...managed, ...news.filter((item) => !managed.some((managedItem) => managedItem.id === item.id))]
 }
@@ -3030,6 +3030,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
   const [startDate, setStartDate] = useState(searchParams.get('de') || '')
   const [endDate, setEndDate] = useState(searchParams.get('ate') || '')
   const [query, setQuery] = useState(searchParams.get('busca') || '')
+  const [regiao, setRegiao] = useState(searchParams.get('regiao') || 'Todas')
   const [favoriteState, setFavoriteState] = useState<FavoriteState>(() => getFavoriteState())
   const [page, setPage] = useState(1)
   const categories = useMemo(() => ['Todas', ...Array.from(new Set(portalNews.map((item) => item.category)))], [portalNews])
@@ -3049,6 +3050,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
 
   const visibleNews = [...portalNews]
     .filter((item) => category === 'Todas' || item.category === category)
+    .filter((item) => regiao === 'Todas' || !item.regions?.length || item.regions.includes(regiao))
     .filter((item) => !loggedIn || !onlyFavorites || favoriteState.favoriteNewsIds.includes(item.id))
     .filter((item) => {
       const value = newsDateValue(item.date)
@@ -3069,6 +3071,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
 
   function clearFilters() {
     setCategory('Todas')
+    setRegiao('Todas')
     setOnlyFavorites(false)
     setStartDate('')
     setEndDate('')
@@ -3105,6 +3108,13 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
             Categoria
             <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1) }}>
               {categories.map((item) => <option value={item} key={item}>{item === 'Todas' ? item : formatNewsCategory(item)}</option>)}
+            </select>
+          </label>
+          <label>
+            Região
+            <select value={regiao} onChange={(evento) => { setRegiao(evento.target.value); setPage(1) }}>
+              <option value="Todas">Todas as regiões</option>
+              {REGIOES_DO_BRASIL.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label className="news-date-field">

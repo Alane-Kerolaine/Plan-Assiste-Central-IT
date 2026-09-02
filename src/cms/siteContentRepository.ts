@@ -5,12 +5,36 @@ import type { CmsBlock, CmsRelatedRef } from './contentRepository'
 export type CmsMediaAsset = { id: string; name: string; type: string; size: number; url: string; createdAt: string; bundled?: boolean; /** Pasta escolhida a mao, quando o endereco nao traz caminho. */ folder?: string }
 export type CmsFileAsset = CmsMediaAsset
 export type CmsBanner = { id: string; slideshow: 'home' | 'beneficiary' | 'provider' | 'team'; eyebrow: string; title: string; description: string; actionLabel: string; destination: string; imageUrl: string; alt: string; tone: string; startDate: string; endDate: string; order: number; active: boolean; folder?: string }
-export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string; scope: string; coverUrl: string; bodyImageUrl: string; content: string; blocks?: CmsBlock[]; related?: CmsRelatedRef[]; folder?: string; updatedAt: string }
+export type CmsNewsItem = { id: string; title: string; summary: string; category: string; author: string; publishDate: string; status: 'draft' | 'published'; audience: string[]; regions: string[]; scope: string; coverUrl: string; bodyImageUrl: string; content: string; blocks?: CmsBlock[]; related?: CmsRelatedRef[]; folder?: string; updatedAt: string }
 export type CmsSocialLink = { id: string; network: 'youtube' | 'whatsapp' | 'linkedin'; label: string; url: string; order: number; active: boolean; folder?: string }
 export type CmsContactChannel = { id: string; kind: 'phone' | 'whatsapp' | 'email'; label: string; value: string; order: number; active: boolean; folder?: string }
 export type CmsAddress = { id: string; label: string; note: string; detail: string; phone: string; email: string; order: number; active: boolean; folder?: string }
 
 type SiteContent = { banners: CmsBanner[]; media: CmsMediaAsset[]; files: CmsFileAsset[]; news: CmsNewsItem[]; newsCategories: string[]; mediaFolders: string[]; fileFolders: string[]; bannerFolders: string[]; contactFolders: string[]; deletedBannerIds: string[]; deletedNewsIds: string[]; socialLinks: CmsSocialLink[]; contactChannels: CmsContactChannel[]; addresses: CmsAddress[] }
+/** Publicos oferecidos na edicao de noticia. */
+export const PUBLICOS_DE_NOTICIA = ['Público geral', 'Beneficiários', 'Credenciados', 'Equipe']
+
+/** Regioes do Brasil, para a noticia valer so onde interessa. */
+export const REGIOES_DO_BRASIL = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+
+/** Regiao gravada antes do campo existir: lista vazia significa todo o pais. */
+export function regioesDaNoticia(valor: unknown): string[] {
+  const lista = Array.isArray(valor) ? valor : []
+  return [...new Set(lista.filter((item): item is string => REGIOES_DO_BRASIL.includes(item)))]
+}
+
+/**
+ * Normaliza o publico gravado antes da escolha multipla.
+ *
+ * Ate aqui era um texto unico, e "Ambos" era o nome do publico geral. Sem esta
+ * conversao a noticia antiga apareceria sem publico nenhum.
+ */
+export function publicosDaNoticia(valor: unknown): string[] {
+  const lista = Array.isArray(valor) ? valor : typeof valor === 'string' && valor ? [valor] : []
+  const convertidos = lista.map((item) => (item === 'Ambos' ? 'Público geral' : item))
+  return [...new Set(convertidos)]
+}
+
 const KEY = 'planAssisteCmsSiteContentV1'
 const categoryLabel = (value: string) => { const text = value.trim().toLocaleLowerCase('pt-BR'); return text ? text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1) : '' }
 
@@ -38,7 +62,7 @@ const defaults: SiteContent = {
   media: bundledAssetCatalog.filter((asset) => asset.kind === 'media').map((asset) => ({ id: asset.id, name: asset.name, type: asset.type, size: asset.size, url: asset.url, createdAt: asset.createdAt, bundled: asset.bundled })),
   files: bundledAssetCatalog.filter((asset) => asset.kind === 'file').map((asset) => ({ id: asset.id, name: asset.name, type: asset.type, size: asset.size, url: asset.url, createdAt: asset.createdAt, bundled: asset.bundled })),
   newsCategories: Array.from(new Set(['Institucional', 'Cobertura', 'Regulamento', 'Saúde', 'Rede credenciada', 'Financeiro', ...publicNews.map((item) => categoryLabel(item.category))])),
-  news: publicNews.map((item) => { const [day, month, year] = item.date.split('/'); return { id: item.id, title: item.title, summary: item.summary, category: categoryLabel(item.category), author: 'Equipe Plan-Assiste', publishDate: `${year}-${month}-${day}`, status: 'published', audience: 'Ambos', scope: 'Nacional', coverUrl: item.image, bodyImageUrl: '', content: item.body.map((paragraph) => `<p>${paragraph}</p>`).join(''), updatedAt: new Date(`${year}-${month}-${day}T12:00:00`).toISOString() } }),
+  news: publicNews.map((item) => { const [day, month, year] = item.date.split('/'); return { id: item.id, title: item.title, summary: item.summary, category: categoryLabel(item.category), author: 'Equipe Plan-Assiste', publishDate: `${year}-${month}-${day}`, status: 'published', audience: ['Público geral'], regions: [], scope: 'Nacional', coverUrl: item.image, bodyImageUrl: '', content: item.body.map((paragraph) => `<p>${paragraph}</p>`).join(''), updatedAt: new Date(`${year}-${month}-${day}T12:00:00`).toISOString() } }),
   socialLinks: [
     { id: 'youtube', network: 'youtube', label: 'YouTube', url: '/area-da-equipe/administracao-do-portal/contatos', order: 1, active: true },
     { id: 'whatsapp-social', network: 'whatsapp', label: 'WhatsApp', url: '/area-da-equipe/administracao-do-portal/contatos', order: 2, active: true },
@@ -72,7 +96,7 @@ export function getSiteContent(): SiteContent {
     const files = [...(saved.files || []), ...defaults.files.filter((asset) => !(saved.files || []).some((item) => item.id === asset.id))]
     const deletedNewsIds = saved.deletedNewsIds || []
     const deletedBannerIds = saved.deletedBannerIds || []
-    const news = [...(saved.news || []), ...defaults.news.filter((item) => !deletedNewsIds.includes(item.id) && !(saved.news || []).some((savedItem) => savedItem.id === item.id))].map((item) => ({ ...item, category: categoryLabel(item.category), bodyImageUrl: item.bodyImageUrl || '' }))
+    const news = [...(saved.news || []), ...defaults.news.filter((item) => !deletedNewsIds.includes(item.id) && !(saved.news || []).some((savedItem) => savedItem.id === item.id))].map((item) => ({ ...item, category: categoryLabel(item.category), bodyImageUrl: item.bodyImageUrl || '', audience: publicosDaNoticia(item.audience), regions: regioesDaNoticia(item.regions) }))
     const newsCategories = Array.from(new Map([...(saved.newsCategories || []), ...defaults.newsCategories].map((item) => [categoryLabel(item).toLocaleLowerCase('pt-BR'), categoryLabel(item)])).values())
     const savedBanners = (saved.banners || []).map((banner) => {
       const destination = banner.id === 'slide-beneficiary-3' && banner.destination === '/aplicativo'

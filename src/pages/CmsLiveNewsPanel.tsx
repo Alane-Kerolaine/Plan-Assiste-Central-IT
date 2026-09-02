@@ -1,8 +1,9 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ImageUp, Maximize2, Minimize2, Save, Trash2, X } from 'lucide-react'
-import { getSiteContent, saveSiteContent, type CmsMediaAsset, type CmsNewsItem } from '../cms/siteContentRepository'
+import { PUBLICOS_DE_NOTICIA, REGIOES_DO_BRASIL, getSiteContent, saveSiteContent, type CmsMediaAsset, type CmsNewsItem } from '../cms/siteContentRepository'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { CmsRelacionados } from './CmsRelacionados'
+import { SeletorMultiplo } from '../components/SeletorMultiplo'
 import { BlockEditor } from './CmsAdminPages'
 import { createCmsBlock, type CmsBlock, type CmsBlockType } from '../cms/contentRepository'
 import { TIPOS_DE_BLOCO } from '../cms/tiposDeBloco'
@@ -190,12 +191,20 @@ export function CmsLiveNewsPanel({
             Publicação
             <input type="date" lang="pt-BR" value={noticia.publishDate} onChange={(evento) => atualizar({ publishDate: evento.target.value })} />
           </label>
-          <label>
-            Público
-            <select value={noticia.audience} onChange={(evento) => atualizar({ audience: evento.target.value })}>
-              {['Ambos', 'Beneficiários', 'Credenciados', 'Equipe'].map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
+          <SeletorMultiplo
+            rotulo="Público"
+            opcoes={PUBLICOS_DE_NOTICIA}
+            valor={noticia.audience}
+            onChange={(audience) => atualizar({ audience })}
+            avisoVazio="Sem público escolhido, a notícia aparece para todos."
+          />
+          <SeletorMultiplo
+            rotulo="Regiões do país"
+            opcoes={REGIOES_DO_BRASIL}
+            valor={noticia.regions}
+            onChange={(regions) => atualizar({ regions })}
+            avisoVazio="Sem região escolhida, a notícia vale para todo o país."
+          />
         </section>
 
         <section className="cms-live-imagens">
