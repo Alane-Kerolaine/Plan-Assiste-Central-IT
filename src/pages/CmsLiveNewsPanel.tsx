@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ImageUp, Maximize2, Minimize2, Save, Trash2, X } from 'lucide-react'
-import { PUBLICOS_DE_NOTICIA, REGIOES_DO_BRASIL, getSiteContent, saveSiteContent, type CmsMediaAsset, type CmsNewsItem } from '../cms/siteContentRepository'
+import { PUBLICOS_DE_NOTICIA, REGIOES_DE_NOTICIA, getSiteContent, saveSiteContent, type CmsMediaAsset, type CmsNewsItem } from '../cms/siteContentRepository'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { CmsRelacionados } from './CmsRelacionados'
 import { SeletorMultiplo } from '../components/SeletorMultiplo'
@@ -199,11 +199,11 @@ export function CmsLiveNewsPanel({
             avisoVazio="Sem público escolhido, a notícia aparece para todos."
           />
           <SeletorMultiplo
-            rotulo="Regiões do país"
-            opcoes={REGIOES_DO_BRASIL}
+            rotulo="Regiões"
+            opcoes={REGIOES_DE_NOTICIA}
             valor={noticia.regions}
             onChange={(regions) => atualizar({ regions })}
-            avisoVazio="Sem região escolhida, a notícia vale para todo o país."
+            avisoVazio="Sem região escolhida, a notícia vale para todas as regiões."
           />
         </section>
 

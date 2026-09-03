@@ -63,7 +63,7 @@ export type NewsItem = {
   bodyHtml?: string
   /** Relacionados escolhidos a mao; vazio mantem a selecao automatica. */
   related?: Array<{ kind: 'news' | 'page', id: string }>
-  /** Regioes do pais em que a noticia vale; vazio significa todo o pais. */
+  /** Regioes do Plan-Assiste em que a noticia vale; vazio significa todas. */
   regions?: string[]
   /** Blocos montados no editor, exibidos depois do texto. */
   blocks?: CmsBlock[]

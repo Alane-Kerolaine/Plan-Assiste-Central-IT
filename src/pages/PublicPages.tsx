@@ -74,7 +74,7 @@ import { CmsBlockRenderer, CmsPageBlocks, CmsPaginasFilhas } from '../components
 import { ConteudosRelacionados } from '../components/ConteudosRelacionados'
 import { InlineLinkedText } from '../components/InlineLinkedText'
 import { getCmsFaqCategories, getCmsFaqs, getCmsOrgHierarchy } from '../cms/specialContent'
-import { REGIOES_DO_BRASIL, getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
+import { REGIOES_DE_NOTICIA, getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
 import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 import { dentroDoEditor } from '../utils/modoEdicao'
 import { caminhoDoSlug, trilhaDaPagina } from '../cms/portalNavegacao'
@@ -3114,7 +3114,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
             Região
             <select value={regiao} onChange={(evento) => { setRegiao(evento.target.value); setPage(1) }}>
               <option value="Todas">Todas as regiões</option>
-              {REGIOES_DO_BRASIL.map((item) => <option key={item} value={item}>{item}</option>)}
+              {REGIOES_DE_NOTICIA.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label className="news-date-field">

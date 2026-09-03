@@ -14,13 +14,25 @@ type SiteContent = { banners: CmsBanner[]; media: CmsMediaAsset[]; files: CmsFil
 /** Publicos oferecidos na edicao de noticia. */
 export const PUBLICOS_DE_NOTICIA = ['Público geral', 'Beneficiários', 'Credenciados', 'Equipe']
 
-/** Regioes do Brasil, para a noticia valer so onde interessa. */
-export const REGIOES_DO_BRASIL = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+/**
+ * Regioes de atuacao do Plan-Assiste, para a noticia valer so onde interessa.
+ *
+ * Nao sao as regioes do Brasil: seguem as unidades do Programa, na mesma ordem
+ * e com os mesmos nomes da lista de enderecos.
+ */
+export const REGIOES_DE_NOTICIA = [
+  'Sede (Brasília/DF)',
+  'Coordenadoria Centro-Oeste (exceto Brasília)',
+  'Diretoria São Paulo',
+  'Diretoria Sudeste (exceto São Paulo)',
+  'Diretoria Norte',
+  'Diretoria Nordeste',
+]
 
-/** Regiao gravada antes do campo existir: lista vazia significa todo o pais. */
+/** Regiao gravada antes do campo existir: lista vazia significa todas as regioes. */
 export function regioesDaNoticia(valor: unknown): string[] {
   const lista = Array.isArray(valor) ? valor : []
-  return [...new Set(lista.filter((item): item is string => REGIOES_DO_BRASIL.includes(item)))]
+  return [...new Set(lista.filter((item): item is string => REGIOES_DE_NOTICIA.includes(item)))]
 }
 
 /**
