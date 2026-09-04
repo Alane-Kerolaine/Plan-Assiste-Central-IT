@@ -1083,6 +1083,13 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .request-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 220px 180px auto; gap: 16px; align-items: end; border: 1px solid var(--border); border-radius: 16px; background: white; padding: 16px; margin: 24px 0; box-shadow: 0 10px 24px rgba(16, 63, 58, .04); }
 .request-toolbar.favorites-toolbar { grid-template-columns: 2fr 1fr 1fr; }
 .request-toolbar label { display: grid; gap: 8px; color: var(--text-dark); font-weight: var(--fw-semibold); }
+/* Sem min-width 0 o select assume a largura da opcao mais longa (as unidades do
+   Plan-Assiste) e vaza da propria coluna, cobrindo o filtro vizinho. */
+.request-toolbar label > *,
+.request-toolbar input,
+.request-toolbar select,
+.request-toolbar .field-with-icon { min-width: 0; max-width: 100%; }
+.request-toolbar select { width: 100%; text-overflow: ellipsis; }
 .request-toolbar input, .request-toolbar select { min-height: 46px; border: 2px solid var(--border); border-radius: 9px; background-color: white; color: var(--text); padding: 0 14px; }
 .request-toolbar select { padding: 0 38px 0 14px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='14' height='9' viewBox='0 0 14 9' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 2l5 5 5-5' fill='none' stroke='%23087765' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
 .request-toolbar .field-with-icon input { width: 100%; padding-left: 44px; }
@@ -3926,7 +3933,7 @@ select:not([multiple]) {
   .provider-public-page .provider-public-grid,
   .provider-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .search-result-list { grid-template-columns: 1fr; }
-  .news-toolbar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .news-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .news-detail-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plan-overview-card-grid, .plan-value-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .beneficiary-campaign { padding: 32px; }
