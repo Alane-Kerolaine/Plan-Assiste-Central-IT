@@ -1,3 +1,4 @@
+import type { CmsBlock } from '../cms/contentRepository'
 export type IconName =
   | 'home'
   | 'card'
@@ -30,7 +31,7 @@ export type Service = {
 export type BeneficiaryRequest = {
   id: string
   title: string
-  category: 'Cadastro' | 'Autorizações' | 'Reembolso e auxílios' | 'Financeiro' | 'Rede e atendimento' | 'Documentos' | 'Orientações e canais'
+  category: 'Cadastro' | 'Autorizações' | 'Reembolso e auxílios' | 'Benefícios' | 'Financeiro' | 'Rede e atendimento' | 'Documentos' | 'Orientações e canais' | 'Cobertura' | 'Fale Conosco'
   description: string
   tags: string[]
   action: string
@@ -58,11 +59,20 @@ export type NewsItem = {
   bodyImageUrl?: string
   summary: string
   body: string[]
+  /** Corpo escrito no editor, com formatacao. Quando existe, substitui body. */
+  bodyHtml?: string
+  /** Relacionados escolhidos a mao; vazio mantem a selecao automatica. */
+  related?: Array<{ kind: 'news' | 'page', id: string }>
+  /** Regioes do Plan-Assiste em que a noticia vale; vazio significa todas. */
+  regions?: string[]
+  /** Blocos montados no editor, exibidos depois do texto. */
+  blocks?: CmsBlock[]
 }
 
 export const mockUser = {
   id: 'user-001',
   name: 'Ana Maria de Araújo',
+  nomeSocial: '',
   shortName: 'Ana Maria',
   profile: 'Titular',
   avatar: '/assets/avatar-ana.png',
@@ -712,25 +722,6 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/dependentes',
   },
   {
-    id: 'consulta-odontologica',
-    title: 'Tratamento odontológico',
-    category: 'Autorizações',
-    description: 'Inicie atendimento odontológico e acompanhe perícias quando exigidas.',
-    tags: ['Odontologia', 'Tratamento', 'Orientações'],
-    action: 'Consultar orientações',
-    route: '/plan-assiste/beneficiarios/autorizacoes#tratamento-odontologico',
-  },
-  {
-    id: 'reembolso',
-    title: 'Reembolso de Livre Escolha',
-    category: 'Reembolso e auxílios',
-    description: 'Solicite, acompanhe, recorra ou tire dúvidas sobre reembolso de livre escolha.',
-    tags: ['Livre escolha', 'Recurso', 'Dúvidas'],
-    action: 'Acessar serviço',
-    route: '/beneficiario/reembolsos',
-    featured: true,
-  },
-  {
     id: 'irpf',
     title: 'IRPF',
     category: 'Financeiro',
@@ -839,7 +830,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-atualizacao-dados-cadastrais',
-    title: 'Atualização de Dados Cadastrais',
+    title: 'Atualização de dados cadastrais',
     category: 'Cadastro',
     description: 'Atualize dados de contato, endereço e informações bancárias do seu cadastro.',
     tags: ['Dados pessoais', 'Contato', 'Dados bancários'],
@@ -848,7 +839,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-emissao-documentos',
-    title: 'Emissão de Documentos e Comprovantes',
+    title: 'Emissão de documentos e comprovantes',
     category: 'Cadastro',
     description: 'Solicite cartões, carta de permanência e outros comprovantes do Plan-Assiste.',
     tags: ['Cartão', 'Carta de permanência', 'Comprovantes'],
@@ -857,7 +848,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-emissao-carteira-temporaria',
-    title: 'Emissão de Carteira Temporária',
+    title: 'Emissão de carteira temporária',
     category: 'Cadastro',
     description: 'Solicite a emissão de carteira temporária para urgência e emergência.',
     tags: ['Carteira', 'Temporária', 'Urgência e emergência'],
@@ -866,7 +857,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-acompanhamento-protocolos',
-    title: 'Acompanhamento de Protocolos e Processos',
+    title: 'Acompanhamento de protocolos e processos',
     category: 'Cadastro',
     description: 'Consulte a situação de um protocolo ou processo único em andamento.',
     tags: ['Protocolo', 'Processo', 'Acompanhamento'],
@@ -875,7 +866,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-inscricao-adesao',
-    title: 'Inscrição / Adesão',
+    title: 'Inscrição / adesão',
     category: 'Cadastro',
     description: 'Solicite a inscrição de titular, dependente ou beneficiário especial no Programa.',
     tags: ['Titular', 'Dependente', 'Beneficiário especial'],
@@ -884,7 +875,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-reingresso-reativacao',
-    title: 'Reingresso / Reativação',
+    title: 'Reingresso / reativação',
     category: 'Cadastro',
     description: 'Solicite o reingresso ou reativação de beneficiário no Plan-Assiste.',
     tags: ['Reingresso', 'Reativação'],
@@ -902,7 +893,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-mudanca-tipo-beneficiario',
-    title: 'Mudança de Tipo de Beneficiário',
+    title: 'Mudança de tipo de beneficiário',
     category: 'Cadastro',
     description: 'Solicite a alteração do tipo de vínculo de um beneficiário no Programa.',
     tags: ['Beneficiário especial', 'Mudança de vínculo'],
@@ -911,7 +902,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-pais-dependentes',
-    title: 'Pais Dependentes (Econômicos ou não)',
+    title: 'Pais dependentes (econômicos ou não)',
     category: 'Cadastro',
     description: 'Solicite a inscrição de pais como dependentes econômicos ou não econômicos.',
     tags: ['Pais', 'Dependência econômica'],
@@ -920,7 +911,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-cadastro-duvidas-informacoes',
-    title: 'Cadastro - Dúvidas, Informações e Esclarecimentos',
+    title: 'Cadastro - dúvidas, informações e esclarecimentos',
     category: 'Cadastro',
     description: 'Envie dúvidas ou pedidos de esclarecimento sobre seu cadastro.',
     tags: ['Dúvidas', 'Cadastro', 'Esclarecimentos'],
@@ -928,67 +919,60 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/cadastro-duvidas-informacoes/nova-solicitacao',
   },
   {
-    id: 'servico-medicamentos-uso-continuo',
-    title: 'Medicamentos de Uso Contínuo',
+    id: 'servico-reembolso-duvidas',
+    title: 'Reembolso (dúvidas, informações e esclarecimentos)',
     category: 'Reembolso e auxílios',
-    description: 'Solicite orientações para o auxílio de medicamentos de uso contínuo.',
-    tags: ['Medicamentos', 'Uso contínuo'],
-    action: 'Solicitar auxílio',
-    route: '/beneficiario/servicos/medicamentos-uso-continuo/nova-solicitacao',
-  },
-  {
-    id: 'servico-medicamentos-alto-custo',
-    title: 'Medicamentos de Alto Custo',
-    category: 'Reembolso e auxílios',
-    description: 'Solicite orientações para o auxílio de medicamentos de alto custo.',
-    tags: ['Medicamentos', 'Alto custo'],
-    action: 'Solicitar auxílio',
-    route: '/beneficiario/servicos/medicamentos-alto-custo/nova-solicitacao',
-  },
-  {
-    id: 'servico-reembolso-livre-escolha-duvidas',
-    title: 'Reembolso Livre Escolha - Dúvidas e Orientações',
-    category: 'Reembolso e auxílios',
-    description: 'Envie dúvidas gerais sobre o reembolso em livre escolha.',
-    tags: ['Reembolso', 'Livre escolha', 'Dúvidas'],
+    description: 'Envie dúvidas gerais sobre reembolso de despesas de saúde.',
+    tags: ['Reembolso', 'Dúvidas'],
     action: 'Enviar dúvida',
-    route: '/beneficiario/servicos/reembolso-livre-escolha-duvidas/nova-solicitacao',
-  },
-  {
-    id: 'servico-auxilio-medicamentos-duvidas',
-    title: 'Auxílio de Medicamentos - Dúvidas e Orientações',
-    category: 'Reembolso e auxílios',
-    description: 'Envie dúvidas gerais sobre o auxílio de medicamentos.',
-    tags: ['Medicamentos', 'Dúvidas'],
-    action: 'Enviar dúvida',
-    route: '/beneficiario/servicos/auxilio-medicamentos-duvidas/nova-solicitacao',
+    route: '/beneficiario/servicos/reembolso-duvidas/nova-solicitacao',
   },
   {
     id: 'servico-recurso-reembolso',
-    title: 'Recurso de Reembolso - Livre Escolha',
+    title: 'Recurso / Contestação de Reembolso',
     category: 'Reembolso e auxílios',
-    description: 'Solicite recurso sobre um reembolso de livre escolha já analisado.',
+    description: 'Solicite recurso ou conteste o resultado da análise de um reembolso.',
     tags: ['Recurso', 'Reembolso'],
     action: 'Solicitar recurso',
     route: '/beneficiario/servicos/recurso-reembolso/nova-solicitacao',
   },
   {
     id: 'servico-solicitacao-reembolso',
-    title: 'Solicitação de Reembolso - Livre Escolha',
+    title: 'Reembolso de procedimentos (livre escolha)',
     category: 'Reembolso e auxílios',
     description: 'Solicite reembolso de despesas realizadas em livre escolha.',
     tags: ['Reembolso', 'Livre escolha'],
     action: 'Solicitar reembolso',
-    route: '/beneficiario/servicos/solicitacao-reembolso/nova-solicitacao',
+    route: '/beneficiario/reembolso-procedimentos/nova-solicitacao',
+  },
+  {
+    id: 'servico-beneficio-medicamentos',
+    title: 'Benefício para aquisição de medicamentos',
+    category: 'Benefícios',
+    description: 'Solicite o benefício de assistência farmacológica para medicamentos de alto custo ou de uso contínuo.',
+    tags: ['Benefícios', 'Medicamentos'],
+    action: 'Solicitar benefício',
+    route: '/beneficiario/beneficio-medicamentos/nova-solicitacao',
   },
   {
     id: 'servico-autorizacao-cirurgia',
-    title: 'Autorização de Cirurgia Eletiva',
+    // Nome curto do serviço: aparece no card do Catálogo e na migalha de pão.
+    // O título das páginas do serviço vem do schema ('Autorização de Cirurgia Eletiva').
+    title: 'Cirurgia Eletiva',
     category: 'Autorizações',
     description: 'Solicite autorização prévia para cirurgia eletiva.',
     tags: ['Cirurgia', 'Autorização'],
     action: 'Solicitar autorização',
     route: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao',
+  },
+  {
+    id: 'servico-medicamentos-cobertura-direta',
+    title: 'Medicamentos - Cobertura Direta',
+    category: 'Autorizações',
+    description: 'Solicite autorização para cobertura direta de medicamentos.',
+    tags: ['Medicamentos', 'Autorização'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao',
   },
   {
     id: 'servico-psicologia',
@@ -1010,7 +994,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-terapia-ocupacional',
-    title: 'Terapia Ocupacional',
+    title: 'Terapia ocupacional',
     category: 'Autorizações',
     description: 'Solicite autorização para sessões de terapia ocupacional.',
     tags: ['Terapia ocupacional'],
@@ -1063,17 +1047,8 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/hidroterapia/nova-solicitacao',
   },
   {
-    id: 'servico-acompanhamento-autorizacoes-demandas',
-    title: 'Acompanhamento de Autorizações e Demandas',
-    category: 'Cadastro',
-    description: 'Consulte a situação de autorizações e demandas em andamento.',
-    tags: ['Autorizações', 'Demandas', 'Acompanhamento'],
-    action: 'Consultar autorização',
-    route: '/beneficiario/servicos/acompanhamento-autorizacoes-demandas/nova-solicitacao',
-  },
-  {
     id: 'servico-abertura-solicitacoes-administrativas',
-    title: 'Abertura de Solicitações Administrativas',
+    title: 'Abertura de solicitações administrativas',
     category: 'Cadastro',
     description: 'Abra uma solicitação administrativa junto ao Plan-Assiste.',
     tags: ['Administrativo', 'Solicitação'],
@@ -1082,7 +1057,7 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
   },
   {
     id: 'servico-outras-solicitacoes',
-    title: 'Outras Solicitações',
+    title: 'Outras solicitações',
     category: 'Cadastro',
     description: 'Envie uma solicitação que não se enquadra nas demais categorias do catálogo.',
     tags: ['Outros assuntos'],
@@ -1090,26 +1065,17 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/outras-solicitacoes/nova-solicitacao',
   },
   {
-    id: 'servico-autorizacao-opme',
-    title: 'Autorização de OPME',
+    id: 'servico-autorizacao-duvidas',
+    title: 'Autorização (dúvidas, informações e esclarecimentos)',
     category: 'Autorizações',
-    description: 'Solicite autorização para órteses, próteses e materiais especiais (OPME).',
-    tags: ['OPME', 'Órteses', 'Próteses'],
-    action: 'Solicitar autorização',
-    route: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
-  },
-  {
-    id: 'servico-autorizacao-procedimentos',
-    title: 'Autorização de Procedimentos - Orientações Gerais',
-    category: 'Autorizações',
-    description: 'Consulte orientações gerais e solicite autorização de procedimentos.',
-    tags: ['Autorização', 'Procedimentos', 'Orientações'],
-    action: 'Solicitar autorização',
+    description: 'Envie dúvidas gerais sobre autorização de procedimentos.',
+    tags: ['Autorização', 'Dúvidas'],
+    action: 'Enviar dúvida',
     route: '/beneficiario/servicos/autorizacao-procedimentos/nova-solicitacao',
   },
   {
     id: 'servico-autorizacao-outros',
-    title: 'Autorização de Procedimentos (Outros)',
+    title: 'Autorização de procedimentos (outros)',
     category: 'Autorizações',
     description: 'Solicite autorização para procedimentos não listados nas demais categorias.',
     tags: ['Autorização', 'Outros procedimentos'],
@@ -1117,17 +1083,8 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/autorizacao-outros/nova-solicitacao',
   },
   {
-    id: 'servico-tratamentos-seriados',
-    title: 'Tratamentos Seriados',
-    category: 'Autorizações',
-    description: 'Solicite autorização para tratamentos seriados (sessões contínuas de um mesmo procedimento).',
-    tags: ['Tratamentos seriados', 'Autorização'],
-    action: 'Solicitar autorização',
-    route: '/beneficiario/servicos/tratamentos-seriados/nova-solicitacao',
-  },
-  {
     id: 'servico-processo-aposentadoria-retorno',
-    title: 'Início de Processo de Aposentadoria / Retorno ao Órgão de Origem',
+    title: 'Início de processo de aposentadoria / retorno ao órgão de origem',
     category: 'Cadastro',
     description: 'Informe o início do processo de aposentadoria ou o retorno ao órgão de origem.',
     tags: ['Aposentadoria', 'Retorno ao órgão de origem'],
@@ -1135,13 +1092,166 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/processo-aposentadoria-retorno-orgao/nova-solicitacao',
   },
   {
-    id: 'servico-autorizacao-medicamentos',
-    title: 'Atendimento para Auxílio de Medicamentos',
+    id: 'servico-auxilio-duvidas-informacoes',
+    title: 'Auxílio (dúvidas, informações e esclarecimentos)',
     category: 'Reembolso e auxílios',
-    description: 'Solicite atendimento para auxílio de medicamentos, com envio de receita e relatório médico.',
-    tags: ['Medicamentos', 'Auxílio'],
-    action: 'Solicitar atendimento',
-    route: '/beneficiario/servicos/atendimento-auxilio-medicamentos/nova-solicitacao',
+    description: 'Envie dúvidas gerais sobre os auxílios oferecidos pelo Plan-Assiste.',
+    tags: ['Auxílio', 'Dúvidas'],
+    action: 'Enviar dúvida',
+    route: '/beneficiario/servicos/auxilio-duvidas-informacoes/nova-solicitacao',
+  },
+  {
+    id: 'servico-carteirinha-virtual',
+    title: 'Carteirinha virtual',
+    category: 'Cadastro',
+    description: 'Envie dúvidas ou solicitações relacionadas à carteirinha virtual do Plan-Assiste.',
+    tags: ['Carteirinha virtual', 'Dúvidas'],
+    action: 'Enviar solicitação',
+    route: '/beneficiario/servicos/carteirinha-virtual/nova-solicitacao',
+  },
+  {
+    id: 'servico-atualizacao-cadastral-periodica',
+    title: 'Atualização cadastral periódica',
+    category: 'Cadastro',
+    description: 'Atenda à convocação periódica de atualização cadastral do Plan-Assiste.',
+    tags: ['Atualização cadastral', 'Periódica'],
+    action: 'Atualizar cadastro',
+    route: '/beneficiario/servicos/atualizacao-cadastral-periodica/nova-solicitacao',
+  },
+  {
+    id: 'servico-cobertura-duvidas',
+    title: 'Cobertura (dúvidas, informações e esclarecimentos)',
+    category: 'Cobertura',
+    description: 'Envie dúvidas ou pedidos de esclarecimento sobre a cobertura do Plan-Assiste.',
+    tags: ['Cobertura', 'Dúvidas'],
+    action: 'Enviar dúvida',
+    route: '/beneficiario/servicos/cobertura-duvidas/nova-solicitacao',
+  },
+  {
+    id: 'servico-inclusao-ampliacao-cobertura',
+    title: 'Inclusão / ampliação do rol de cobertura',
+    category: 'Cobertura',
+    description: 'Solicite a inclusão ou ampliação de procedimentos no rol de cobertura do Programa.',
+    tags: ['Rol de cobertura', 'Inclusão'],
+    action: 'Solicitar',
+    route: '/beneficiario/servicos/inclusao-ampliacao-cobertura/nova-solicitacao',
+  },
+  {
+    id: 'servico-autorizacao-portais-unimed',
+    title: 'Autorização portais Unimeds',
+    category: 'Autorizações',
+    description: 'Solicite apoio para autorização de procedimentos pelos portais das Unimeds credenciadas.',
+    tags: ['Unimed', 'Portais'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/autorizacao-portais-unimed/nova-solicitacao',
+  },
+  {
+    id: 'servico-assistencia-domiciliar',
+    title: 'Assistência domiciliar',
+    category: 'Autorizações',
+    description: 'Solicite autorização para assistência domiciliar (Home Care).',
+    tags: ['Assistência domiciliar', 'Home care'],
+    action: 'Solicitar autorização',
+    route: '/beneficiario/servicos/assistencia-domiciliar/nova-solicitacao',
+  },
+  {
+    id: 'servico-tratamento-odontologico-duvidas',
+    title: 'Tratamento odontológico (dúvidas, informações e esclarecimentos)',
+    category: 'Autorizações',
+    description: 'Envie dúvidas sobre autorização ou cobertura de tratamento odontológico.',
+    tags: ['Odontologia', 'Dúvidas'],
+    action: 'Enviar dúvida',
+    route: '/beneficiario/servicos/tratamento-odontologico-duvidas/nova-solicitacao',
+  },
+  {
+    id: 'servico-auxilio-materiais-saude',
+    title: 'Auxílio de materiais de saúde',
+    category: 'Reembolso e auxílios',
+    description: 'Solicite auxílio para aquisição de materiais de saúde.',
+    tags: ['Materiais de saúde', 'Auxílio'],
+    action: 'Solicitar auxílio',
+    route: '/beneficiario/servicos/auxilio-materiais-saude/nova-solicitacao',
+  },
+  {
+    id: 'servico-transporte-tratamento-fora-domicilio',
+    title: 'Transporte de paciente em tratamento fora do domicílio',
+    category: 'Reembolso e auxílios',
+    description: 'Solicite auxílio de transporte para tratamento realizado fora do domicílio.',
+    tags: ['Transporte', 'Tratamento fora do domicílio'],
+    action: 'Solicitar auxílio',
+    route: '/beneficiario/servicos/transporte-tratamento-fora-domicilio/nova-solicitacao',
+  },
+  {
+    id: 'servico-despesas-saude-duvidas',
+    title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)',
+    category: 'Financeiro',
+    description: 'Envie dúvidas sobre despesas de saúde, contribuições e coparticipações.',
+    tags: ['Despesas de saúde', 'Dúvidas'],
+    action: 'Enviar dúvida',
+    route: '/beneficiario/servicos/despesas-saude-duvidas/nova-solicitacao',
+  },
+  {
+    id: 'servico-recurso-informacoes-financeiras',
+    title: 'Recurso / contestação de informações financeiras',
+    category: 'Financeiro',
+    description: 'Solicite recurso ou conteste informações financeiras do seu cadastro.',
+    tags: ['Recurso', 'Informações financeiras'],
+    action: 'Solicitar recurso',
+    route: '/beneficiario/servicos/recurso-informacoes-financeiras/nova-solicitacao',
+  },
+  {
+    id: 'servico-denuncia-reclamacao',
+    title: 'Denúncia / Reclamação',
+    category: 'Fale Conosco',
+    description: 'Registre uma denúncia ou reclamação informando seus dados, a descrição do ocorrido e os documentos comprobatórios.',
+    tags: ['Denúncia', 'Reclamação'],
+    action: 'Registrar denúncia',
+    route: '/beneficiario/servicos/denuncia-reclamacao/nova-solicitacao',
+  },
+  {
+    id: 'servico-atualizacao-site',
+    title: 'Atualização do site',
+    category: 'Fale Conosco',
+    description: 'Solicite a atualização de conteúdos ou informações do site do Plan-Assiste.',
+    tags: ['Site', 'Atualização'],
+    action: 'Solicitar atualização',
+    route: '/beneficiario/servicos/atualizacao-site/nova-solicitacao',
+  },
+  {
+    id: 'servico-site-app-duvidas',
+    title: 'Site / app (dúvidas, informações e esclarecimentos)',
+    category: 'Fale Conosco',
+    description: 'Envie dúvidas sobre o uso do site ou do aplicativo do Plan-Assiste.',
+    tags: ['Site', 'Aplicativo', 'Dúvidas'],
+    action: 'Enviar dúvida',
+    route: '/beneficiario/servicos/site-app-duvidas/nova-solicitacao',
+  },
+  {
+    id: 'servico-problemas-acesso-site-app',
+    title: 'Problemas de acesso do site / app',
+    category: 'Fale Conosco',
+    description: 'Relate problemas para acessar o site ou o aplicativo do Plan-Assiste.',
+    tags: ['Site', 'Aplicativo', 'Acesso'],
+    action: 'Relatar problema',
+    route: '/beneficiario/servicos/problemas-acesso-site-app/nova-solicitacao',
+  },
+  {
+    id: 'servico-indisponibilidade-site-app',
+    title: 'Indisponibilidade do site / app',
+    category: 'Fale Conosco',
+    description: 'Relate indisponibilidade do site ou do aplicativo do Plan-Assiste.',
+    tags: ['Site', 'Aplicativo', 'Indisponibilidade'],
+    action: 'Relatar indisponibilidade',
+    route: '/beneficiario/servicos/indisponibilidade-site-app/nova-solicitacao',
+  },
+  {
+    id: 'servico-erro-funcionalidades-site-app',
+    title: 'Ocorrência de erro em funcionalidades do site / app',
+    category: 'Fale Conosco',
+    description: 'Relate erros em funcionalidades do site ou do aplicativo do Plan-Assiste.',
+    tags: ['Site', 'Aplicativo', 'Erro'],
+    action: 'Relatar erro',
+    route: '/beneficiario/servicos/erro-funcionalidades-site-app/nova-solicitacao',
   },
 ]
 
@@ -1182,6 +1292,8 @@ export const savedPreferences: SavedPreference[] = [
 export type Beneficiary = {
   id: string
   name: string
+  /** Sobrepoe o name em toda exibicao. Ver utils/nomeSocial. */
+  nomeSocial?: string
   relation: string
   cpf: string
   dataNascimento: string
@@ -1189,15 +1301,16 @@ export type Beneficiary = {
   email: string
   telefone: string
   localidade: string
+  ramo: string
   banco: string
   agencia: string
   contaCorrente: string
 }
 
 export const beneficiaries: Beneficiary[] = [
-  { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', email: 'ana.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'andre', name: 'André Luiz Araújo', relation: 'Menores sob guarda', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
-  { id: 'maria', name: 'Maria Olívia Araújo', relation: 'Enteados', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'ana', name: 'Ana Maria de Araújo', relation: 'Titular', cpf: '123.456.789-00', dataNascimento: '1985-03-15', matricula: '30003387', email: 'ana.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'andre', name: 'André Luiz Araújo', relation: 'Filho(a)', cpf: '234.567.890-11', dataNascimento: '2010-07-22', matricula: '30003387', email: 'andre.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
+  { id: 'maria', name: 'Maria Olívia Araújo', nomeSocial: 'Olívia Araújo', relation: 'Enteado(a)', cpf: '345.678.901-22', dataNascimento: '2013-11-05', matricula: '30003387', email: 'maria.araujo@exemplo.com', telefone: '(61) 99999-1234', localidade: 'Brasília - DF', ramo: 'MPF', banco: 'Banco do Brasil', agencia: '1234-5', contaCorrente: '67890-1' },
 ]
 
 export const quickAccess: Service[] = [

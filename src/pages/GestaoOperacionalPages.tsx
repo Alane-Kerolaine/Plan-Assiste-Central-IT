@@ -23,8 +23,10 @@ import {
   UserPlus,
   type LucideIcon,
 } from 'lucide-react'
+import { PUBLICOS_DE_NOTICIA } from '../cms/siteContentRepository'
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { SeletorMultiplo } from '../components/SeletorMultiplo'
 import { Combobox, Footer, Header, MainMenu, RestrictedAreaSidebar, type AreaSidebarGroup } from '../components/PortalComponents'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { NewsDateRangePicker } from './PublicPages'
@@ -399,8 +401,8 @@ interface ReembolsoFormProps {
 }
 
 const tiposReembolsoOpts = [
-  'Acompanhamento nutricional', 'Acupuntura', 'Avaliação neuropsicológica',
-  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação', 'Equoterapia',
+  'Acompanhamento nutricional', 'Acupuntura',
+  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação',
   'Exames', 'Fisioterapia', 'Fonoaudiologia', 'Hidroterapia', 'Honorários individuais',
   'Internação sem cirurgia', 'Medicamentos ambulatoriais', 'Musicoterapia', 'Odontologia',
   'Parto', 'Pilates', 'Psicologia', 'Psicomotricidade', 'Psicopedagogia', 'Quimioterapia',
@@ -2038,17 +2040,17 @@ export function AdminBannersPage() {
 // ============================================================
 
 const adminNoticiasData = [
-  { id: 1, titulo: 'Plan-Assiste lança novo aplicativo', categoria: 'Institucional', autor: 'Equipe Plan-Assiste', data: '20/06/2026', status: 'Publicada', publico: 'Ambos', abrangencia: 'Nacional' },
+  { id: 1, titulo: 'Plan-Assiste lança novo aplicativo', categoria: 'Institucional', autor: 'Equipe Plan-Assiste', data: '20/06/2026', status: 'Publicada', publico: 'Público geral', abrangencia: 'Nacional' },
   { id: 2, titulo: 'Novas coberturas para tratamentos odontológicos', categoria: 'Cobertura', autor: 'Dep. Técnico', data: '15/06/2026', status: 'Publicada', publico: 'Beneficiários', abrangencia: 'Nacional' },
   { id: 3, titulo: 'Atualização dos critérios de reembolso', categoria: 'Regulamento', autor: 'Jurídico', data: '10/06/2026', status: 'Rascunho', publico: 'Beneficiários', abrangencia: 'Regional' },
-  { id: 4, titulo: 'Campanha de prevenção ao diabetes', categoria: 'Saúde', autor: 'Equipe Plan-Assiste', data: '05/06/2026', status: 'Publicada', publico: 'Ambos', abrangencia: 'Nacional' },
+  { id: 4, titulo: 'Campanha de prevenção ao diabetes', categoria: 'Saúde', autor: 'Equipe Plan-Assiste', data: '05/06/2026', status: 'Publicada', publico: 'Público geral', abrangencia: 'Nacional' },
   { id: 5, titulo: 'Rede credenciada ampliada em Goiânia', categoria: 'Rede Credenciada', autor: 'Dep. Credenciamento', data: '01/06/2026', status: 'Publicada', publico: 'Credenciados', abrangencia: 'Regional' },
   { id: 6, titulo: 'Prazo para declaração do IRPF 2026', categoria: 'Financeiro', autor: 'Jurídico', data: '25/05/2026', status: 'Rascunho', publico: 'Beneficiários', abrangencia: 'Nacional' },
 ]
 
 const noticiaStatusCls: Record<string, string> = { Publicada: 'approved', Rascunho: 'pending' }
 
-const noticiaPublicoCls: Record<string, string> = { Ambos: 'info', Beneficiários: 'approved', Credenciados: 'warning' }
+const noticiaPublicoCls: Record<string, string> = { 'Público geral': 'info', Beneficiários: 'approved', Credenciados: 'warning' }
 
 export function AdminNoticiasPage() {
   const navigate = useNavigate()
@@ -2121,7 +2123,7 @@ export function AdminNoticiasPage() {
           <option>Todos</option>
           <option>Beneficiários</option>
           <option>Credenciados</option>
-          <option>Ambos</option>
+          <option>Público geral</option>
         </select>
         <select
           className="go-select"
@@ -2428,7 +2430,7 @@ const ufsBrasilNoticias = [
 export function NovaNoticiaPage() {
   const navigate = useNavigate()
   const [status, setStatus] = useState('Rascunho')
-  const [publico, setPublico] = useState('Ambos')
+  const [publico, setPublico] = useState<string[]>(['Público geral'])
   const [abrangencia, setAbrangencia] = useState('Nacional')
   const [estadosSel, setEstadosSel] = useState<string[]>([])
 
@@ -2482,12 +2484,7 @@ export function NovaNoticiaPage() {
           <p className="go-form-section">Público e Abrangência</p>
           <div className="go-form-grid">
             <div className="go-field">
-              <label className="go-label">Disponível para</label>
-              <select className="go-select" value={publico} onChange={(e) => setPublico(e.target.value)}>
-                <option>Ambos</option>
-                <option>Beneficiários</option>
-                <option>Credenciados</option>
-              </select>
+              <SeletorMultiplo rotulo="Disponível para" opcoes={PUBLICOS_DE_NOTICIA} valor={publico} onChange={setPublico} />
             </div>
             <div className="go-field">
               <label className="go-label">Abrangência</label>

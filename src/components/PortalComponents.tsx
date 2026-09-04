@@ -23,6 +23,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Megaphone,
   Menu,
   MessageCircle,
   MonitorCheck,
@@ -55,6 +56,7 @@ import {
   type PortalProfile,
 } from '../utils/session'
 import { getStoredUserProfile } from '../utils/userProfile'
+import { nomeExibicao } from '../utils/nomeSocial'
 import { GovBrSignInButton } from './GovBrSignInButton'
 import { getCmsAddresses, getCmsContactChannels, getCmsSocialLinks } from '../cms/siteContentRepository'
 export { ProviderSearch } from './ProviderNetwork'
@@ -727,7 +729,7 @@ export function Sidebar({ onLogout }: { onLogout: () => void }) {
           <img src={mockUser.avatar} alt="" />
           <div>
             <span>Área do beneficiário</span>
-            <strong>{mockUser.name}</strong>
+            <strong>{nomeExibicao(mockUser)}</strong>
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="Área do beneficiário">
@@ -756,7 +758,7 @@ export function Sidebar({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-export function Breadcrumb({ current }: { current: string }) {
+export function Breadcrumb({ current, currentTo, extra }: { current: string, currentTo?: string, extra?: string }) {
   const isBeneficiaryRoot = current === 'Beneficiário' || current === 'Beneficiários'
 
   return (
@@ -767,7 +769,12 @@ export function Breadcrumb({ current }: { current: string }) {
       ) : (
         <>
           <Link to="/beneficiario">Beneficiário</Link><ArrowRight />
-          <span>{current}</span>
+          {extra && currentTo ? <Link to={currentTo}>{current}</Link> : <span>{current}</span>}
+          {extra && (
+            <>
+              <ArrowRight /><span>{extra}</span>
+            </>
+          )}
         </>
       )}
     </nav>
@@ -846,7 +853,7 @@ export function RestrictedAreaSidebar({
           <img src={avatar} alt="" />
           <div>
             <span>{areaLabel}</span>
-            <strong>{session.displayName || mockUser.name}</strong>
+            <strong>{session.displayName || nomeExibicao(mockUser)}</strong>
           </div>
         </div>
         <nav className="sidebar-nav" aria-label={areaLabel}>
@@ -891,14 +898,14 @@ export function EmptyState({ title }: { title: string }) {
   )
 }
 
-export type SupportIconType = 'chat' | 'faq' | 'phone' | 'manifestation'
+export type SupportIconType = 'chat' | 'faq' | 'phone' | 'manifestation' | 'quality'
 
 export function SupportIcon({ type }: { type: SupportIconType }) {
   if (type === 'chat') {
     return <img className="support-card-image-icon" src="/assets/assistente-virtual.svg" alt="" />
   }
 
-  const icons = { chat: MessageCircle, faq: HelpCircle, phone: Phone, manifestation: Ear }
+  const icons = { chat: MessageCircle, faq: HelpCircle, phone: Phone, manifestation: Ear, quality: Megaphone }
   const Icon = icons[type]
   return <Icon aria-hidden="true" />
 }

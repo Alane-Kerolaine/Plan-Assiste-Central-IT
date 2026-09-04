@@ -1,4 +1,4 @@
-export type SupportChannelIcon = 'chat' | 'faq' | 'phone' | 'manifestation'
+export type SupportChannelIcon = 'chat' | 'faq' | 'phone' | 'manifestation' | 'quality'
 
 export type SupportChannel = {
   type: SupportChannelIcon
@@ -31,8 +31,15 @@ export const supportChannels: SupportChannel[] = [
   {
     type: 'manifestation',
     title: 'Denúncia e reclamação',
-    text: 'Relate situações que precisem de apuração ou tratamento pela unidade responsável.',
+    text: 'Relate situações que precisem de acompanhamento, apuração ou tratamento pela unidade responsável.',
     detail: 'Use o canal oficial para registrar denúncias ou reclamações sobre atendimento, rede, processos e serviços do Plan-Assiste.',
     route: '/fale-conosco/manifestacoes/reclamacao-e-denuncia',
+  },
+  {
+    type: 'quality',
+    title: 'Crítica, Sugestão, Elogios',
+    text: 'Compartilhe sua experiência e ajude a aprimorar o atendimento.',
+    detail: 'Envie uma crítica, sugestão ou elogio sobre o atendimento, os canais e os serviços oferecidos pelo Plan-Assiste.',
+    route: '/fale-conosco/manifestacoes/qualidade-dos-servicos',
   },
 ]

@@ -1,4 +1,5 @@
 import { beneficiaries } from '../data/mock'
+import { nomeExibicao } from '../utils/nomeSocial'
 import type { ServiceField } from '../data/serviceFormSchemas'
 import { Combobox } from './Combobox'
 import { WIZARD_STEPS, type WizardStep } from './serviceRequestWizardHelpers'
@@ -12,7 +13,10 @@ export function BeneficiarySelect({
   value: string
   onChange: (beneficiaryId: string) => void
 }) {
-  const beneficiaryOptions = beneficiaries.map((beneficiary) => ({ value: beneficiary.id, label: `${beneficiary.name} (${beneficiary.relation})` }))
+  const beneficiaryOptions = beneficiaries.map((beneficiary) => ({
+    value: beneficiary.id,
+    label: nomeExibicao(beneficiary),
+  }))
   return (
     <label className="service-beneficiary-field">
       {field.label}{field.required ? ' *' : ''}

@@ -23,9 +23,11 @@ import {
   HandHeart,
   HelpCircle,
   IdCard,
+  ListChecks,
   LockKeyhole,
   Mail,
   MonitorCheck,
+  Pill,
   Printer,
   PersonStanding,
   Scale,
@@ -41,8 +43,9 @@ import {
   Waves,
 } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CaptchaField } from '../components/CaptchaField'
 import { FileAttachmentField } from '../components/FileAttachmentField'
+import { EmailTextInput } from '../components/EmailTextInput'
+import { isValidEmail } from '../utils/validation'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { Footer, Header, MainMenu, RestrictedAreaSidebar, SupportIcon, type AreaSidebarGroup, type SupportIconType } from '../components/PortalComponents'
 import {
@@ -58,15 +61,23 @@ import {
   toggleFavoriteNews,
   type FavoriteState,
 } from '../utils/favorites'
-import { generateCaptchaCode } from '../utils/captcha'
+import { UF_OPTIONS, getServiceFormSchema } from '../data/serviceFormSchemas'
+import { normalizaTexto } from '../utils/texto'
+import { findServicoByPaginaSlug, servicoFormSlug, servicoPaginaSlug, servicoRotaFormulario } from '../utils/servicoPlanAssiste'
+import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
+import { htmlSeguro } from '../utils/htmlSeguro'
 import { getStoredSession } from '../utils/session'
 import { NewsCard } from './HomePage'
 import { createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsPage } from '../cms/contentRepository'
-import { CmsPageBlocks } from '../components/CmsBlocks'
+import { CmsBlockRenderer, CmsPageBlocks, CmsPaginasFilhas } from '../components/CmsBlocks'
+import { ConteudosRelacionados } from '../components/ConteudosRelacionados'
 import { InlineLinkedText } from '../components/InlineLinkedText'
 import { getCmsFaqCategories, getCmsFaqs, getCmsOrgHierarchy } from '../cms/specialContent'
-import { getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
+import { REGIOES_DE_NOTICIA, getCmsSlideshow, getSiteContent } from '../cms/siteContentRepository'
+import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
+import { dentroDoEditor } from '../utils/modoEdicao'
+import { caminhoDoSlug, trilhaDaPagina } from '../cms/portalNavegacao'
 import { supportChannels } from '../data/supportChannels'
 import { getStoredUserProfile } from '../utils/userProfile'
 import { getProviderPublicProfile, providerTagOptions, saveProviderPublicProfile, testProviderId, type ProviderPublicProfile } from '../utils/providerPublicProfile'
@@ -81,7 +92,7 @@ const newsPerPage = 12
 function getPortalNews(): NewsItem[] {
   const managed = getSiteContent().news.filter((item) => item.status === 'published').map((item) => {
     const [year, month, day] = item.publishDate.split('-')
-    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean) }
+    return { id: item.id, category: item.category.toUpperCase(), title: item.title, date: day && month && year ? `${day}/${month}/${year}` : item.publishDate, image: item.coverUrl || news[0]?.image || '', bodyImageUrl: item.bodyImageUrl || '', summary: item.summary, body: [stripHtml(item.content)].filter(Boolean), bodyHtml: item.content, related: item.related, blocks: item.blocks, regions: item.regions }
   })
   return [...managed, ...news.filter((item) => !managed.some((managedItem) => managedItem.id === item.id))]
 }
@@ -857,7 +868,7 @@ const planAssisteArticles: PortalArticle[] = [
       },
       {
         title: 'Cirurgia eletiva',
-        cards: [{ title: 'Autorização de cirurgia eletiva', text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.', to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
+        cards: [{ title: 'Cirurgia Eletiva', text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.', to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
       },
       {
         title: 'Tratamentos seriados',
@@ -871,6 +882,10 @@ const planAssisteArticles: PortalArticle[] = [
           { title: 'Hidroterapia', text: 'A Norma Complementar nº 32 prevê perícia acima de duas sessões semanais, 40 anuais ou em casos de internação.', to: '/beneficiario/servicos/hidroterapia/nova-solicitacao', actionLabel: 'Solicitar autorização' },
           { title: 'RPG', text: 'A Norma Complementar nº 32 prevê perícia acima de duas sessões semanais, 40 anuais ou em casos de internação.', to: '/beneficiario/servicos/rpg/nova-solicitacao', actionLabel: 'Solicitar autorização' },
         ],
+      },
+      {
+        title: 'Medicamentos',
+        cards: [{ title: 'Medicamentos - Cobertura Direta', text: 'Solicite a cobertura direta de medicamentos informando o tipo de autorização e anexando o pedido ou relatório médico com os laudos de exames.', to: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao', actionLabel: 'Solicitar autorização' }],
       },
       {
         id: 'tratamento-odontologico',
@@ -2025,6 +2040,17 @@ const planAssisteSections: PlanAssisteSection[] = [
       'codigo-de-conduta-integridade-e-compliance',
     ],
   },
+  {
+    // Vitrine dos serviços do catálogo: em vez de artigos, lista cada serviço com
+    // uma página explicativa que leva ao formulário correspondente.
+    slug: 'servicos',
+    title: 'Serviços',
+    summary: 'Conheça cada serviço do Plan-Assiste, o que é preciso reunir e acesse o formulário.',
+    description:
+      'Consulte os serviços disponíveis no Programa. Cada página reúne a finalidade do serviço, os documentos exigidos e as informações solicitadas, com acesso direto ao formulário de solicitação.',
+    icon: ListChecks,
+    articleSlugs: [],
+  },
 ]
 
 export function PublicShell({
@@ -2136,6 +2162,8 @@ export function PlanAssisteIndexPage({ loggedIn, onLogout }: PublicPageProps) {
                     )
                   })}
                 </section>
+
+                <CmsPaginasFilhas parentSlug="plan-assiste" />
               </>
             )}
           </div>
@@ -2151,10 +2179,17 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
   if (slug === 'beneficiarios/autorizacoes') return <Navigate to="/beneficiario/autorizacoes" replace />
   const section = planAssisteSections.find((item) => item.slug === slug)
 
+  // A seção de Serviços tem páginas próprias: uma vitrine e o detalhe de cada serviço.
+  if (slug === 'servicos' && section) return <PlanAssisteServicosPage section={section} loggedIn={loggedIn} onLogout={onLogout} />
+  if (slug?.startsWith('servicos/')) return <PlanAssisteServicoPage slug={slug.slice('servicos/'.length)} loggedIn={loggedIn} onLogout={onLogout} />
+
   if (section) return <PlanAssisteSectionPage section={section} loggedIn={loggedIn} onLogout={onLogout} />
 
   const article = planAssisteArticles.find((item) => item.slug === slug)
-  const cmsPage = slug ? cmsSnapshot.pages.find((page) => page.slug === slug && page.status === 'published') : undefined
+  // Dentro do navegador da Area da equipe o rascunho tambem e exibido: caso
+  // contrario a pagina recem-criada seria expulsa antes de poder ser editada.
+  const editorAberto = dentroDoEditor()
+  const cmsPage = slug ? cmsSnapshot.pages.find((page) => page.slug === slug && (page.status === 'published' || editorAberto)) : undefined
 
   if (!article && !cmsPage) return <Navigate to="/plan-assiste" replace />
 
@@ -2173,10 +2208,22 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
       ]
     : [{ label: 'Plan-Assiste', to: '/plan-assiste' }]
 
+  // Página criada pela equipe: a trilha sai da hierarquia salva, senão uma filha
+  // apareceria pendurada direto na raiz e a página mãe sumiria do caminho.
+  const trilha = cmsPage && !article ? trilhaDaPagina(cmsSnapshot.pages, cmsPage.slug) : []
+  const parentsFinal = trilha.length > 0
+    ? [
+        { label: 'Plan-Assiste', to: '/plan-assiste' },
+        ...trilha
+          .filter((ancestral) => ancestral.slug !== 'plan-assiste')
+          .map((ancestral) => ({ label: ancestral.navigationTitle || ancestral.title, to: caminhoDoSlug(ancestral.slug) })),
+      ]
+    : parents
+
   return (
     <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
       <main className="container public-page">
-        <PublicBreadcrumb current={cmsPage?.navigationTitle || article?.navigationTitle || ''} parents={parents} />
+        <PublicBreadcrumb current={cmsPage?.navigationTitle || article?.navigationTitle || ''} parents={parentsFinal} />
 
         <div className="public-content-layout plan-content-layout">
         <PlanAssisteSidebar currentSlug={article?.slug || cmsPage?.slug || ''} />
@@ -2195,7 +2242,8 @@ export function PlanAssisteArticlePage({ loggedIn, onLogout }: PublicPageProps) 
                   <div className={`plan-value-grid portal-section-card-grid ${section.cards.length === 2 ? 'is-two-column' : ''} ${article?.slug === 'beneficiarios/autorizacoes' ? 'authorization-navigation-grid' : ''}`}>
                     {section.cards.map((card) => {
                       const authorizationCardIcons: Record<string, typeof BookOpenCheck> = {
-                        'Autorização de cirurgia eletiva': HeartPulse,
+                        'Cirurgia Eletiva': HeartPulse,
+                        'Medicamentos - Cobertura Direta': Pill,
                         Acupuntura: Activity,
                         Fisioterapia: Dumbbell,
                         Fonoaudiologia: Speech,
@@ -2434,8 +2482,194 @@ function PlanAssisteSectionPage({
   )
 }
 
+// ---------------------------------------------------------------------------
+// Seção "Serviços" do Plan-Assiste
+// ---------------------------------------------------------------------------
+
+function PlanAssisteServicosPage({ section, loggedIn, onLogout }: PublicPageProps & { section: PlanAssisteSection }) {
+  const Icon = section.icon
+  const [busca, setBusca] = useState('')
+
+  const termo = normalizaTexto(busca.trim())
+  const encontrados = termo
+    ? beneficiaryRequests.filter((request) => normalizaTexto(
+        [request.title, request.description, request.category, ...request.tags].join(' '),
+      ).includes(termo))
+    : beneficiaryRequests
+
+  const porCategoria = encontrados.reduce<Record<string, typeof beneficiaryRequests>>((grupos, request) => {
+    grupos[request.category] = [...(grupos[request.category] ?? []), request]
+    return grupos
+  }, {})
+
+  return (
+    <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
+      <main className="container public-page">
+        <PublicBreadcrumb current={section.title} parents={[{ label: 'Plan-Assiste', to: '/plan-assiste' }]} />
+
+        <div className="public-content-layout plan-content-layout">
+          <PlanAssisteSidebar currentSlug={section.slug} />
+          <div className="public-content-main">
+            <section className="public-hero public-hero-institutional plan-section-hero">
+              <Icon aria-hidden="true" />
+              <div>
+                <p className="eyebrow">Plan-Assiste</p>
+                <h1>{section.title}</h1>
+                <p>{section.description}</p>
+              </div>
+            </section>
+
+            <label className="support-faq-search plan-servico-search">
+              <span>Buscar serviço</span>
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+                placeholder="Nome do serviço, categoria ou palavra-chave"
+              />
+            </label>
+
+            <p className="plan-servico-count" role="status">
+              {encontrados.length === beneficiaryRequests.length
+                ? `${beneficiaryRequests.length} serviços disponíveis`
+                : `${encontrados.length} ${encontrados.length === 1 ? 'serviço encontrado' : 'serviços encontrados'} para “${busca.trim()}”`}
+            </p>
+
+            {encontrados.length === 0 ? (
+              <div className="empty-state">
+                <Search aria-hidden="true" />
+                <h2>Nenhum serviço encontrado</h2>
+                <p>Revise a palavra digitada ou limpe a busca para ver todos os serviços.</p>
+                <button className="secondary-button" type="button" onClick={() => setBusca('')}>Limpar busca</button>
+              </div>
+            ) : (
+              Object.entries(porCategoria).map(([categoria, servicos]) => (
+                <section className="plan-servico-group" key={categoria} aria-label={`Serviços de ${categoria}`}>
+                  <h2>{categoria}</h2>
+                  <div className="plan-servico-grid">
+                    {servicos.map((servico) => (
+                      <Link className="plan-servico-card" to={`/plan-assiste/servicos/${servicoPaginaSlug(servico)}`} key={servico.id}>
+                        <span>{servico.title}</span>
+                        <p>{servico.description}</p>
+                        <strong>Acessar <ArrowRight aria-hidden="true" /></strong>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+    </PublicShell>
+  )
+}
+
+function PlanAssisteServicoPage({ slug, loggedIn, onLogout }: PublicPageProps & { slug: string }) {
+  const servico = findServicoByPaginaSlug(slug)
+  if (!servico) return <Navigate to="/plan-assiste/servicos" replace />
+
+  const schema = servicoFormSlug(servico) ? getServiceFormSchema(servicoFormSlug(servico) as string) : undefined
+  const documentos = schema?.sections
+    .flatMap((secao) => secao.fields)
+    .filter((campo) => campo.type === 'file') ?? []
+  const blocos = schema?.sections.filter((secao) => secao.title && secao.fields.some((campo) => campo.type !== 'note' && campo.type !== 'file')) ?? []
+  const rotaFormulario = servicoRotaFormulario(servico)
+  const destino = rotaFormulario ?? servico.route ?? servico.externalUrl
+  // Só chama de 'Formulário' o que realmente leva a um; o resto usa o rótulo do catálogo.
+  const rotuloAcao = rotaFormulario ? `Formulário` : servico.action
+
+  return (
+    <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
+      <main className="container public-page">
+        <PublicBreadcrumb
+          current={servico.title}
+          parents={[{ label: 'Plan-Assiste', to: '/plan-assiste' }, { label: 'Serviços', to: '/plan-assiste/servicos' }]}
+        />
+
+        <div className="public-content-layout plan-content-layout">
+          <PlanAssisteSidebar currentSlug={`servicos/${slug}`} />
+          <div className="public-content-main">
+            <section className="public-hero public-hero-institutional plan-servico-hero">
+              <div>
+                <p className="eyebrow">{servico.category}</p>
+                <h1>{servico.title}</h1>
+                <p>{servico.description}</p>
+              </div>
+            </section>
+
+            <article className="portal-article-body plan-servico-body">
+              {servico.tags.length > 0 && (
+                <p className="plan-servico-tags">
+                  {servico.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                </p>
+              )}
+
+              {documentos.length > 0 && (
+                <section>
+                  <h2>Documentos necessários</h2>
+                  <p>Reúna os arquivos antes de iniciar. Os itens marcados como obrigatórios são exigidos para o envio.</p>
+                  <ul>
+                    {documentos.map((documento) => (
+                      <li key={documento.id}>
+                        {documento.label}{documento.required ? ' (obrigatório)' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {blocos.length > 0 && (
+                <section>
+                  <h2>Informações solicitadas</h2>
+                  <p>O formulário está organizado nestas etapas:</p>
+                  <ul>
+                    {blocos.map((bloco) => (
+                      <li key={bloco.id}>
+                        <strong>{bloco.title}</strong>
+                        {' — '}
+                        {bloco.fields.filter((campo) => campo.type !== 'note' && campo.type !== 'file').map((campo) => campo.label).join(', ')}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {!schema && (
+                <section>
+                  <h2>Como acessar</h2>
+                  <p>Este serviço é atendido diretamente em uma área do Portal, sem formulário de solicitação próprio.</p>
+                </section>
+              )}
+            </article>
+
+            {destino && (
+              <div className="plan-servico-actions">
+                {servico.externalUrl ? (
+                  <a className="primary-button" href={servico.externalUrl} target="_blank" rel="noreferrer">
+                    {rotuloAcao} <ArrowRight aria-hidden="true" />
+                  </a>
+                ) : (
+                  <Link className="primary-button" to={destino}>
+                    {rotuloAcao} <ArrowRight aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </PublicShell>
+  )
+}
+
 export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
   const navigate = useNavigate()
+  // Paginas criadas pela equipe tambem navegam por aqui: sem isso elas so
+  // seriam alcancaveis por endereco direto.
+  const criadas = useCmsSnapshot().pages.filter((item) => item.status === 'published')
+  const criadasNaRaiz = criadas.filter((item) => item.parentSlug === 'plan-assiste')
   const currentPath = currentSlug === 'plan-assiste' ? '/plan-assiste' : `/plan-assiste/${currentSlug}`
 
   return (
@@ -2476,7 +2710,7 @@ export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
         <div className="plan-side-section-list">
           {planAssisteSections.map((section) => {
             const sectionArticles = getPlanAssisteSectionArticles(section)
-            const isSectionActive = currentSlug === section.slug || section.articleSlugs.some((articleSlug) => (
+            const isSectionActive = currentSlug === section.slug || currentSlug.startsWith(`${section.slug}/`) || section.articleSlugs.some((articleSlug) => (
               currentSlug === articleSlug || currentSlug.startsWith(`${articleSlug}/`)
             ))
 
@@ -2507,6 +2741,18 @@ export function PlanAssisteSidebar({ currentSlug }: { currentSlug: string }) {
               </div>
             )
           })}
+
+          {criadasNaRaiz.map((pagina) => (
+            <div className="plan-side-group" key={pagina.id}>
+              <Link
+                className={`plan-side-section-link${currentSlug === pagina.slug ? ' active' : ''}`}
+                to={caminhoDoSlug(pagina.slug)}
+                aria-current={currentSlug === pagina.slug ? 'page' : undefined}
+              >
+                <span>{pagina.navigationTitle || pagina.title}</span>
+              </Link>
+            </div>
+          ))}
         </div>
       </div>
     </aside>
@@ -2784,6 +3030,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
   const [startDate, setStartDate] = useState(searchParams.get('de') || '')
   const [endDate, setEndDate] = useState(searchParams.get('ate') || '')
   const [query, setQuery] = useState(searchParams.get('busca') || '')
+  const [regiao, setRegiao] = useState(searchParams.get('regiao') || 'Todas')
   const [favoriteState, setFavoriteState] = useState<FavoriteState>(() => getFavoriteState())
   const [page, setPage] = useState(1)
   const categories = useMemo(() => ['Todas', ...Array.from(new Set(portalNews.map((item) => item.category)))], [portalNews])
@@ -2803,6 +3050,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
 
   const visibleNews = [...portalNews]
     .filter((item) => category === 'Todas' || item.category === category)
+    .filter((item) => regiao === 'Todas' || !item.regions?.length || item.regions.includes(regiao))
     .filter((item) => !loggedIn || !onlyFavorites || favoriteState.favoriteNewsIds.includes(item.id))
     .filter((item) => {
       const value = newsDateValue(item.date)
@@ -2823,6 +3071,7 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
 
   function clearFilters() {
     setCategory('Todas')
+    setRegiao('Todas')
     setOnlyFavorites(false)
     setStartDate('')
     setEndDate('')
@@ -2859,6 +3108,13 @@ export function NewsPage({ loggedIn, onLogout }: PublicPageProps) {
             Categoria
             <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1) }}>
               {categories.map((item) => <option value={item} key={item}>{item === 'Todas' ? item : formatNewsCategory(item)}</option>)}
+            </select>
+          </label>
+          <label>
+            Região
+            <select value={regiao} onChange={(evento) => { setRegiao(evento.target.value); setPage(1) }}>
+              <option value="Todas">Todas as regiões</option>
+              {REGIOES_DE_NOTICIA.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label className="news-date-field">
@@ -3012,7 +3268,16 @@ export function NewsDetailPage({ loggedIn, onLogout }: PublicPageProps) {
 
               <section className="news-detail-body">
                 {currentItem.bodyImageUrl && <img className="news-detail-inline-image" src={currentItem.bodyImageUrl} alt="" />}
-                {currentItem.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                {currentItem.bodyHtml
+                  ? <div className="cms-rich-content" dangerouslySetInnerHTML={htmlSeguro(currentItem.bodyHtml)} />
+                  : currentItem.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                {/* Blocos montados no editor: tabela, carrossel, documento… A grade
+                    de 12 colunas e o que da efeito a largura escolhida em cada bloco. */}
+                {currentItem.blocks && currentItem.blocks.length > 0 && (
+                  <div className="cms-public-grid">
+                    {currentItem.blocks.map((bloco) => <CmsBlockRenderer block={bloco} key={bloco.id} />)}
+                  </div>
+                )}
                 <div className="news-detail-category">
                   <strong>Categoria:</strong>
                   <Link className="request-category" to={newsCategoryLink}>
@@ -3022,17 +3287,22 @@ export function NewsDetailPage({ loggedIn, onLogout }: PublicPageProps) {
               </section>
             </article>
 
-            <section className="news-related" aria-label="Notícias relacionadas">
-              <div className="section-heading">
-                <h2>Notícias relacionadas</h2>
-                <Link className="text-link" to={newsCategoryLink}>Ver mais <ArrowRight aria-hidden="true" /></Link>
-              </div>
-              <div className="news-grid news-detail-related-grid">
-                {relatedItems.map((related) => (
-                  <CompactNewsCard item={related} key={related.id} />
-                ))}
-              </div>
-            </section>
+            {/* Escolha manual da equipe substitui a lista automática por categoria. */}
+            {currentItem.related && currentItem.related.length > 0 ? (
+              <ConteudosRelacionados refs={currentItem.related} />
+            ) : (
+              <section className="news-related" aria-label="Notícias relacionadas">
+                <div className="section-heading">
+                  <h2>Notícias relacionadas</h2>
+                  <Link className="text-link" to={newsCategoryLink}>Ver mais <ArrowRight aria-hidden="true" /></Link>
+                </div>
+                <div className="news-grid news-detail-related-grid">
+                  {relatedItems.map((related) => (
+                    <CompactNewsCard item={related} key={related.id} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
@@ -3963,6 +4233,7 @@ function DashboardNewsCarousel({
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
+      <AtalhoDeEdicao para="/banners" titulo="Editar os banners desta vitrine" />
       <div className="provider-news-main" aria-live="polite">
         <span className="eyebrow">{eyebrow}</span>
         <h2>{item.title}</h2>
@@ -4071,7 +4342,7 @@ const teamSidebarGroups: AreaSidebarGroup[] = [
   },
 ]
 
-function RestrictedAreaPageFrame({
+export function RestrictedAreaPageFrame({
   area,
   breadcrumb,
   children,
@@ -4582,25 +4853,41 @@ export function TeamPublicPage({ loggedIn, onLogout }: PublicPageProps) {
   )
 }
 
+const TIPO_REGISTRO_DENUNCIA = 'Denúncia ou reclamação'
+const TIPO_REGISTRO_ACOMPANHAMENTO = 'Acompanhamento de registros de denúncia / reclamação'
+
 export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
   const location = useLocation()
   const isComplaint = location.pathname.endsWith('/reclamacao-e-denuncia')
   const isQuality = location.pathname.endsWith('/qualidade-dos-servicos')
-  const manifestationSubjects = isComplaint ? ['Reclamação', 'Denúncia'] : ['Crítica', 'Elogio', 'Sugestão']
+  // O canal de denúncia reúne dois registros; o seletor decide quais campos entram.
+  const [tipoRegistro, setTipoRegistro] = useState(TIPO_REGISTRO_DENUNCIA)
+  const isAcompanhamento = isComplaint && tipoRegistro === TIPO_REGISTRO_ACOMPANHAMENTO
+  const isDenuncia = isComplaint && !isAcompanhamento
+  // Só a avaliação tem Assunto; na denúncia o tipo já é o próprio canal.
+  const manifestationSubjects = ['Crítica', 'Elogio', 'Sugestão']
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
+  // Campos exclusivos da denúncia/reclamação: espelham o formulário
+  // "Denúncia / Reclamação" do Catálogo de serviços.
+  const [rgOrgaoExpedidor, setRgOrgaoExpedidor] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [celular, setCelular] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [estado, setEstado] = useState('')
+  // Exclusivos do acompanhamento: espelham os campos do formulário que saiu do
+  // Catálogo de serviços, aqui digitados à mão por ser uma página pública.
+  const [dataNascimento, setDataNascimento] = useState('')
+  const [matricula, setMatricula] = useState('')
+  const [localidadeMatricula, setLocalidadeMatricula] = useState('')
+  // Espelha o campo do formulário Denúncia / Reclamação do catálogo.
+  const [sigiloDadosPessoais, setSigiloDadosPessoais] = useState(false)
   const [assunto, setAssunto] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
-  const [captchaCode, setCaptchaCode] = useState(() => generateCaptchaCode())
-  const [captchaValue, setCaptchaValue] = useState('')
   const [notice, setNotice] = useState('')
   const [submitted, setSubmitted] = useState(false)
-
-  function refreshCaptcha() {
-    setCaptchaCode(generateCaptchaCode())
-    setCaptchaValue('')
-  }
 
   function addFiles(newFiles: File[]) {
     setAttachments((current) => [...current, ...newFiles])
@@ -4613,23 +4900,36 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
   function handleReset() {
     setNome('')
     setEmail('')
+    setRgOrgaoExpedidor('')
+    setCpf('')
+    setCelular('')
+    setTelefone('')
+    setCidade('')
+    setEstado('')
+    setDataNascimento('')
+    setMatricula('')
+    setLocalidadeMatricula('')
+    setSigiloDadosPessoais(false)
     setAssunto('')
     setMensagem('')
     setAttachments([])
     setNotice('')
     setSubmitted(false)
-    refreshCaptcha()
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!nome.trim() || !email.trim() || !assunto || !stripHtml(mensagem)) {
-      setNotice(`Preencha nome, e-mail, assunto e mensagem para enviar ${isComplaint ? 'seu relato' : 'sua avaliação'}.`)
+    // A denúncia não tem campo Assunto: os tipos viraram o próprio serviço.
+    if (!nome.trim() || !email.trim() || (!isComplaint && !assunto) || !stripHtml(mensagem)) {
+      setNotice(isAcompanhamento
+        ? 'Preencha nome, e-mail e descrição para enviar sua solicitação.'
+        : isComplaint
+          ? 'Preencha nome, e-mail e descrição para enviar seu relato.'
+          : 'Preencha nome, e-mail, assunto e descrição para enviar sua avaliação.')
       return
     }
-    if (captchaValue.trim().toUpperCase() !== captchaCode) {
-      setNotice('Código de verificação incorreto. Confira o código e tente novamente.')
-      refreshCaptcha()
+    if (!isValidEmail(email)) {
+      setNotice('Informe um e-mail válido para que possamos retornar.')
       return
     }
     setNotice('')
@@ -4648,7 +4948,7 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
           />
           <div className="service-success">
             <CheckCircle2 aria-hidden="true" className="service-success-icon" />
-            <h2>{isComplaint ? 'Denúncia enviada com sucesso' : 'Avaliação enviada com sucesso'}</h2>
+            <h2>{isAcompanhamento ? 'Solicitação enviada com sucesso' : isComplaint ? 'Denúncia enviada com sucesso' : 'Avaliação enviada com sucesso'}</h2>
             <p>Recebemos sua mensagem. Nossa equipe vai analisá-la e retornar pelo e-mail informado, se necessário.</p>
             <div className="service-success-actions">
               <Link className="primary-button" to="/">Voltar para o início</Link>
@@ -4672,44 +4972,133 @@ export function ManifestationPage({ loggedIn, onLogout }: PublicPageProps) {
         </section>
         <form className="reimbursement-form" onSubmit={handleSubmit}>
           <section className="reimbursement-card">
+            {isComplaint && (
+              <div className="reimbursement-form-section">
+                <div className="reimbursement-grid">
+                  <label className="half-width">
+                    Tipo de registro *
+                    <select value={tipoRegistro} onChange={(event) => { setTipoRegistro(event.target.value); setNotice('') }}>
+                      <option value={TIPO_REGISTRO_DENUNCIA}>{TIPO_REGISTRO_DENUNCIA}</option>
+                      <option value={TIPO_REGISTRO_ACOMPANHAMENTO}>{TIPO_REGISTRO_ACOMPANHAMENTO}</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
             <div className="reimbursement-form-section">
               <h3>Identificação</h3>
-              <div className="reimbursement-grid reimbursement-grid-two-columns manifestation-identification-grid">
-                <label>
+              <div className={isComplaint ? 'reimbursement-grid' : 'reimbursement-grid reimbursement-grid-two-columns manifestation-identification-grid'}>
+                <label className={isComplaint ? 'half-width' : undefined}>
                   Nome completo *
                   <input value={nome} onChange={(event) => setNome(event.target.value)} placeholder="Digite o seu nome completo" />
                 </label>
-                <label>
+                <label className={isComplaint ? 'half-width' : undefined}>
                   E-mail *
-                  <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Digite o seu e-mail de contato" />
+                  {/* Mesma validação dos formulários do catálogo: acusa o erro ao sair do campo. */}
+                  <EmailTextInput value={email} onChange={setEmail} placeholder="Digite o seu e-mail de contato" />
                 </label>
+                {isAcompanhamento && (
+                  <>
+                    <label className="half-width">
+                      CPF
+                      <input value={cpf} maxLength={14} onChange={(event) => setCpf(maskCpf(event.target.value))} placeholder="000.000.000-00" />
+                    </label>
+                    <label className="half-width">
+                      Data de nascimento
+                      <input type="date" value={dataNascimento} onChange={(event) => setDataNascimento(event.target.value)} />
+                    </label>
+                    <label className="half-width">
+                      Matrícula
+                      <input value={matricula} onChange={(event) => setMatricula(event.target.value)} placeholder="Número da matrícula" />
+                    </label>
+                    <label className="half-width">
+                      Localidade da Matrícula
+                      <input value={localidadeMatricula} onChange={(event) => setLocalidadeMatricula(event.target.value)} placeholder="Ex.: Brasília - DF" />
+                    </label>
+                    <label className="half-width">
+                      Telefone
+                      <input value={telefone} maxLength={15} onChange={(event) => setTelefone(maskPhone(event.target.value))} placeholder="(00) 00000-0000" />
+                    </label>
+                  </>
+                )}
+                {isDenuncia && (
+                  <>
+                    <label className="half-width">
+                      RG e Órgão Expedidor
+                      <input value={rgOrgaoExpedidor} onChange={(event) => setRgOrgaoExpedidor(event.target.value)} placeholder="Ex.: 1234567 SSP/DF" />
+                    </label>
+                    <label className="half-width">
+                      CPF
+                      <input value={cpf} maxLength={14} onChange={(event) => setCpf(maskCpf(event.target.value))} placeholder="000.000.000-00" />
+                    </label>
+                    <label>
+                      Celular
+                      <input value={celular} maxLength={15} onChange={(event) => setCelular(maskPhone(event.target.value))} placeholder="(00) 00000-0000" />
+                    </label>
+                    <label>
+                      Telefone
+                      <input value={telefone} maxLength={15} onChange={(event) => setTelefone(maskPhone(event.target.value))} placeholder="(00) 0000-0000" />
+                    </label>
+                    <label>
+                      Cidade
+                      <input value={cidade} onChange={(event) => setCidade(event.target.value)} placeholder="Cidade" />
+                    </label>
+                    <label>
+                      Estado
+                      <select value={estado} onChange={(event) => setEstado(event.target.value)}>
+                        <option value="">Selecione</option>
+                        {UF_OPTIONS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                      </select>
+                    </label>
+                    <label className="responsibility-term wide">
+                      <input type="checkbox" checked={sigiloDadosPessoais} onChange={(event) => setSigiloDadosPessoais(event.target.checked)} />
+                      Deseja manter seus dados pessoais em sigilo?
+                    </label>
+                    {sigiloDadosPessoais && (
+                      <p className="aviso-sigilo wide" role="status">
+                        <strong>Atenção:</strong>
+                        <span>
+                          Os dados informados serão de conhecimento da unidade de tratamento da denúncia,
+                          mas anônimos às áreas respondentes, bem como ao denunciado
+                        </span>
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             </div>
             <div className="reimbursement-form-section">
-              <h3>{isComplaint ? 'Detalhes da denúncia ou reclamação' : 'Detalhes da avaliação'}</h3>
+              <h3>{isAcompanhamento ? 'Detalhes do acompanhamento' : isComplaint ? 'Detalhes da denúncia ou reclamação' : 'Detalhes da avaliação'}</h3>
               <div className="reimbursement-grid">
+                {!isComplaint && (
+                  <label className="wide">
+                    Assunto *
+                    <select value={assunto} onChange={(event) => setAssunto(event.target.value)}>
+                      <option value="">Selecione uma opção</option>
+                      {manifestationSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
+                  </label>
+                )}
                 <label className="wide">
-                  Assunto *
-                  <select value={assunto} onChange={(event) => setAssunto(event.target.value)}>
-                    <option value="">Selecione uma opção</option>
-                    {manifestationSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
-                  </select>
+                  Descrição *
+                  <textarea rows={7} value={mensagem} onChange={(event) => setMensagem(event.target.value)} placeholder={isAcompanhamento ? 'Informe o número do registro, se tiver, e o que deseja saber sobre o andamento' : isComplaint ? 'Descreva o ocorrido com o máximo de informações relevantes' : 'Conte-nos como foi sua experiência e o que podemos melhorar'} />
                 </label>
-                <label className="wide">
-                  Mensagem *
-                  <textarea rows={7} value={mensagem} onChange={(event) => setMensagem(event.target.value)} placeholder={isComplaint ? 'Descreva o ocorrido com o máximo de informações relevantes' : 'Conte-nos como foi sua experiência e o que podemos melhorar'} />
-                </label>
-                {isComplaint && <FileAttachmentField fullWidth files={attachments} helpText="Anexe, se necessário, provas ou documentos relacionados ao relato (PDF, JPG, PNG ou GIF até 10 MB)." label="Anexos (opcional)" onAdd={addFiles} onRemove={removeFile} />}
+                <FileAttachmentField
+                  fullWidth
+                  files={attachments}
+                  helpText={isComplaint
+                    ? 'Anexe, se necessário, provas ou documentos relacionados ao relato (PDF, JPG, PNG ou GIF até 10 MB).'
+                    : 'Anexe, se necessário, imagens ou documentos que ajudem a ilustrar sua manifestação (PDF, JPG, PNG ou GIF até 10 MB).'}
+                  label="Anexos (opcional)"
+                  onAdd={addFiles}
+                  onRemove={removeFile}
+                />
               </div>
-            </div>
-            <div className="reimbursement-form-section">
-              <h3>Verificação de segurança</h3>
-              <CaptchaField code={captchaCode} onChangeValue={setCaptchaValue} onRefresh={refreshCaptcha} value={captchaValue} />
             </div>
             {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
             <div className="reimbursement-actions">
               <button className="primary-button" type="submit">
-                <Send aria-hidden="true" /> {isComplaint ? 'Enviar denúncia' : 'Enviar'}
+                <Send aria-hidden="true" /> {isAcompanhamento ? 'Enviar solicitação' : isComplaint ? 'Enviar denúncia' : 'Enviar'}
               </button>
               <button className="secondary-button" type="button" onClick={handleReset}>Limpar formulário</button>
             </div>

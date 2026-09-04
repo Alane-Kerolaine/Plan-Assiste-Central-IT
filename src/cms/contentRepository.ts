@@ -1,7 +1,13 @@
 import { useSyncExternalStore } from 'react'
 
+/**
+ * Referencia a outro conteudo do portal, usada na lista de relacionados.
+ * Em paginas o id e o slug; em noticias, o id da noticia.
+ */
+export type CmsRelatedRef = { kind: 'news' | 'page', id: string }
+
 export type CmsBlockWidth = '1/1' | '1/2' | '1/3' | '1/4'
-export type CmsBlockType = 'rich-text' | 'card' | 'document' | 'notice' | 'faq' | 'organization' | 'table' | 'button' | 'media'
+export type CmsBlockType = 'rich-text' | 'card' | 'document' | 'notice' | 'faq' | 'organization' | 'table' | 'button' | 'media' | 'gallery'
 export type CmsCardVariant = 'navigation' | 'navigation-secondary' | 'information' | 'operational' | 'result' | 'actuarial'
 
 export type CmsBlock = {
@@ -24,8 +30,30 @@ export type CmsBlock = {
   tableVariant?: 'standard' | 'hover' | 'striped'
   buttonVariant?: 'primary' | 'secondary' | 'link'
   mediaUrl?: string
-  mediaKind?: 'image' | 'video' | 'audio'
+  mediaKind?: 'image' | 'video' | 'audio' | 'youtube'
+  /** Onde a midia fica em relacao a descricao: acima dela ou ao lado. */
+  mediaLayout?: 'full' | 'left' | 'right'
+  /** Imagens do carrossel, na ordem em que aparecem. */
+  galleryItems?: CmsGalleryItem[]
+  /** Avanca sozinho, com botao de pausa para quem preferir controlar. */
+  galleryAutoplay?: boolean
   caption?: string
+}
+
+/** Imagem do carrossel, com a legenda que aparece sobre ela. */
+export type CmsGalleryItem = { id: string, url: string, caption: string }
+
+/** Arquivo que pertence a uma página, listado na tabela daquela página. */
+export type CmsPageFile = {
+  id: string
+  name: string
+  type: string
+  size: number
+  url: string
+  status: 'draft' | 'published'
+  /** Pasta escolhida a mao na visao em pastas da pagina. */
+  folder?: string
+  updatedAt: string
 }
 
 export type CmsPage = {
@@ -37,6 +65,14 @@ export type CmsPage = {
   summary: string
   status: 'draft' | 'published'
   blocks: CmsBlock[]
+  /** Pasta escolhida a mao dentro da pagina mae. */
+  folder?: string
+  /** Pastas criadas na visao em pastas desta pagina, mesmo vazias. */
+  contentFolders?: string[]
+  /** Conteudos relacionados escolhidos a mao para esta pagina. */
+  related?: CmsRelatedRef[]
+  /** Documentos exclusivos desta página. */
+  files?: CmsPageFile[]
   updatedAt: string
 }
 
@@ -70,6 +106,20 @@ function emptySnapshot(): CmsSnapshot {
   }
 }
 
+/**
+ * Corrige o slug de paginas gravadas antes de slugFilho existir.
+ *
+ * Naquela versao, criar uma filha a partir de /plan-assiste juntava mae e
+ * endereco mecanicamente e produzia 'plan-assiste/<nome>', que o portal
+ * traduzia para /plan-assiste/plan-assiste/<nome>. Nenhum slug legitimo comeca
+ * assim — slugDoCaminho sempre remove esse prefixo —, entao a correcao e segura.
+ */
+function normalizaSlug(pagina: CmsPage): CmsPage {
+  const prefixo = 'plan-assiste/'
+  if (!pagina.slug.startsWith(prefixo)) return pagina
+  return { ...pagina, slug: pagina.slug.slice(prefixo.length), parentSlug: pagina.parentSlug ?? 'plan-assiste' }
+}
+
 export class BrowserContentRepository implements ContentRepository {
   private listeners = new Set<() => void>()
   private snapshot = this.read()
@@ -77,7 +127,7 @@ export class BrowserContentRepository implements ContentRepository {
   private read(): CmsSnapshot {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as { pages?: CmsPage[] } | null
-      const pages = Array.isArray(parsed?.pages) ? parsed.pages.map((page) => ({ ...page, blocks: page.blocks.map((block) => block.type === 'faq' ? { ...block, faqCategories: (block.faqCategories || []).filter((category) => category.trim().toLocaleLowerCase('pt-BR') !== 'teste'), faqItems: (block.faqItems || []).filter((item) => !(item.category.trim().toLocaleLowerCase('pt-BR') === 'teste' && item.question.trim().toLocaleLowerCase('pt-BR') === 'e')) } : block) })) : initialPages
+      const pages = Array.isArray(parsed?.pages) ? parsed.pages.map(normalizaSlug).map((page) => ({ ...page, blocks: page.blocks.map((block) => block.type === 'faq' ? { ...block, faqCategories: (block.faqCategories || []).filter((category) => category.trim().toLocaleLowerCase('pt-BR') !== 'teste'), faqItems: (block.faqItems || []).filter((item) => !(item.category.trim().toLocaleLowerCase('pt-BR') === 'teste' && item.question.trim().toLocaleLowerCase('pt-BR') === 'e')) } : block) })) : initialPages
       return {
         pages,
         editingEnabled: localStorage.getItem(EDITING_KEY) === 'true',
@@ -171,6 +221,8 @@ export function createCmsBlock(type: CmsBlockType = 'rich-text'): CmsBlock {
     tableRows: type === 'table' ? [['', '']] : undefined,
     tableVariant: type === 'table' ? 'standard' : undefined,
     buttonVariant: type === 'button' ? 'primary' : undefined,
+    galleryItems: type === 'gallery' ? [] : undefined,
+    galleryAutoplay: type === 'gallery' ? true : undefined,
   }
 }
 
@@ -184,6 +236,7 @@ export function createCmsPage(slug = ''): CmsPage {
     summary: '',
     status: 'draft',
     blocks: [createCmsBlock()],
+    files: [],
     updatedAt: new Date().toISOString(),
   }
 }

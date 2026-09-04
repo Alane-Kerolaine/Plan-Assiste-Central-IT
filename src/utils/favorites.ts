@@ -15,7 +15,7 @@ const storageKey = 'planAssisteFavorites'
 
 export const defaultFavoriteState: FavoriteState = {
   favoriteNewsIds: ['nova-funcionalidade-busca-credenciados'],
-  favoriteServiceIds: ['reembolso'],
+  favoriteServiceIds: ['servico-solicitacao-reembolso'],
   favoriteProviderIds: ['dra-maria-cavalcanti'],
   providerRatings: {
     'clinica-saude-vida': 5,

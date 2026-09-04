@@ -2,11 +2,13 @@ import { Fragment, useEffect, useRef, useState, type ChangeEvent, type FormEvent
 import {
   Accessibility,
   Activity,
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Bell,
   Brain,
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +17,7 @@ import {
   Copy,
   Download,
   Dumbbell,
+  FileImage,
   FileText,
   Heart,
   HeartPulse,
@@ -26,18 +29,26 @@ import {
   Eye,
   HandCoins,
   HandHeart,
+  Headphones,
   HelpCircle,
   IdCard,
+  MonitorCheck,
+  Paperclip,
+  Pencil,
   PersonStanding,
+  Pill,
   Plus,
   RotateCcw,
   Save,
   Search,
   Send,
+  ShieldCheck,
   Smartphone,
   Speech,
   Star,
   Stethoscope,
+  Trash2,
+  Undo2,
   UserPlus,
   UserRound,
   WalletCards,
@@ -46,6 +57,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { getCmsSlideshow } from '../cms/siteContentRepository'
+import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Breadcrumb,
@@ -67,16 +79,22 @@ import {
 } from '../data/mock'
 import {
   defaultUserProfile,
+  geocodeAddressForPrototype,
   getStoredUserProfile,
   saveStoredUserProfile,
+  type UserAddress,
   type UserProfile,
 } from '../utils/userProfile'
+import { maskCep } from '../utils/inputMasks'
+import { UF_OPTIONS } from '../data/serviceFormSchemas'
 import { ResultsHeader } from '../components/ResultsHeader'
 import { BrazilianDateInput } from '../components/BrazilianDateInput'
 import { FileAttachmentField } from '../components/FileAttachmentField'
 import { WizardSteps } from '../components/serviceRequestWizardComponents'
 import { DEFAULT_SUCCESS_SECONDARY_ACTION, type WizardStep } from '../components/serviceRequestWizardHelpers'
 import { generateProtocolNumber } from '../utils/protocol'
+import { maskCpfCnpj, maskCurrency } from '../utils/inputMasks'
+import { isFutureBrazilianDate } from '../utils/dates'
 import {
   getStoredNotifications,
   markAllNotificationsRead,
@@ -94,9 +112,23 @@ import {
   toggleFavoriteService,
   type FavoriteState,
 } from '../utils/favorites'
+import { AvisoNormativo } from '../components/AvisoNormativo'
 import { Combobox } from '../components/Combobox'
+import { ChatMessageComposer } from '../components/ChatMessageComposer'
 import { getStoredSession } from '../utils/session'
 import { pluralCount, pluralize } from '../utils/plural'
+import { nomeExibicao, nomeExibicaoPorRegistro } from '../utils/nomeSocial'
+import { servicoDetalheRota } from '../utils/servicoPlanAssiste'
+import {
+  SOLICITACOES_PAGE_SIZE_OPTIONS,
+  solicitacaoConcluida,
+  solicitacaoRatingLabels,
+  solicitacaoStatusBadge,
+  solicitacaoStatusLabel,
+  type MinhasSolicitacaoAtualizacao,
+  type MinhasSolicitacaoFormField,
+  type MinhasSolicitacaoStatus,
+} from '../utils/solicitacoes'
 import { NewsCard } from './HomePage'
 import { NewsDateRangePicker } from './PublicPages'
 
@@ -204,7 +236,7 @@ const beneficiaryAuthorizationGroups = [
     title: 'Cirurgia eletiva',
     cards: [
       {
-        title: 'Autorização de cirurgia eletiva',
+        title: 'Cirurgia Eletiva',
         text: 'Anexe o pedido ou relatório médico, os laudos de exames e os demais documentos relacionados ao diagnóstico.',
         to: '/beneficiario/servicos/autorizacao-cirurgia/nova-solicitacao',
         icon: HeartPulse,
@@ -225,13 +257,13 @@ const beneficiaryAuthorizationGroups = [
     ],
   },
   {
-    title: 'Órteses, próteses e materiais (OPME)',
+    title: 'Medicamentos',
     cards: [
       {
-        title: 'Autorização de OPME',
-        text: 'Solicite autorização para órteses, próteses e materiais especiais indicados em procedimento.',
-        to: '/beneficiario/servicos/autorizacao-opme/nova-solicitacao',
-        icon: Stethoscope,
+        title: 'Medicamentos - Cobertura Direta',
+        text: 'Informe o tipo de autorização e anexe o pedido ou relatório médico com os laudos de exames relacionados ao tratamento.',
+        to: '/beneficiario/servicos/medicamentos-cobertura-direta/nova-solicitacao',
+        icon: Pill,
       },
     ],
   },
@@ -246,13 +278,18 @@ export function BeneficiaryLayout({ onLogout }: { onLogout: () => void }) {
 
   const relativePath = location.pathname.replace(/^\/beneficiario\/?/, '')
   const slug = relativePath.split('/')[0] || 'beneficiario'
+  const matchingService = beneficiaryRequests.find((request) => request.route === location.pathname)
 
   return (
     <>
       <Header loggedIn onLogout={onLogout} />
       <MainMenu loggedIn />
       <div className="container">
-        <Breadcrumb current={pageNames[slug] || 'Beneficiários'} />
+        <Breadcrumb
+          current={matchingService ? 'Catálogo de serviços' : (pageNames[slug] || 'Beneficiários')}
+          currentTo="/beneficiario/servicos"
+          extra={matchingService?.title}
+        />
         <div className="beneficiary-grid beneficiary-workspace">
           <Sidebar onLogout={onLogout} />
           <main className="beneficiary-main">
@@ -301,6 +338,7 @@ function BeneficiaryCampaignCarousel() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
+      <AtalhoDeEdicao para="/banners" titulo="Editar os banners desta vitrine" />
       <div className="beneficiary-campaign-copy" aria-live="polite">
         <h1>{campaign.title}</h1>
         <p>{campaign.description}</p>
@@ -544,7 +582,7 @@ function CriticalNotificationDialog({
   )
 }
 
-const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Financeiro', 'Documentos', 'Orientações e canais']
+const requestCategories = ['Todos', 'Cadastro', 'Autorizações', 'Reembolso e auxílios', 'Benefícios', 'Financeiro', 'Documentos', 'Orientações e canais', 'Cobertura', 'Fale Conosco']
 const requestCategoryLabel: Record<string, string> = {
   'Orientações e canais': 'Orientações',
 }
@@ -577,7 +615,7 @@ export function RequestsPage() {
     .filter((request) => request.category !== 'Rede e atendimento')
     .filter((request) => category === 'Todos' || request.category === category)
     .filter((request) => !onlyFavorites || favoriteState.favoriteServiceIds.includes(request.id))
-    .filter((request) => !onlyRequestable || request.route?.includes('nova-solicitacao') || ['reembolso', 'remocao'].includes(request.id))
+    .filter((request) => !onlyRequestable || request.route?.includes('nova-solicitacao'))
     .filter((request) => {
       if (!normalizedQuery) return true
       const target = `${request.title} ${request.description} ${request.category} ${request.tags.join(' ')}`
@@ -715,6 +753,8 @@ type ReimbursementDraft = {
   notes: string
 }
 
+type ReimbursementItem = ReimbursementDraft & { id: string }
+
 const reimbursementRecords: ReimbursementRecord[] = [
   {
     id: '2026-1842',
@@ -770,24 +810,304 @@ const initialReimbursementDraft: ReimbursementDraft = {
 }
 
 const reimbursementTypes = [
-  'Acompanhamento nutricional', 'Acupuntura', 'Avaliação neuropsicológica',
-  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação', 'Equoterapia',
+  'Acompanhamento nutricional', 'Acupuntura',
+  'Cirurgia com internação', 'Cirurgia sem internação', 'Consulta/Avaliação',
   'Exames', 'Fisioterapia', 'Fonoaudiologia', 'Hidroterapia', 'Honorários individuais',
   'Internação sem cirurgia', 'Medicamentos ambulatoriais', 'Musicoterapia', 'Odontologia',
   'Parto', 'Pilates', 'Psicologia', 'Psicomotricidade', 'Psicopedagogia', 'Quimioterapia',
   'Radioterapia', 'RPG', 'Terapia ocupacional',
 ]
 
+// Aviso informativo exibido após a escolha do tipo de reembolso, com regras específicas do
+// procedimento. Por ora só temos o texto oficial da Acupuntura (teste); os demais tipos
+// entram aqui conforme forem recebidos.
+const REEMBOLSO_TIPO_AVISOS: Record<string, { conteudo: string }> = {
+  Acupuntura: {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar Nº 32, de 15/02/2023, o tratamento de acupuntura ficará limitado a 40 (quarenta) sessões por ano civil, realizadas por profissionais médicos habilitados, mediante indicação médica ou odontológica, restrito à sua área de atuação. Será exigida perícia quando o número de sessões anuais ultrapassar os limites estabelecidos em norma complementar.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Acompanhamento nutricional': {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Cirurgia com internação': {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Cirurgia sem internação': {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Fisioterapia: {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 30, de 27/07/2023, será exigida perícia para autorização quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana e/ou 40 (quarenta) sessões por ano civil.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Fonoaudiologia: {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Hidroterapia: {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG. Nesses casos, a perícia deverá ser agendada junto ao serviço médico, e apresentado o parecer do médico solicitante.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Honorários individuais': {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Internação sem cirurgia': {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  'Medicamentos ambulatoriais': {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Musicoterapia: {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Odontologia: {
+    conteudo: 'Solicitações de reembolso de procedimentos odontológicos que necessitam de perícia devem ser realizadas após orçadas e periciadas, sob pena de não serem ressarcidas. Nesses casos, deverá ser providenciado o agendamento junto ao setor de odontologia de cada ramo. O formulário de orçamento deverá ser preenchido pelo dentista consultado para apresentação no momento da perícia.',
+  },
+  Pilates: {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido nas Normas Complementares nº 32, de 15/02/2023, e nº 30, de 27/07/2023, será exigida perícia inicial para as sessões de Pilates. Quando autorizadas pela perícia, deverão ser realizadas por fisioterapeuta devidamente habilitado e serão limitadas a 40 (quarenta) por ano civil, vedada qualquer prorrogação. Para solicitar a perícia, basta encaminhar e-mail, com parecer do médico solicitante, para o setor de autorizações da sua localidade. Após, anexar a perícia ao pedido de reembolso.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicologia: {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicomotricidade: {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Psicopedagogia: {
+    conteudo: [
+      'O Pedido / relatório médico deve estar datado. A Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  Quimioterapia: {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  Radioterapia: {
+    conteudo: 'Procedimento sujeito à perícia médica. Caso o procedimento não tenha sido previamente autorizado pelo plano, o pedido será colocado como pendente na documentação, e você receberá orientações sobre os próximos passos por meio do e-mail cadastrado.',
+  },
+  RPG: {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana, e/ou 40 (quarenta) sessões por ano civil, e, ainda, em todos os casos de internação. A frequência de 2 (duas) vezes na semana será considerada por tipo: motora, neurológica, uroginecológica ou respiratória, ou por subespecialidade como hidroterapia e RPG.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+  'Terapia ocupacional': {
+    conteudo: [
+      'O Pedido médico deve estar datado e a Nota Fiscal/Recibo deve informar as datas em que as sessões foram realizadas.',
+      'Segundo estabelecido na Norma Complementar N° 32, de 15/02/2023, será exigida perícia quando o número de sessões semanais ultrapassar 2 (duas) vezes na semana em tratamentos ambulatoriais, e/ou 40 (quarenta) por ano civil, e, ainda, em todos os casos de internação.',
+      'A cobertura de tratamentos para beneficiários portadores de **Transtorno do Espectro Autista (TEA), Síndrome de Down (SD) e Paralisia Cerebral (PC)** seguirá os critérios regulamentados na Norma Complementar nº 37, de 5/12/2024. Para esses beneficiários, **o campo de identificação correspondente, denominado \'Portador de TEA, SD ou PC\', deverá ser selecionado.**',
+    ].join('\n\n'),
+  },
+}
+
+type ReembolsoDocumento = { label: string, required: boolean }
+
+// Documentos exigidos por tipo de reembolso, conforme o sistema legado de referência (campos em
+// vermelho lá = obrigatórios aqui). Tipos ainda não conferidos usam a heurística genérica abaixo.
+const REEMBOLSO_TIPO_DOCUMENTOS: Record<string, ReembolsoDocumento[]> = {
+  'Acompanhamento nutricional': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Acupuntura: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Cirurgia com internação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Cirurgia sem internação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Consulta/Avaliação': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+  ],
+  Exames: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+  ],
+  Fisioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Fonoaudiologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Hidroterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Honorários individuais': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Internação sem cirurgia': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Medicamentos ambulatoriais': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Musicoterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Odontologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Orçamento Odontológico', required: true },
+    { label: 'Perícia', required: false },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Parto: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Pilates: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicologia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicomotricidade: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Psicopedagogia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Quimioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  Radioterapia: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Relatório de Perícia', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  RPG: [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+  'Terapia ocupacional': [
+    { label: 'Nota Fiscal/Recibo', required: true },
+    { label: 'Pedido/Relatório Médico', required: true },
+    { label: 'Documentos adicionais', required: false },
+  ],
+}
+
+type ReembolsoCampoBase = 'sessions'
+type ReembolsoCampoConfig = { oculto?: boolean }
+
+// Conferido com zoom nos 23 tipos disponíveis no sistema legado de referência: todo campo da
+// linha "Dados da solicitação" que existe para o tipo vem sempre obrigatório (borda vermelha) —
+// não há variação de obrigatoriedade por tipo. A única coisa que varia é se o campo "Quantidade
+// de sessões" chega a existir no formulário daquele tipo (ex.: cirurgias não têm esse campo).
+const REEMBOLSO_TIPO_CAMPOS: Record<string, Partial<Record<ReembolsoCampoBase, ReembolsoCampoConfig>>> = {
+  'Acompanhamento nutricional': {},
+  Acupuntura: {},
+  'Cirurgia com internação': { sessions: { oculto: true } },
+  'Cirurgia sem internação': { sessions: { oculto: true } },
+  'Consulta/Avaliação': { sessions: { oculto: true } },
+  Exames: { sessions: { oculto: true } },
+  Fisioterapia: {},
+  Fonoaudiologia: {},
+  Hidroterapia: {},
+  'Honorários individuais': { sessions: { oculto: true } },
+  'Internação sem cirurgia': { sessions: { oculto: true } },
+  'Medicamentos ambulatoriais': { sessions: { oculto: true } },
+  Musicoterapia: {},
+  Odontologia: { sessions: { oculto: true } },
+  Parto: { sessions: { oculto: true } },
+  Pilates: {},
+  Psicologia: {},
+  Psicomotricidade: {},
+  Psicopedagogia: {},
+  Quimioterapia: { sessions: { oculto: true } },
+  Radioterapia: { sessions: { oculto: true } },
+  RPG: {},
+  'Terapia ocupacional': {},
+}
+
+function isCampoReembolsoOculto(type: string, campo: ReembolsoCampoBase): boolean {
+  return REEMBOLSO_TIPO_CAMPOS[type]?.[campo]?.oculto ?? false
+}
+
 const medicalDocumentTypes = new Set(reimbursementTypes.filter((type) => !['Acompanhamento nutricional', 'Consulta/Avaliação'].includes(type)))
 const expertiseTypes = new Set(['Cirurgia com internação', 'Cirurgia sem internação', 'Honorários individuais', 'Odontologia', 'Pilates', 'Quimioterapia', 'Radioterapia'])
 
-function reimbursementAttachments(type: string, priorityCare: boolean) {
+function reimbursementAttachments(type: string, priorityCare: boolean): ReembolsoDocumento[] {
   if (!type) return []
-  const attachments = ['Nota fiscal/recibo']
-  if (medicalDocumentTypes.has(type)) attachments.push('Pedido ou relatório médico')
-  if (expertiseTypes.has(type) || priorityCare) attachments.push('Perícia')
-  if (type === 'Odontologia') attachments.push('Orçamento odontológico')
-  attachments.push('Documentos adicionais')
+  if (REEMBOLSO_TIPO_DOCUMENTOS[type]) return REEMBOLSO_TIPO_DOCUMENTOS[type]
+  const attachments: ReembolsoDocumento[] = [{ label: 'Nota fiscal/recibo', required: true }]
+  if (medicalDocumentTypes.has(type)) attachments.push({ label: 'Pedido ou relatório médico', required: true })
+  if (expertiseTypes.has(type) || priorityCare) attachments.push({ label: 'Perícia', required: true })
+  if (type === 'Odontologia') attachments.push({ label: 'Orçamento odontológico', required: true })
+  attachments.push({ label: 'Documentos adicionais', required: false })
   return attachments
 }
 
@@ -827,17 +1147,29 @@ const REEMBOLSO_FAQ = [
   },
 ]
 
+const RECEIPT_DATE_FUTURE_MESSAGE = 'A data da nota fiscal/recibo não pode ser superior à data atual.'
+
 export function BeneficiaryNovaReembolsoPage() {
   const profile = getStoredUserProfile()
+  // E-mail vem do cadastro, mas segue editavel para esta solicitacao.
+  const [contatoEmail, setContatoEmail] = useState(profile.email)
   const [showForm, setShowForm] = useState(false)
   const [step, setStep] = useState<WizardStep>('form')
   const [draft, setDraft] = useState<ReimbursementDraft>(initialReimbursementDraft)
-  const [items, setItems] = useState<ReimbursementDraft[]>([])
+  const [items, setItems] = useState<ReimbursementItem[]>([])
   const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File[]>>({})
-  const [acceptedTerm, setAcceptedTerm] = useState(false)
+  const [itemAttachments, setItemAttachments] = useState<Record<string, Record<string, File[]>>>({})
+  const [formAcceptedTerm, setFormAcceptedTerm] = useState(false)
   const [notice, setNotice] = useState('')
   const [protocol, setProtocol] = useState('')
   const [copied, setCopied] = useState(false)
+  const [attachmentsModalItemId, setAttachmentsModalItemId] = useState<string | null>(null)
+  const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
+  const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
+  const [editItem, setEditItem] = useState<ReimbursementItem | null>(null)
+  const [editNotice, setEditNotice] = useState('')
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const nextItemId = useRef(1)
 
   useEffect(() => {
     if (!copied) return
@@ -854,8 +1186,21 @@ export function BeneficiaryNovaReembolsoPage() {
       setNotice('Preencha tipo de reembolso, nota/recibo, data, CPF/CNPJ do credenciado e valor para adicionar a solicitação.')
       return
     }
-    setItems((current) => [...current, draft])
+    if (isFutureBrazilianDate(draft.receiptDate)) {
+      setNotice(RECEIPT_DATE_FUTURE_MESSAGE)
+      return
+    }
+    const missingDocuments = reimbursementAttachments(draft.type, draft.isPriorityCare)
+      .filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
+    if (missingDocuments.length > 0) {
+      setNotice(`Anexe o(s) documento(s) obrigatório(s) antes de adicionar a solicitação: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
+      return
+    }
+    const id = `reembolso-${nextItemId.current++}`
+    setItems((current) => [...current, { ...draft, id }])
+    setItemAttachments((current) => ({ ...current, [id]: attachmentFiles }))
     setDraft({ ...initialReimbursementDraft, beneficiary: draft.beneficiary, dependentType: draft.dependentType })
+    setAttachmentFiles({})
     setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
   }
 
@@ -873,10 +1218,78 @@ export function BeneficiaryNovaReembolsoPage() {
     setAttachmentFiles((current) => ({ ...current, [label]: (current[label] ?? []).filter((_, fileIndex) => fileIndex !== index) }))
   }
 
+  const attachmentsModalItem = items.find((item) => item.id === attachmentsModalItemId) ?? null
+
+  function closeAttachmentsModal() {
+    setAttachmentsModalItemId(null)
+    setAttachmentsModalReadOnly(false)
+    setAddAnexoCategoria('')
+  }
+
+  function addItemAttachmentFiles(itemId: string, categoria: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: [...(current[itemId]?.[categoria] ?? []), ...newFiles] },
+    }))
+    setAddAnexoCategoria('')
+  }
+
+  function removeItemAttachmentFile(itemId: string, categoria: string, index: number) {
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: (current[itemId]?.[categoria] ?? []).filter((_, fileIndex) => fileIndex !== index) },
+    }))
+  }
+
+  function downloadAttachmentFile(file: File) {
+    const url = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = file.name
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function updateEditItem<Key extends keyof ReimbursementItem>(key: Key, value: ReimbursementItem[Key]) {
+    setEditItem((current) => (current ? { ...current, [key]: value } : current))
+  }
+
+  function saveEditedItem() {
+    if (!editItem) return
+    if (isFutureBrazilianDate(editItem.receiptDate)) {
+      setEditNotice(RECEIPT_DATE_FUTURE_MESSAGE)
+      return
+    }
+    setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
+    setEditNotice('')
+    setEditItem(null)
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemId) return
+    setItems((current) => current.filter((item) => item.id !== deleteItemId))
+    setItemAttachments((current) => {
+      const next = { ...current }
+      delete next[deleteItemId]
+      return next
+    })
+    setDeleteItemId(null)
+  }
+
   function handleContinue(event: FormEvent) {
     event.preventDefault()
     if (items.length === 0) {
       setNotice('Adicione pelo menos uma solicitação antes de continuar.')
+      return
+    }
+    if (!formAcceptedTerm) {
+      setNotice('Aceite o termo de responsabilidade para continuar.')
       return
     }
     setNotice('')
@@ -884,11 +1297,6 @@ export function BeneficiaryNovaReembolsoPage() {
   }
 
   function handleConfirm() {
-    if (!acceptedTerm) {
-      setNotice('Aceite o termo de responsabilidade para concluir o envio.')
-      return
-    }
-    setNotice('')
     setProtocol(generateProtocolNumber())
     setStep('success')
   }
@@ -897,19 +1305,20 @@ export function BeneficiaryNovaReembolsoPage() {
     setDraft(initialReimbursementDraft)
     setItems([])
     setAttachmentFiles({})
-    setAcceptedTerm(false)
+    setItemAttachments({})
+    setFormAcceptedTerm(false)
     setNotice('')
     setProtocol('')
     setStep('form')
   }
 
-  const catalogEntry = beneficiaryRequests.find((request) => request.id === 'reembolso')
+  const catalogEntry = beneficiaryRequests.find((request) => request.route === '/beneficiario/reembolso-procedimentos/nova-solicitacao')
 
   if (!showForm) {
     return (
       <div className="reimbursements-page">
         <div className="provider-page-heading">
-          <h1>{catalogEntry?.title ?? 'Reembolso de Livre Escolha'}</h1>
+          <h1>{catalogEntry?.title ?? 'Reembolso de Procedimentos (Livre Escolha)'}</h1>
           {catalogEntry?.description && <p className="page-subtitle">{catalogEntry.description}</p>}
         </div>
         <section className="reimbursement-card">
@@ -935,6 +1344,7 @@ export function BeneficiaryNovaReembolsoPage() {
             <button className="primary-button" onClick={() => setShowForm(true)} type="button">
               Iniciar solicitação <ArrowRight aria-hidden="true" />
             </button>
+            {servicoDetalheRota(catalogEntry) && <Link className="secondary-button" to={servicoDetalheRota(catalogEntry) as string}>Ver detalhes</Link>}
           </div>
         </section>
       </div>
@@ -943,8 +1353,83 @@ export function BeneficiaryNovaReembolsoPage() {
 
   const heading = (
     <div className="provider-page-heading">
-      <h1>Nova solicitação de reembolso</h1>
+      <h1>Reembolso de procedimentos (livre escolha)</h1>
       <p className="page-subtitle">Preencha os dados do procedimento e anexe os documentos digitalizados.</p>
+    </div>
+  )
+
+  const attachmentsModal = attachmentsModalItem && (
+    <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
+      <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+        <div className="go-modal-header">
+          <h2 id="anexos-modal-title">Anexos da solicitação: {attachmentsModalItem.type} — {nomeExibicaoPorRegistro(attachmentsModalItem.beneficiary)}</h2>
+          <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
+            <X aria-hidden="true" />
+          </button>
+        </div>
+        <div className="go-modal-body">
+          {(() => {
+            const categorias = reimbursementAttachments(attachmentsModalItem.type, attachmentsModalItem.isPriorityCare)
+            const anexosDoItem = itemAttachments[attachmentsModalItem.id] ?? {}
+            const linhas = categorias.flatMap((categoria) => (
+              (anexosDoItem[categoria.label] ?? []).map((file, index) => ({ categoria: categoria.label, file, index }))
+            ))
+            return linhas.length > 0 ? (
+              <table className="anexos-modal-table">
+                <thead>
+                  <tr><th>Nome</th><th>Categoria</th><th>Tamanho</th><th aria-label="Ações" /></tr>
+                </thead>
+                <tbody>
+                  {linhas.map(({ categoria, file, index }) => (
+                    <tr key={`${categoria}-${index}-${file.name}`}>
+                      <td>{file.name}</td>
+                      <td>{categoria}</td>
+                      <td>{(file.size / 1024).toFixed(1)} KB</td>
+                      <td>
+                        <div className="anexos-modal-table-actions">
+                          <button aria-label={`Baixar ${file.name}`} onClick={() => downloadAttachmentFile(file)} type="button">
+                            <Download aria-hidden="true" />
+                          </button>
+                          {!attachmentsModalReadOnly && (
+                            <button aria-label={`Remover ${file.name}`} className="anexos-modal-table-remove" onClick={() => removeItemAttachmentFile(attachmentsModalItem.id, categoria, index)} type="button">
+                              <X aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="anexos-modal-empty">Nenhum anexo enviado ainda.</p>
+            )
+          })()}
+
+          {!attachmentsModalReadOnly && (
+            <div className="anexos-modal-add">
+              <label>
+                <span className="service-field-label-text">Tipo arquivo</span>
+                <Combobox
+                  onSelect={setAddAnexoCategoria}
+                  options={reimbursementAttachments(attachmentsModalItem.type, attachmentsModalItem.isPriorityCare).map((documento) => ({ value: documento.label, label: documento.label }))}
+                  placeholder="Selecione a categoria"
+                  value={addAnexoCategoria}
+                />
+              </label>
+              {addAnexoCategoria && (
+                <FileAttachmentField
+                  files={[]}
+                  hideLabel
+                  label={addAnexoCategoria}
+                  onAdd={(files) => addItemAttachmentFiles(attachmentsModalItem.id, addAnexoCategoria, files)}
+                  onRemove={() => {}}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 
@@ -986,7 +1471,6 @@ export function BeneficiaryNovaReembolsoPage() {
   }
 
   if (step === 'review') {
-    const attachedEntries = Object.entries(attachmentFiles).filter(([, files]) => files.length > 0)
     return (
       <div className="reimbursements-page">
         {heading}
@@ -1025,39 +1509,26 @@ export function BeneficiaryNovaReembolsoPage() {
                     <tr>
                       <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
                       <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                      <th aria-label="Ações" />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={`${item.receiptNumber}-${index}`}>
-                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.providerDocument}</td><td>{item.type}</td>
                         <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(true) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-
-            <div className="reimbursement-form-section">
-              <h3>Anexos</h3>
-              <dl className="service-review-grid">
-                {attachedEntries.length > 0
-                  ? attachedEntries.map(([label, files]) => (
-                    <div className="service-review-row" key={label}>
-                      <dt>{label}</dt>
-                      <dd>{files.map((file) => file.name).join(', ')}</dd>
-                    </div>
-                  ))
-                  : <div className="service-review-row"><dt>Documentos</dt><dd>–</dd></div>}
-              </dl>
-            </div>
-
-            <label className="responsibility-term">
-              <input type="checkbox" checked={acceptedTerm} onChange={(event) => setAcceptedTerm(event.target.checked)} />
-              Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o Regulamento Geral do Plan-Assiste e as Normas Complementares que disciplinam a matéria. Declaro que li e concordo com os termos.
-            </label>
 
             {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
 
@@ -1071,6 +1542,8 @@ export function BeneficiaryNovaReembolsoPage() {
             </div>
           </div>
         </div>
+
+        {attachmentsModal}
       </div>
     )
   }
@@ -1082,17 +1555,18 @@ export function BeneficiaryNovaReembolsoPage() {
         <WizardSteps current={step} />
         <form className="reimbursement-form" onSubmit={handleContinue}>
           <section className="reimbursement-card">
+            <h2>Formulário</h2>
             <div className="reimbursement-form-section">
               <h3>Identificação do(a) titular</h3>
               <div className="reimbursement-grid reimbursement-grid-two-columns">
                 <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
                 <label>Matrícula<input value="30003387" disabled /></label>
                 <label>Ramo<input value="MPDFT" disabled /></label>
-                <label>E-mail<input value={profile.email} disabled /></label>
+                <label>E-mail<input value={contatoEmail} onChange={(event) => setContatoEmail(event.target.value)} placeholder="nome@exemplo.com" /></label>
                 <label>Telefone com DDD<input value={profile.phone} disabled /></label>
               </div>
               <p className="service-field-hint reimbursement-profile-hint">
-                E-mail, telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+                Telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
               </p>
             </div>
 
@@ -1113,30 +1587,49 @@ export function BeneficiaryNovaReembolsoPage() {
             <div className="reimbursement-form-section">
               <h3>Dados da solicitação</h3>
               <div className="reimbursement-grid">
-                <label>
-                  Tipo de reembolso
-                  <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)}>
-                    <option value="">Selecione o tipo</option>
-                    {reimbursementTypes.map((item) => <option key={item}>{item}</option>)}
-                  </select>
+                <label className="half-width">
+                  <span className="service-field-label-text">Tipo de reembolso</span>
+                  <Combobox
+                    value={draft.type}
+                    options={reimbursementTypes.map((item) => ({ value: item, label: item }))}
+                    onSelect={(value) => updateDraft('type', value)}
+                    placeholder="Selecione o tipo"
+                  />
                 </label>
+              </div>
+              {draft.type && REEMBOLSO_TIPO_AVISOS[draft.type] && (
+                <AvisoNormativo
+                  confirmado={false}
+                  conteudo={REEMBOLSO_TIPO_AVISOS[draft.type].conteudo}
+                  exigeConfirmacao={false}
+                  onConfirmar={() => {}}
+                  tone="informativo"
+                />
+              )}
+              <div className="reimbursement-grid">
                 <label>
                   Beneficiário atendido
                   <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
-                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
                   </select>
                 </label>
-                <label>Tipo de dependente<input value={draft.dependentType} disabled /></label>
-                <label>Nº nota fiscal/recibo<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} /></label>
-                <label>Data da nota fiscal/recibo<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
-                <label>CPF/CNPJ credenciado<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', event.target.value)} /></label>
-                <label>Valor<input value={draft.value} onChange={(event) => updateDraft('value', event.target.value)} placeholder="R$ 0,00" /></label>
-                <label>Quantidade de sessões<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value)} /></label>
+                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
+                <label>Nº nota fiscal/recibo *<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
+                <label>
+                  Data da nota fiscal/recibo *
+                  <BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} />
+                  {isFutureBrazilianDate(draft.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
+                </label>
+                <label className="half-width">CPF/CNPJ credenciado *<input value={draft.providerDocument} onChange={(event) => updateDraft('providerDocument', maskCpfCnpj(event.target.value))} maxLength={18} placeholder="000.000.000-00 ou 00.000.000/0000-00" /></label>
+                <label>Valor *<input value={draft.value} onChange={(event) => updateDraft('value', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
+                {!isCampoReembolsoOculto(draft.type, 'sessions') && (
+                  <label>Quantidade de sessões *<input value={draft.sessions} onChange={(event) => updateDraft('sessions', event.target.value.replace(/\D/g, ''))} placeholder="Digite a quantidade" /></label>
+                )}
                 <label className="responsibility-term wide">
                   <input type="checkbox" checked={draft.isPriorityCare} onChange={(event) => updateDraft('isPriorityCare', event.target.checked)} />
                   Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
                 </label>
-                <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} /></label>
+                <label className="wide">Observações<textarea value={draft.notes} onChange={(event) => updateDraft('notes', event.target.value)} rows={4} placeholder="Inclua informações que ajudem na análise da solicitação" /></label>
               </div>
             </div>
 
@@ -1145,7 +1638,7 @@ export function BeneficiaryNovaReembolsoPage() {
               <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
               {draft.type ? (
                 <div className="checklist-anexos">
-                  {reimbursementAttachments(draft.type, draft.isPriorityCare).map((label) => (
+                  {reimbursementAttachments(draft.type, draft.isPriorityCare).map(({ label, required }) => (
                     <div key={label}>
                       {label === 'Orçamento odontológico' && (
                         <p className="service-field-hint">
@@ -1158,6 +1651,7 @@ export function BeneficiaryNovaReembolsoPage() {
                         label={label}
                         onAdd={(files) => addAttachmentFiles(label, files)}
                         onRemove={(index) => removeAttachmentFile(label, index)}
+                        required={required}
                       />
                     </div>
                   ))}
@@ -1168,24 +1662,40 @@ export function BeneficiaryNovaReembolsoPage() {
             </div>
 
             <div className="reimbursement-actions">
-              <button type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
+              <button className="secondary-button" type="button" onClick={addReimbursementItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
             </div>
 
             {items.length > 0 && (
-              <div className="reimbursement-table-wrap">
+              <div className="reimbursement-table-wrap reimbursement-items-table">
                 <table className="reimbursement-table">
                   <thead>
                     <tr>
-                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data</th>
-                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Valor</th>
+                      <th>Beneficiário</th><th>Portador de TEA, SD ou PC</th><th>Nº nota/recibo</th><th>Data</th>
+                      <th>CPF/CNPJ credenciado</th><th>Tipo reembolso</th><th>Qtd sessões</th><th>Observações</th><th>Valor</th>
+                      <th aria-label="Ações" />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={`${item.receiptNumber}-${index}`}>
-                        <td>{item.beneficiary}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.beneficiary}</td>
+                        <td>{item.isPriorityCare ? 'Sim' : 'Não'}</td>
+                        <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
                         <td>{item.providerDocument}</td><td>{item.type}</td>
-                        <td>{item.sessions || '-'}</td><td>{item.value}</td>
+                        <td>{item.sessions || '-'}</td>
+                        <td>{item.notes || '-'}</td>
+                        <td>{item.value}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(false) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                          <button aria-label="Editar solicitação" onClick={() => setEditItem(item)} type="button">
+                            <Pencil aria-hidden="true" />
+                          </button>
+                          <button aria-label="Excluir solicitação" className="reimbursement-item-delete" onClick={() => setDeleteItemId(item.id)} type="button">
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1193,15 +1703,741 @@ export function BeneficiaryNovaReembolsoPage() {
               </div>
             )}
 
+            <label className="responsibility-term">
+              <input checked={formAcceptedTerm} onChange={(event) => setFormAcceptedTerm(event.target.checked)} type="checkbox" />
+              <span>
+                Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o{' '}
+                <a href="/assets/normas/regimento-interno-plan-assiste.pdf" rel="noreferrer" target="_blank">Regulamento Geral do Plan-Assiste</a>
+                {' '}e as Normas Complementares que disciplinam a matéria.
+              </span>
+            </label>
+
             {notice && <p className="action-notice" role="status">{notice}</p>}
 
             <div className="reimbursement-actions">
-              <button className="primary-button" type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
-              <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAttachmentFiles({}); setAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
+              <button className="primary-button" disabled={!formAcceptedTerm} type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
+              <button type="button" onClick={() => { setDraft(initialReimbursementDraft); setItems([]); setAttachmentFiles({}); setItemAttachments({}); setFormAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
             </div>
           </section>
         </form>
       </div>
+
+      {attachmentsModal}
+
+      {editItem && (
+        <div className="go-modal-overlay" onClick={() => { setEditItem(null); setEditNotice('') }} role="presentation">
+          <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="edit-modal-title">Editar solicitação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Beneficiário atendido<input disabled value={editItem.beneficiary} /></label>
+                <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
+                <label>Tipo de reembolso<input disabled value={editItem.type} /></label>
+                <label className="responsibility-term wide">
+                  <input checked={editItem.isPriorityCare} onChange={(event) => updateEditItem('isPriorityCare', event.target.checked)} type="checkbox" />
+                  Pessoa com Transtorno do Espectro Autista - TEA, Síndrome de Down - SD ou Paralisia Cerebral - PC
+                </label>
+                <label>Nº nota fiscal/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
+                <label>
+                  Data da nota fiscal/recibo *
+                  <BrazilianDateInput onChangeValue={(value) => { updateEditItem('receiptDate', value); setEditNotice('') }} value={editItem.receiptDate} />
+                  {isFutureBrazilianDate(editItem.receiptDate) && <span className="field-error-text" role="alert">{RECEIPT_DATE_FUTURE_MESSAGE}</span>}
+                </label>
+                <label>CPF/CNPJ credenciado *<input maxLength={18} onChange={(event) => updateEditItem('providerDocument', maskCpfCnpj(event.target.value))} value={editItem.providerDocument} /></label>
+                <label>Valor *<input onChange={(event) => updateEditItem('value', maskCurrency(event.target.value))} value={editItem.value} /></label>
+                {!isCampoReembolsoOculto(editItem.type, 'sessions') && (
+                  <label>Quantidade de sessões *<input onChange={(event) => updateEditItem('sessions', event.target.value.replace(/\D/g, ''))} value={editItem.sessions} /></label>
+                )}
+                <label className="wide">Observações<textarea onChange={(event) => updateEditItem('notes', event.target.value)} rows={4} value={editItem.notes} /></label>
+              </div>
+              {editNotice && <p className="form-alert alert-danger" role="alert">{editNotice}</p>}
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => { setEditItem(null); setEditNotice('') }} type="button">Fechar</button>
+                <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteItemId && (
+        <div className="go-modal-overlay" onClick={() => setDeleteItemId(null)} role="presentation">
+          <div aria-labelledby="delete-modal-title" aria-modal="true" className="go-modal go-modal-small" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="delete-modal-title">Confirmação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setDeleteItemId(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Confirma excluir a solicitação?</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setDeleteItemId(null)} type="button">Não</button>
+                <button className="primary-button" onClick={confirmDeleteItem} type="button">Sim</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+type MedicamentoDraft = {
+  beneficiary: string
+  dependentType: string
+  receiptNumber: string
+  receiptDate: string
+  unitValue: string
+  quantity: string
+  description: string
+}
+
+type MedicamentoItem = MedicamentoDraft & { id: string }
+
+const initialMedicamentoDraft: MedicamentoDraft = {
+  beneficiary: beneficiaries[0].name,
+  dependentType: beneficiaries[0].relation,
+  receiptNumber: '',
+  receiptDate: '',
+  unitValue: '',
+  quantity: '',
+  description: '',
+}
+
+type MedicamentoDocumento = { label: string, required: boolean }
+
+const MEDICAMENTO_DOCUMENTOS: MedicamentoDocumento[] = [
+  { label: 'Nota ou Cupom Fiscal', required: true },
+  { label: 'Receita Médica ou Odontológica', required: true },
+  { label: 'Documentos Adicionais', required: false },
+]
+
+function medicamentoTotalValue(unitValue: string, quantity: string): string {
+  const unitCents = Number(unitValue.replace(/\D/g, '')) || 0
+  const quantityNumber = Number(quantity.replace(/\D/g, '')) || 0
+  return maskCurrency(String(unitCents * quantityNumber))
+}
+
+const MEDICAMENTO_INSTRUCTIONS = [
+  'Preencha todos os campos solicitados e revise os dados bancários antes de enviar.',
+  'Anexe a Nota ou Cupom Fiscal e a Receita Médica ou Odontológica referente à medicação.',
+  'Caso necessário, inclua relatório médico ou outros documentos na opção Documentos Adicionais.',
+  'Guarde o número de protocolo gerado para acompanhar sua solicitação.',
+]
+
+const MEDICAMENTO_FAQ = [
+  {
+    question: 'O que é o benefício de Assistência Farmacológica?',
+    answer: 'É o benefício para aquisição de medicamentos de alto custo e o auxílio para medicamentos de uso contínuo, regulamentados pela Norma Complementar nº 29, de 27/07/2023.',
+  },
+  {
+    question: 'Quais documentos preciso anexar?',
+    answer: 'É necessário anexar a Nota ou Cupom Fiscal e a Receita Médica ou Odontológica referente à medicação. Relatório médico ou outros documentos complementares devem ser incluídos na opção Documentos Adicionais.',
+  },
+  {
+    question: 'O que são medicamentos de alto custo e de uso contínuo?',
+    answer: 'Medicamentos de alto custo são aqueles cujo valor da quantidade prescrita para uso no mês seja igual ou superior a um salário-mínimo, com reembolso de 50% sobre o valor que exceder esse limite. Medicamentos de uso contínuo são os empregados no tratamento de doenças crônicas e/ou degenerativas, indicados em receituário e atestados pela perícia médica do Plan-Assiste.',
+  },
+]
+
+const MEDICAMENTO_ORIENTACOES = [
+  'Trata-se do benefício de **Assistência Farmacológica** para aquisição de medicamentos de alto custo e de **auxílio para medicamentos de uso contínuo**, regulamentados pela [Norma Complementar nº 29, de 27/07/2023](/assets/normas/normas-complementares/nc-29.pdf).',
+  'Deverão ser preenchidos todos os campos solicitados e revisados os **dados bancários**.',
+  'Deverão ser anexados a **Nota ou Cupom Fiscal** e a **Receita Médica ou Odontológica** referente às medicações objeto da solicitação.',
+  'Caso seja necessária a apresentação de Relatório Médico ou outros documentos, estes deverão ser incluídos na opção **Anexar Documentos Adicionais**.',
+  'Caso o princípio ativo do medicamento conste na Relação Nacional de Medicamentos Essenciais – [RENAME](https://www.gov.br/saude/pt-br/composicao/sectics/rename), é preciso primeiramente solicitar ao SUS e ter o pedido deferido. Caso o medicamento esteja comprovadamente em falta na rede pública, o respectivo documento deve ser juntado ao pedido e o medicamento poderá ser reembolsado na forma prevista na NC nº 29/2023, pelo período em que a dispensação estiver comprometida.',
+  '**Medicamentos de alto custo**: são aqueles cujo valor da quantidade prescrita para uso no mês seja igual ou superior a 01 (um) salário-mínimo. O percentual de reembolso será de 50% (cinquenta por cento) sobre o valor total da despesa mensal de cada beneficiário que exceder um salário mínimo, calculada até o limite dos valores indicados nas tabelas de referência adotadas pelo Plan-Assiste.',
+  '**Medicamentos de uso contínuo**: aqueles empregados no tratamento de doenças crônicas e/ou degenerativas, assim indicados em receituário pelo médico assistente e atestado pela perícia médica do Plan-Assiste. Os beneficiários que solicitarem auxílio para aquisição de medicamentos de uso contínuo ressarcirão integralmente o Plan-Assiste das despesas efetuadas.',
+  'Dúvidas no telefone 61 3212-8587 e [seplan-reembolso@mpu.mp.br](mailto:seplan-reembolso@mpu.mp.br).',
+].join('\n\n')
+
+export function BeneficiaryNovaBeneficioMedicamentosPage() {
+  const profile = getStoredUserProfile()
+  // E-mail vem do cadastro, mas segue editavel para esta solicitacao.
+  const [contatoEmail, setContatoEmail] = useState(profile.email)
+  const [showForm, setShowForm] = useState(false)
+  const [step, setStep] = useState<WizardStep>('form')
+  const [draft, setDraft] = useState<MedicamentoDraft>(initialMedicamentoDraft)
+  const [items, setItems] = useState<MedicamentoItem[]>([])
+  const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File[]>>({})
+  const [itemAttachments, setItemAttachments] = useState<Record<string, Record<string, File[]>>>({})
+  const [formAcceptedTerm, setFormAcceptedTerm] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [protocol, setProtocol] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [attachmentsModalItemId, setAttachmentsModalItemId] = useState<string | null>(null)
+  const [attachmentsModalReadOnly, setAttachmentsModalReadOnly] = useState(false)
+  const [addAnexoCategoria, setAddAnexoCategoria] = useState('')
+  const [editItem, setEditItem] = useState<MedicamentoItem | null>(null)
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const nextItemId = useRef(1)
+
+  useEffect(() => {
+    if (!copied) return
+    const id = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(id)
+  }, [copied])
+
+  function updateDraft<Key extends keyof MedicamentoDraft>(key: Key, value: MedicamentoDraft[Key]) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function addMedicamentoItem() {
+    if (!draft.receiptNumber || !draft.receiptDate || !draft.unitValue || !draft.quantity) {
+      setNotice('Preencha nota/recibo, data, valor unitário e quantidade para adicionar a solicitação.')
+      return
+    }
+    const missingDocuments = MEDICAMENTO_DOCUMENTOS.filter((documento) => documento.required && !(attachmentFiles[documento.label]?.length))
+    if (missingDocuments.length > 0) {
+      setNotice(`Anexe o(s) documento(s) obrigatório(s) antes de adicionar a solicitação: ${missingDocuments.map((documento) => documento.label).join(', ')}.`)
+      return
+    }
+    const id = `medicamento-${nextItemId.current++}`
+    setItems((current) => [...current, { ...draft, id }])
+    setItemAttachments((current) => ({ ...current, [id]: attachmentFiles }))
+    setDraft({ ...initialMedicamentoDraft, beneficiary: draft.beneficiary, dependentType: draft.dependentType })
+    setAttachmentFiles({})
+    setNotice('Solicitação adicionada à lista. Revise os dados antes de enviar.')
+  }
+
+  function addAttachmentFiles(label: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setAttachmentFiles((current) => ({ ...current, [label]: [...(current[label] ?? []), ...newFiles] }))
+  }
+
+  function removeAttachmentFile(label: string, index: number) {
+    setAttachmentFiles((current) => ({ ...current, [label]: (current[label] ?? []).filter((_, fileIndex) => fileIndex !== index) }))
+  }
+
+  const attachmentsModalItem = items.find((item) => item.id === attachmentsModalItemId) ?? null
+
+  function closeAttachmentsModal() {
+    setAttachmentsModalItemId(null)
+    setAttachmentsModalReadOnly(false)
+    setAddAnexoCategoria('')
+  }
+
+  function addItemAttachmentFiles(itemId: string, categoria: string, newFiles: File[]) {
+    const invalidType = newFiles.find((file) => file.type !== 'application/pdf')
+    const oversized = newFiles.find((file) => file.size > 5 * 1024 * 1024)
+    if (invalidType || oversized) {
+      setNotice(invalidType ? 'Anexe somente arquivos PDF.' : 'Cada arquivo deve ter no máximo 5 MB.')
+      return
+    }
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: [...(current[itemId]?.[categoria] ?? []), ...newFiles] },
+    }))
+    setAddAnexoCategoria('')
+  }
+
+  function removeItemAttachmentFile(itemId: string, categoria: string, index: number) {
+    setItemAttachments((current) => ({
+      ...current,
+      [itemId]: { ...(current[itemId] ?? {}), [categoria]: (current[itemId]?.[categoria] ?? []).filter((_, fileIndex) => fileIndex !== index) },
+    }))
+  }
+
+  function downloadAttachmentFile(file: File) {
+    const url = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = file.name
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function updateEditItem<Key extends keyof MedicamentoItem>(key: Key, value: MedicamentoItem[Key]) {
+    setEditItem((current) => (current ? { ...current, [key]: value } : current))
+  }
+
+  function saveEditedItem() {
+    if (!editItem) return
+    setItems((current) => current.map((item) => (item.id === editItem.id ? editItem : item)))
+    setEditItem(null)
+  }
+
+  function confirmDeleteItem() {
+    if (!deleteItemId) return
+    setItems((current) => current.filter((item) => item.id !== deleteItemId))
+    setItemAttachments((current) => {
+      const next = { ...current }
+      delete next[deleteItemId]
+      return next
+    })
+    setDeleteItemId(null)
+  }
+
+  function handleContinue(event: FormEvent) {
+    event.preventDefault()
+    if (items.length === 0) {
+      setNotice('Adicione pelo menos uma solicitação antes de continuar.')
+      return
+    }
+    if (!formAcceptedTerm) {
+      setNotice('Aceite o termo de responsabilidade para continuar.')
+      return
+    }
+    setNotice('')
+    setStep('review')
+  }
+
+  function handleConfirm() {
+    setProtocol(generateProtocolNumber())
+    setStep('success')
+  }
+
+  function handleReset() {
+    setDraft(initialMedicamentoDraft)
+    setItems([])
+    setAttachmentFiles({})
+    setItemAttachments({})
+    setFormAcceptedTerm(false)
+    setNotice('')
+    setProtocol('')
+    setStep('form')
+  }
+
+  const catalogEntry = beneficiaryRequests.find((request) => request.route === '/beneficiario/beneficio-medicamentos/nova-solicitacao')
+
+  if (!showForm) {
+    return (
+      <div className="reimbursements-page">
+        <div className="provider-page-heading">
+          <h1>{catalogEntry?.title ?? 'Benefício para Aquisição de Medicamentos'}</h1>
+          {catalogEntry?.description && <p className="page-subtitle">{catalogEntry.description}</p>}
+        </div>
+        <section className="reimbursement-card">
+          <div className="service-intro-faq">
+            {MEDICAMENTO_FAQ.map((item) => (
+              <div key={item.question}>
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </div>
+            ))}
+          </div>
+          <div className="service-success-followup">
+            <h3>Instruções</h3>
+            <ol>
+              {MEDICAMENTO_INSTRUCTIONS.map((instruction, index) => (
+                <li key={instruction}>
+                  <span className="service-followup-index">{index + 1}</span> {instruction}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="reimbursement-actions">
+            <button className="primary-button" onClick={() => setShowForm(true)} type="button">
+              Iniciar solicitação <ArrowRight aria-hidden="true" />
+            </button>
+            {servicoDetalheRota(catalogEntry) && <Link className="secondary-button" to={servicoDetalheRota(catalogEntry) as string}>Ver detalhes</Link>}
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  const heading = (
+    <div className="provider-page-heading">
+      <h1>Benefício para aquisição de medicamentos</h1>
+      <p className="page-subtitle">Preencha os dados da aquisição de medicamentos e anexe os documentos digitalizados.</p>
+    </div>
+  )
+
+  const attachmentsModal = attachmentsModalItem && (
+    <div className="go-modal-overlay" onClick={closeAttachmentsModal} role="presentation">
+      <div aria-labelledby="anexos-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+        <div className="go-modal-header">
+          <h2 id="anexos-modal-title">Anexos da solicitação: Nº {attachmentsModalItem.receiptNumber} — {nomeExibicaoPorRegistro(attachmentsModalItem.beneficiary)}</h2>
+          <button aria-label="Fechar" className="go-modal-close" onClick={closeAttachmentsModal} type="button">
+            <X aria-hidden="true" />
+          </button>
+        </div>
+        <div className="go-modal-body">
+          {(() => {
+            const anexosDoItem = itemAttachments[attachmentsModalItem.id] ?? {}
+            const linhas = MEDICAMENTO_DOCUMENTOS.flatMap((categoria) => (
+              (anexosDoItem[categoria.label] ?? []).map((file, index) => ({ categoria: categoria.label, file, index }))
+            ))
+            return linhas.length > 0 ? (
+              <table className="anexos-modal-table">
+                <thead>
+                  <tr><th>Nome</th><th>Categoria</th><th>Tamanho</th><th aria-label="Ações" /></tr>
+                </thead>
+                <tbody>
+                  {linhas.map(({ categoria, file, index }) => (
+                    <tr key={`${categoria}-${index}-${file.name}`}>
+                      <td>{file.name}</td>
+                      <td>{categoria}</td>
+                      <td>{(file.size / 1024).toFixed(1)} KB</td>
+                      <td>
+                        <div className="anexos-modal-table-actions">
+                          <button aria-label={`Baixar ${file.name}`} onClick={() => downloadAttachmentFile(file)} type="button">
+                            <Download aria-hidden="true" />
+                          </button>
+                          {!attachmentsModalReadOnly && (
+                            <button aria-label={`Remover ${file.name}`} className="anexos-modal-table-remove" onClick={() => removeItemAttachmentFile(attachmentsModalItem.id, categoria, index)} type="button">
+                              <X aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="anexos-modal-empty">Nenhum anexo enviado ainda.</p>
+            )
+          })()}
+
+          {!attachmentsModalReadOnly && (
+            <div className="anexos-modal-add">
+              <label>
+                <span className="service-field-label-text">Tipo arquivo</span>
+                <Combobox
+                  onSelect={setAddAnexoCategoria}
+                  options={MEDICAMENTO_DOCUMENTOS.map((documento) => ({ value: documento.label, label: documento.label }))}
+                  placeholder="Selecione a categoria"
+                  value={addAnexoCategoria}
+                />
+              </label>
+              {addAnexoCategoria && (
+                <FileAttachmentField
+                  files={[]}
+                  hideLabel
+                  label={addAnexoCategoria}
+                  onAdd={(files) => addItemAttachmentFiles(attachmentsModalItem.id, addAnexoCategoria, files)}
+                  onRemove={() => {}}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  if (step === 'success') {
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="service-success">
+            <CheckCircle2 aria-hidden="true" className="service-success-icon" />
+            <h2>Solicitação criada com sucesso!</h2>
+            <p>Sua solicitação foi registrada para análise.</p>
+            <div className="service-protocol">
+              <span>Número do protocolo</span>
+              <strong>{protocol}</strong>
+              <button type="button" onClick={() => { navigator.clipboard.writeText(protocol); setCopied(true) }}>
+                <Copy aria-hidden="true" /> {copied ? 'Copiado!' : 'Copiar protocolo'}
+              </button>
+            </div>
+            <div className="service-success-followup">
+              <h3>Como acompanhar?</h3>
+              <ol>
+                <li><span className="service-followup-index">1</span> Acesse o menu Minhas Solicitações</li>
+                <li><span className="service-followup-index">2</span> Localize o protocolo informado</li>
+                <li><span className="service-followup-index">3</span> Verifique o status e atualizações</li>
+              </ol>
+            </div>
+            <div className="service-success-actions">
+              <button className="primary-button" type="button" onClick={handleReset}>
+                <RotateCcw aria-hidden="true" /> Registrar nova solicitação
+              </button>
+              <Link className="secondary-button" to={DEFAULT_SUCCESS_SECONDARY_ACTION.to}>{DEFAULT_SUCCESS_SECONDARY_ACTION.label}</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'review') {
+    return (
+      <div className="reimbursements-page">
+        {heading}
+        <div className="service-wizard">
+          <WizardSteps current={step} />
+          <div className="reimbursement-card service-review">
+            <h2>Revise sua solicitação</h2>
+            <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
+
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Titular</dt><dd>Ana Maria de Araújo</dd></div>
+                <div className="service-review-row"><dt>Matrícula</dt><dd>30003387</dd></div>
+                <div className="service-review-row"><dt>Ramo</dt><dd>MPDFT</dd></div>
+                <div className="service-review-row"><dt>E-mail</dt><dd>{profile.email}</dd></div>
+                <div className="service-review-row"><dt>Telefone com DDD</dt><dd>{profile.phone}</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <dl className="service-review-grid">
+                <div className="service-review-row"><dt>Banco</dt><dd>Banco do Brasil - Nº 001</dd></div>
+                <div className="service-review-row"><dt>Agência</dt><dd>3085-6</dd></div>
+                <div className="service-review-row"><dt>Conta</dt><dd>19865</dd></div>
+                <div className="service-review-row"><dt>DV conta</dt><dd>X</dd></div>
+              </dl>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Solicitações</h3>
+              <div className="reimbursement-table-wrap">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data N.F/Recibo</th>
+                      <th>Observações</th><th>Valor unitário</th><th>Quantidade</th><th>Valor total</th>
+                      <th aria-label="Ações" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td><td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.description || '-'}</td><td>{item.unitValue}</td><td>{item.quantity}</td>
+                        <td>{medicamentoTotalValue(item.unitValue, item.quantity)}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(true) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {notice && <p className="form-alert alert-danger" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="secondary-button" type="button" onClick={() => setStep('form')}>
+                <ChevronLeft aria-hidden="true" /> Voltar e editar
+              </button>
+              <button className="primary-button" type="button" onClick={handleConfirm}>
+                <Send aria-hidden="true" /> Confirmar e enviar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {attachmentsModal}
+      </div>
+    )
+  }
+
+  const currentTotalValue = medicamentoTotalValue(draft.unitValue, draft.quantity)
+
+  return (
+    <div className="reimbursements-page">
+      {heading}
+      <div className="service-wizard">
+        <WizardSteps current={step} />
+        <form className="reimbursement-form" onSubmit={handleContinue}>
+          <section className="reimbursement-card">
+            <h2>Formulário</h2>
+
+            <AvisoNormativo
+              confirmado={false}
+              conteudo={MEDICAMENTO_ORIENTACOES}
+              exigeConfirmacao={false}
+              onConfirmar={() => {}}
+              titulo="Orientações Importantes"
+              tone="informativo"
+            />
+
+            <div className="reimbursement-form-section">
+              <h3>Identificação do(a) titular</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label className="wide">Titular<input value="Ana Maria de Araújo" disabled /></label>
+                <label>Matrícula<input value="30003387" disabled /></label>
+                <label>Ramo<input value="MPDFT" disabled /></label>
+                <label>E-mail<input value={contatoEmail} onChange={(event) => setContatoEmail(event.target.value)} placeholder="nome@exemplo.com" /></label>
+                <label>Telefone com DDD<input value={profile.phone} disabled /></label>
+              </div>
+              <p className="service-field-hint reimbursement-profile-hint">
+                Telefone e WhatsApp podem ser atualizados em <Link to="/beneficiario/meus-dados">Meus dados</Link>.
+              </p>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados bancários</h3>
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Banco<input value="Banco do Brasil - Nº 001" disabled /></label>
+                <label>Agência<input value="3085-6" disabled /></label>
+                <label>Conta<input value="19865" disabled /></label>
+                <label>DV conta<input value="X" disabled /></label>
+              </div>
+              <p className="reimbursement-warning">
+                Os dados bancários são obtidos a partir do cadastro do beneficiário titular no Plan-Assiste. Os créditos do benefício são obrigatoriamente creditados na conta de recebimento do salário do beneficiário titular.
+                Caso os dados cadastrados refiram-se à conta diversa ou exclusiva para recebimento da remuneração, encaminhe um e-mail para <a href="mailto:seplan-cadastro@mpu.mp.br">seplan-cadastro@mpu.mp.br</a>, informando a matrícula e os novos dados bancários.
+              </p>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Dados da solicitação</h3>
+              <div className="reimbursement-grid">
+                <label>
+                  Beneficiário atendido
+                  <select value={draft.beneficiary} onChange={(event) => setDraft((current) => ({ ...current, beneficiary: event.target.value, dependentType: dependentTypeByBeneficiary[event.target.value] || '' }))}>
+                    {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
+                  </select>
+                </label>
+                <label>Tipo de beneficiário<input value={draft.dependentType} disabled /></label>
+                <label>Nº nota/recibo *<input value={draft.receiptNumber} onChange={(event) => updateDraft('receiptNumber', event.target.value)} placeholder="Ex.: NF-1234" /></label>
+                <label>Data da nota/recibo *<BrazilianDateInput value={draft.receiptDate} onChangeValue={(value) => updateDraft('receiptDate', value)} /></label>
+                <label>Valor unitário *<input value={draft.unitValue} onChange={(event) => updateDraft('unitValue', maskCurrency(event.target.value))} placeholder="R$ 0,00" /></label>
+                <label>Quantidade *<input value={draft.quantity} onChange={(event) => updateDraft('quantity', event.target.value.replace(/\D/g, ''))} placeholder="Digite a quantidade" /></label>
+                <label>Valor total<input disabled value={currentTotalValue} /></label>
+                <label className="wide">Descrição do medicamento<textarea value={draft.description} onChange={(event) => updateDraft('description', event.target.value)} rows={4} placeholder="Descreva o(s) medicamento(s) objeto da solicitação" /></label>
+              </div>
+            </div>
+
+            <div className="reimbursement-form-section">
+              <h3>Anexos</h3>
+              <p className="service-field-hint">Formato: PDF, até 5 MB por arquivo. É possível selecionar mais de um arquivo por campo.</p>
+              <div className="checklist-anexos">
+                {MEDICAMENTO_DOCUMENTOS.map(({ label, required }) => (
+                  <FileAttachmentField
+                    fullWidth
+                    files={attachmentFiles[label] ?? []}
+                    key={label}
+                    label={label}
+                    onAdd={(files) => addAttachmentFiles(label, files)}
+                    onRemove={(index) => removeAttachmentFile(label, index)}
+                    required={required}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="reimbursement-actions">
+              <button className="secondary-button" type="button" onClick={addMedicamentoItem}><ClipboardList aria-hidden="true" /> Adicionar solicitação</button>
+            </div>
+
+            {items.length > 0 && (
+              <div className="reimbursement-table-wrap reimbursement-items-table">
+                <table className="reimbursement-table">
+                  <thead>
+                    <tr>
+                      <th>Beneficiário</th><th>Nº nota/recibo</th><th>Data N.F/Recibo</th>
+                      <th>Observações</th><th>Valor unitário</th><th>Quantidade</th><th>Valor total</th>
+                      <th aria-label="Ações" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{nomeExibicaoPorRegistro(item.beneficiary)}</td>
+                        <td>{item.receiptNumber}</td><td>{item.receiptDate}</td>
+                        <td>{item.description || '-'}</td>
+                        <td>{item.unitValue}</td><td>{item.quantity}</td>
+                        <td>{medicamentoTotalValue(item.unitValue, item.quantity)}</td>
+                        <td className="reimbursement-item-actions">
+                          <button aria-label="Ver anexos" onClick={() => { setAttachmentsModalItemId(item.id); setAttachmentsModalReadOnly(false) }} type="button">
+                            <Paperclip aria-hidden="true" />
+                          </button>
+                          <button aria-label="Editar solicitação" onClick={() => setEditItem(item)} type="button">
+                            <Pencil aria-hidden="true" />
+                          </button>
+                          <button aria-label="Excluir solicitação" className="reimbursement-item-delete" onClick={() => setDeleteItemId(item.id)} type="button">
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <label className="responsibility-term">
+              <input checked={formAcceptedTerm} onChange={(event) => setFormAcceptedTerm(event.target.checked)} type="checkbox" />
+              <span>
+                Atesto a prestação do(s) serviço(s) e solicito a autorização para o reembolso da(s) despesa(s) acima discriminada(s), de acordo com o{' '}
+                <a href="/assets/normas/regimento-interno-plan-assiste.pdf" rel="noreferrer" target="_blank">Regulamento Geral do Plan-Assiste</a>
+                {' '}e as Normas Complementares que disciplinam a matéria.
+              </span>
+            </label>
+
+            {notice && <p className="action-notice" role="status">{notice}</p>}
+
+            <div className="reimbursement-actions">
+              <button className="primary-button" disabled={!formAcceptedTerm} type="submit"><ArrowRight aria-hidden="true" /> Continuar</button>
+              <button type="button" onClick={() => { setDraft(initialMedicamentoDraft); setItems([]); setAttachmentFiles({}); setItemAttachments({}); setFormAcceptedTerm(false); setNotice('') }}><RotateCcw aria-hidden="true" /> Limpar formulário</button>
+            </div>
+          </section>
+        </form>
+      </div>
+
+      {attachmentsModal}
+
+      {editItem && (
+        <div className="go-modal-overlay" onClick={() => setEditItem(null)} role="presentation">
+          <div aria-labelledby="edit-modal-title" aria-modal="true" className="go-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="edit-modal-title">Editar solicitação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setEditItem(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <div className="reimbursement-grid reimbursement-grid-two-columns">
+                <label>Beneficiário atendido<input disabled value={nomeExibicaoPorRegistro(editItem.beneficiary)} /></label>
+                <label>Tipo de beneficiário<input disabled value={editItem.dependentType} /></label>
+                <label>Nº nota/recibo *<input onChange={(event) => updateEditItem('receiptNumber', event.target.value)} value={editItem.receiptNumber} /></label>
+                <label>Data da nota/recibo *<BrazilianDateInput onChangeValue={(value) => updateEditItem('receiptDate', value)} value={editItem.receiptDate} /></label>
+                <label>Valor unitário *<input onChange={(event) => updateEditItem('unitValue', maskCurrency(event.target.value))} value={editItem.unitValue} /></label>
+                <label>Quantidade *<input onChange={(event) => updateEditItem('quantity', event.target.value.replace(/\D/g, ''))} value={editItem.quantity} /></label>
+                <label>Valor total<input disabled value={medicamentoTotalValue(editItem.unitValue, editItem.quantity)} /></label>
+                <label className="wide">Descrição do medicamento<textarea onChange={(event) => updateEditItem('description', event.target.value)} rows={4} value={editItem.description} /></label>
+              </div>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setEditItem(null)} type="button">Fechar</button>
+                <button className="primary-button" onClick={saveEditedItem} type="button"><Save aria-hidden="true" /> Salvar alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteItemId && (
+        <div className="go-modal-overlay" onClick={() => setDeleteItemId(null)} role="presentation">
+          <div aria-labelledby="delete-modal-title" aria-modal="true" className="go-modal go-modal-small" onClick={(event) => event.stopPropagation()} role="dialog">
+            <div className="go-modal-header">
+              <h2 id="delete-modal-title">Confirmação</h2>
+              <button aria-label="Fechar" className="go-modal-close" onClick={() => setDeleteItemId(null)} type="button">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Confirma excluir a solicitação?</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" onClick={() => setDeleteItemId(null)} type="button">Não</button>
+                <button className="primary-button" onClick={confirmDeleteItem} type="button">Sim</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1325,7 +2561,7 @@ export function ReimbursementsPage() {
             Beneficiário
             <select value={beneficiaryFilter} onChange={(event) => setBeneficiaryFilter(event.target.value)}>
               <option>Todos</option>
-              {beneficiaries.map((beneficiary) => <option key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.name}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
           <label className="reimbursement-filter-number">Número do reembolso<input value={reimbursementNumber} onChange={(event) => setReimbursementNumber(event.target.value)} placeholder="Ex.: 2026-1842" /></label>
@@ -1378,7 +2614,7 @@ export function ReimbursementsPage() {
             <tbody>
               {filteredRecords.map((record) => (
                 <tr key={record.id}>
-                  <td>{record.beneficiary}</td>
+                  <td>{nomeExibicaoPorRegistro(record.beneficiary)}</td>
                   <td>{record.id}</td>
                   <td>{record.requestDate}</td>
                   <td>{record.receiptNumber}</td>
@@ -1421,7 +2657,7 @@ type BalanceRecord = {
   charge: number
   discount: number
   adjustment: number
-  status: 'Lançado' | 'Programado' | 'Quitado' | 'Estornado'
+  status: 'Quitado' | 'Aberto' | 'Cancelado' | 'Estornado'
 }
 
 export function HealthAidExtractPage() {
@@ -1449,7 +2685,7 @@ export function HealthAidExtractPage() {
     const workbook = new Workbook()
     const sheet = workbook.addWorksheet('Auxílio-saúde')
     sheet.addRow(['Competência', 'Folha', 'Beneficiário', 'Valor recebido', 'Situação'])
-    records.forEach((record) => sheet.addRow([record.competence, record.payroll, record.beneficiary, record.value, 'Recebido']))
+    records.forEach((record) => sheet.addRow([record.competence, record.payroll, nomeExibicaoPorRegistro(record.beneficiary), record.value, 'Recebido']))
     sheet.columns = [{ width: 16 }, { width: 25 }, { width: 34 }, { width: 20 }, { width: 16 }]
     sheet.getColumn(4).numFmt = 'R$ #,##0.00'
     const header = sheet.getRow(1)
@@ -1479,7 +2715,7 @@ export function HealthAidExtractPage() {
         </div>
       </section>
       {notice && <p className="form-notice" role="status">{notice}</p>}
-      <section className="reimbursement-card health-aid-extract"><div className="request-results-heading"><h2>Valores recebidos</h2><span>{pluralCount(records.length, 'lançamento', 'lançamentos')}</span></div><div className="reimbursement-table-wrap"><table className="reimbursement-table financial-table"><thead><tr><th>Competência</th><th>Folha</th><th>Beneficiário</th><th>Valor recebido</th><th>Situação</th></tr></thead><tbody>{records.length ? records.map((record) => <tr key={`${record.competence}-${record.beneficiary}`}><td>{record.competence}</td><td>{record.payroll}</td><td>{record.beneficiary}</td><td><strong>{formatCurrency(record.value)}</strong></td><td><span className="extract-status status-quitado">Recebido</span></td></tr>) : <tr><td colSpan={5}>Nenhum lançamento encontrado para os filtros informados.</td></tr>}</tbody></table></div><div className="reimbursement-result-actions"><button type="button" onClick={exportHealthAidExtract} disabled={!records.length}><Download aria-hidden="true" /> Exportar dados em planilha (.xlsx)</button></div></section>
+      <section className="reimbursement-card health-aid-extract"><div className="request-results-heading"><h2>Valores recebidos</h2><span>{pluralCount(records.length, 'lançamento', 'lançamentos')}</span></div><div className="reimbursement-table-wrap"><table className="reimbursement-table financial-table"><thead><tr><th>Competência</th><th>Folha</th><th>Beneficiário</th><th>Valor recebido</th><th>Situação</th></tr></thead><tbody>{records.length ? records.map((record) => <tr key={`${record.competence}-${record.beneficiary}`}><td>{record.competence}</td><td>{record.payroll}</td><td>{nomeExibicaoPorRegistro(record.beneficiary)}</td><td><strong>{formatCurrency(record.value)}</strong></td><td><span className="extract-status status-quitado">Recebido</span></td></tr>) : <tr><td colSpan={5}>Nenhum lançamento encontrado para os filtros informados.</td></tr>}</tbody></table></div><div className="reimbursement-result-actions"><button type="button" onClick={exportHealthAidExtract} disabled={!records.length}><Download aria-hidden="true" /> Exportar dados em planilha (.xlsx)</button></div></section>
     </div>
   )
 }
@@ -1598,9 +2834,10 @@ const expenseRecords: ExpenseRecord[] = [
 const balanceRecords: BalanceRecord[] = [
   { id: 'bal-001', month: '01/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 01/2026', charge: 458.72, discount: 458.72, adjustment: 0, status: 'Quitado' },
   { id: 'bal-002', month: '02/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 02/2026', charge: 209.53, discount: 209.53, adjustment: 0, status: 'Quitado' },
-  { id: 'bal-003', month: '03/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 03/2026', charge: 145.67, discount: 145.67, adjustment: 0, status: 'Lançado' },
-  { id: 'bal-004', month: '04/2026', description: 'Contribuição do plano', reference: 'Folha 04/2026', charge: 0, discount: 389.42, adjustment: 0, status: 'Programado' },
+  { id: 'bal-003', month: '03/2026', description: 'Custeio mensal de procedimentos', reference: 'Folha 03/2026', charge: 145.67, discount: 145.67, adjustment: 0, status: 'Aberto' },
+  { id: 'bal-004', month: '04/2026', description: 'Contribuição do plano', reference: 'Folha 04/2026', charge: 0, discount: 389.42, adjustment: 0, status: 'Aberto' },
   { id: 'bal-005', month: '03/2026', description: 'Devolução de custeio em folha', reference: 'Estorno da folha 03/2026', charge: 0, discount: 0, adjustment: 115.35, status: 'Estornado' },
+  { id: 'bal-006', month: '02/2026', description: 'Cancelamento de custeio por glosa', reference: 'Ajuste da folha 02/2026', charge: 0, discount: 0, adjustment: 33.6, status: 'Cancelado' },
 ]
 
 const irpfStatements = [
@@ -1723,6 +2960,9 @@ export function ExpensesPage() {
   const totalDiscount = visibleBalances.reduce((total, record) => total + record.discount, 0)
   const visibleCompetences = competenceRange(periodStart, periodEnd)
   const copayByBeneficiary = beneficiaries.map((beneficiary) => ({ beneficiary, months: visibleCompetences.map((month) => ({ month, value: visibleExpenses.filter((record) => record.beneficiaryId === beneficiary.id && record.month === month).reduce((total, record) => total + record.copay, 0) })) })).filter((item) => beneficiaryFilter === 'Todos' || item.beneficiary.id === beneficiaryFilter)
+  const copayMonthlyTotals = visibleCompetences.map((_, index) => copayByBeneficiary.reduce((total, item) => total + item.months[index].value, 0))
+  const copayFamilyTotal = copayMonthlyTotals.reduce((total, value) => total + value, 0)
+  const copayTotalLabel = beneficiaryFilter === 'Todos' ? 'Total da família' : 'Total do beneficiário'
 
   async function exportExtract() {
     const { Workbook } = await import('exceljs')
@@ -1740,7 +2980,8 @@ export function ExpensesPage() {
       sheet.columns = [{ width: 15 }, { width: 38 }, { width: 25 }, { width: 18 }, { width: 18 }, { width: 28 }, { width: 16 }]
     } else {
       sheet.addRow(['Beneficiário', ...visibleCompetences, 'Saldo acumulado'])
-      copayByBeneficiary.forEach(({ beneficiary, months }) => sheet.addRow([beneficiary.name, ...months.map((month) => month.value), months.reduce((total, month) => total + month.value, 0)]))
+      copayByBeneficiary.forEach(({ beneficiary, months }) => sheet.addRow([nomeExibicao(beneficiary), ...months.map((month) => month.value), months.reduce((total, month) => total + month.value, 0)]))
+      sheet.addRow([copayTotalLabel, ...copayMonthlyTotals, copayFamilyTotal]).font = { bold: true }
       for (let column = 2; column <= visibleCompetences.length + 2; column += 1) { sheet.getColumn(column).numFmt = 'R$ #,##0.00'; sheet.getColumn(column).width = 16 }
       sheet.getColumn(1).width = 34
     }
@@ -1797,7 +3038,7 @@ export function ExpensesPage() {
             Beneficiário
             <select value={beneficiaryFilter} onChange={(event) => setBeneficiaryFilter(event.target.value)}>
               <option value="Todos">Todos</option>
-              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
         </div>
@@ -1902,7 +3143,8 @@ export function ExpensesPage() {
             <div className="extract-table-wrap">
               <table className="extract-table extract-copay-table" style={{ minWidth: Math.max(940, 410 + visibleCompetences.length * 140) }}>
                 <thead><tr><th>Beneficiário</th>{visibleCompetences.map((competence) => <th key={competence}>{competence}</th>)}<th>Saldo acumulado</th></tr></thead>
-                <tbody>{copayByBeneficiary.map(({ beneficiary, months }) => <tr key={beneficiary.id}><td><strong>{beneficiary.name}</strong></td>{months.map((month) => <td key={month.month}>{formatCurrency(month.value)}</td>)}<td><strong>{formatCurrency(months.reduce((total, month) => total + month.value, 0))}</strong></td></tr>)}</tbody>
+                <tbody>{copayByBeneficiary.map(({ beneficiary, months }) => <tr key={beneficiary.id}><td><strong>{nomeExibicao(beneficiary)}</strong></td>{months.map((month) => <td key={month.month}>{formatCurrency(month.value)}</td>)}<td><strong>{formatCurrency(months.reduce((total, month) => total + month.value, 0))}</strong></td></tr>)}</tbody>
+                <tfoot><tr className="extract-total-row"><td>{copayTotalLabel}</td>{copayMonthlyTotals.map((value, index) => <td key={visibleCompetences[index]}>{formatCurrency(value)}</td>)}<td><strong>{formatCurrency(copayFamilyTotal)}</strong></td></tr></tfoot>
               </table>
             </div>
           </div>
@@ -1924,7 +3166,7 @@ export function IrpfPage() {
   const statement = irpfStatements.find((item) => item.year === year && item.beneficiaryId === beneficiaryId)
 
   function downloadStatement() {
-    setNotice(`Comprovante IRPF ${year} de ${selectedBeneficiary.name} preparado para download.`)
+    setNotice(`Comprovante IRPF ${year} de ${nomeExibicao(selectedBeneficiary)} preparado para download.`)
   }
 
   return (
@@ -1948,7 +3190,7 @@ export function IrpfPage() {
           <label>
             Beneficiário
             <select value={beneficiaryId} onChange={(event) => setBeneficiaryId(event.target.value)}>
-              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{beneficiary.name}</option>)}
+              {beneficiaries.map((beneficiary) => <option value={beneficiary.id} key={beneficiary.id}>{nomeExibicao(beneficiary)}</option>)}
             </select>
           </label>
         </div>
@@ -1958,7 +3200,7 @@ export function IrpfPage() {
         <section className="irpf-statement-card" aria-label="Comprovante encontrado">
           <div>
             <span className="request-category">Ano-calendário {statement.year}</span>
-            <h2>{selectedBeneficiary.name}</h2>
+            <h2>{nomeExibicao(selectedBeneficiary)}</h2>
             <p>Comprovante emitido em {statement.issuedAt}. Confira os valores consolidados antes de declarar.</p>
           </div>
           <dl>
@@ -2043,12 +3285,7 @@ export function FaqPage() {
 }
 
 const requestIconById: Record<string, LucideIcon> = {
-  'adesao-programa': BadgeCheck,
-  'atualizacao-cadastral': UserRound,
   'inclusao-dependentes': UserRound,
-  'consulta-odontologica': Stethoscope,
-  reembolso: HandCoins,
-  remocao: Stethoscope,
   irpf: FileText,
   'extrato-mes': FileText,
   carteirinhas: IdCard,
@@ -2071,13 +3308,12 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-mudanca-tipo-beneficiario': UserRound,
   'servico-pais-dependentes': UserRound,
   'servico-cadastro-duvidas-informacoes': HelpCircle,
-  'servico-medicamentos-uso-continuo': CircleDollarSign,
-  'servico-medicamentos-alto-custo': CircleDollarSign,
-  'servico-reembolso-livre-escolha-duvidas': HelpCircle,
-  'servico-auxilio-medicamentos-duvidas': HelpCircle,
+  'servico-reembolso-duvidas': HelpCircle,
   'servico-recurso-reembolso': ClipboardList,
   'servico-solicitacao-reembolso': HandCoins,
+  'servico-beneficio-medicamentos': Pill,
   'servico-autorizacao-cirurgia': ClipboardCheck,
+  'servico-medicamentos-cobertura-direta': Pill,
   'servico-psicologia': Stethoscope,
   'servico-fonoaudiologia': Stethoscope,
   'servico-terapia-ocupacional': Stethoscope,
@@ -2087,11 +3323,27 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-rpg': Stethoscope,
   'servico-hidroterapia': Stethoscope,
   'servico-autorizacao-outros': ClipboardCheck,
-  'servico-autorizacao-medicamentos': CircleDollarSign,
-  'servico-acompanhamento-autorizacoes-demandas': ClipboardList,
+  'servico-autorizacao-duvidas': HelpCircle,
+  'servico-auxilio-duvidas-informacoes': HelpCircle,
   'servico-abertura-solicitacoes-administrativas': ClipboardList,
-  'servico-autorizacao-opme': Stethoscope,
   'servico-processo-aposentadoria-retorno': WalletCards,
+  'servico-carteirinha-virtual': IdCard,
+  'servico-atualizacao-cadastral-periodica': UserRound,
+  'servico-cobertura-duvidas': ShieldCheck,
+  'servico-inclusao-ampliacao-cobertura': ShieldCheck,
+  'servico-autorizacao-portais-unimed': Building2,
+  'servico-assistencia-domiciliar': HeartPulse,
+  'servico-tratamento-odontologico-duvidas': Stethoscope,
+  'servico-auxilio-materiais-saude': HandCoins,
+  'servico-transporte-tratamento-fora-domicilio': MapPin,
+  'servico-despesas-saude-duvidas': CircleDollarSign,
+  'servico-recurso-informacoes-financeiras': WalletCards,
+  'servico-denuncia-reclamacao': AlertTriangle,
+  'servico-atualizacao-site': MonitorCheck,
+  'servico-site-app-duvidas': MonitorCheck,
+  'servico-problemas-acesso-site-app': AlertTriangle,
+  'servico-indisponibilidade-site-app': AlertTriangle,
+  'servico-erro-funcionalidades-site-app': AlertTriangle,
 }
 
 function RequestCard({
@@ -2335,6 +3587,8 @@ export function CardsPage() {
   const [side, setSide] = useState<'front' | 'back'>('front')
   const [notice, setNotice] = useState('')
   const data = cardData.find((card) => card.id === selected) || cardData[0]
+  // A carteirinha e um documento de identificacao: exibe o nome social quando houver.
+  const nomeCartao = nomeExibicao(beneficiaries.find((item) => item.id === data.id) ?? data)
   const isUnimedCard = cardProvider === 'unimed'
   const cardLabel = isUnimedCard ? 'Unimed' : 'Plan-Assiste'
   const unimedRegistration = `0865 ${data.registration.replace(/\D/g, '').slice(0, 12)}`
@@ -2356,7 +3610,7 @@ export function CardsPage() {
         <div className="beneficiary-selector">
           {beneficiaries.map((beneficiary) => (
             <button type="button" key={beneficiary.id} onClick={() => setSelected(beneficiary.id)} className={selected === beneficiary.id ? 'selected' : ''}>
-              <span className="beneficiary-initials" aria-hidden="true">{getInitials(beneficiary.name)}</span><span><strong>{beneficiary.name}</strong><small>{beneficiary.relation}</small></span>
+              <span className="beneficiary-initials" aria-hidden="true">{getInitials(nomeExibicao(beneficiary))}</span><span><strong>{nomeExibicao(beneficiary)}</strong><small>{beneficiary.relation}</small></span>
             </button>
           ))}
         </div>
@@ -2375,14 +3629,14 @@ export function CardsPage() {
         </div>
         {isUnimedCard ? (
           side === 'front' ? (
-            <div className="health-card-front unimed-card-front" role="img" aria-label={`Frente da carteirinha Unimed de ${data.name}`}>
+            <div className="health-card-front unimed-card-front" role="img" aria-label={`Frente da carteirinha Unimed de ${nomeCartao}`}>
               <div className="unimed-card-header">
                 <img className="unimed-logo-image" src="/assets/unimed-logo.svg" alt="Unimed" />
                 <span>Plano de saúde nacional</span>
               </div>
               <div className="unimed-card-person">
                 <small>Beneficiário</small>
-                <strong>{data.name}</strong>
+                <strong>{nomeCartao}</strong>
                 <p>{unimedRegistration}</p>
               </div>
               <div className="unimed-card-grid">
@@ -2393,7 +3647,7 @@ export function CardsPage() {
               <b>Atendimento cooperado Unimed</b>
             </div>
           ) : (
-            <div className="health-card-back unimed-card-back" role="img" aria-label={`Verso da carteirinha Unimed de ${data.name}`}>
+            <div className="health-card-back unimed-card-back" role="img" aria-label={`Verso da carteirinha Unimed de ${nomeCartao}`}>
               <div>
                 <img className="unimed-logo-image" src="/assets/unimed-logo.svg" alt="Unimed" />
                 <strong>Orientações de atendimento</strong>
@@ -2408,7 +3662,7 @@ export function CardsPage() {
           )
         ) : (
           side === 'front' ? (
-            <div className="health-card-front" role="img" aria-label={`Frente da carteirinha Plan-Assiste de ${data.name}`}>
+            <div className="health-card-front" role="img" aria-label={`Frente da carteirinha Plan-Assiste de ${nomeCartao}`}>
               <div className="health-card-brand">
                 <img src="/assets/logo-branca.svg" alt="Plan-Assiste" />
               </div>
@@ -2416,7 +3670,7 @@ export function CardsPage() {
               <p>Validade: {data.validity}</p>
               <div className="health-card-person">
                 <p>Órgão: {data.organ}</p>
-                <p>Beneficiário: {data.name}</p>
+                <p>Beneficiário: {nomeCartao}</p>
                 <p>Nascimento: {data.birthDate}</p>
               </div>
               <strong>◎ www.planassiste.mpu.mp.br</strong>
@@ -2424,7 +3678,7 @@ export function CardsPage() {
               <i aria-hidden="true" />
             </div>
           ) : (
-            <div className="health-card-back" role="img" aria-label={`Verso da carteirinha Plan-Assiste de ${data.name}`}>
+            <div className="health-card-back" role="img" aria-label={`Verso da carteirinha Plan-Assiste de ${nomeCartao}`}>
               <img src="/assets/logo-branca.svg" alt="Plan-Assiste" />
               <p>Atendimento 24h</p><b>0800 591-5601</b><span>www.planassiste.mpu.mp.br</span>
             </div>
@@ -2438,7 +3692,7 @@ export function CardsPage() {
               <div><dt>Matrícula:</dt><dd>{isUnimedCard ? unimedRegistration : data.registration}</dd></div>
               <div><dt>Validade:</dt><dd>{data.validity}</dd></div>
               <div><dt>{isUnimedCard ? 'Abrangência:' : 'Órgão:'}</dt><dd>{isUnimedCard ? 'Nacional' : data.organ}</dd></div>
-              <div><dt>Beneficiário:</dt><dd>{data.name}</dd></div>
+              <div><dt>Beneficiário:</dt><dd>{nomeCartao}</dd></div>
               <div><dt>Nascimento:</dt><dd>{data.birthDate}</dd></div>
             </dl>
           </div>
@@ -2521,12 +3775,19 @@ export function MyDataPage() {
   const accountAvatar = isProviderAccount
     ? (profile.providerAvatar || '/assets/provider-clinic-logo.svg')
     : (profile.avatar || defaultUserProfile.avatar || '')
-  const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : profile.name
+  const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : nomeExibicao(profile)
   const accountEmail = isProviderAccount ? (profile.providerEmail || 'contato@saudeevida.com.br') : profile.email
-  const addressHasCoordinates = profile.address.latitude !== undefined && profile.address.longitude !== undefined
+  // A referencia precisa acompanhar o endereco em edicao: as coordenadas guardadas
+  // sao do endereco anterior e so sao recalculadas ao salvar.
+  const enderecoLocalizado = geocodeAddressForPrototype(profile.address)
+  const addressHasCoordinates = enderecoLocalizado.latitude !== undefined && enderecoLocalizado.longitude !== undefined
 
   function updateProfile(key: keyof Pick<UserProfile, 'email' | 'providerEmail' | 'providerWhatsapp' | 'phone' | 'whatsapp'>, value: string) {
     setProfile((current) => ({ ...current, [key]: value }))
+  }
+
+  function updateAddress(key: keyof UserAddress, value: string) {
+    setProfile((current) => ({ ...current, address: { ...current.address, [key]: value } }))
   }
 
   function updateAvatar(event: ChangeEvent<HTMLInputElement>) {
@@ -2660,7 +3921,7 @@ export function MyDataPage() {
               {dependentDetails.map((dependent) => (
                 <article key={dependent.id}>
                   <span className="request-category">{dependent.status}</span>
-                  <h4>{dependent.name}</h4>
+                  <h4>{nomeExibicao(dependent)}</h4>
                   <dl>
                     <div><dt>Vínculo</dt><dd>{dependent.relation}</dd></div>
                     <div><dt>Nascimento</dt><dd>{dependent.birthDate}</dd></div>
@@ -2677,17 +3938,23 @@ export function MyDataPage() {
             <MapPin aria-hidden="true" />
             <div>
               <h2>{isProviderAccount ? 'Endereço de atendimento' : 'Endereço residencial'}</h2>
-              <p>{isProviderAccount ? 'Endereço cadastral do credenciado, disponível apenas para consulta.' : 'Endereço cadastral disponível apenas para consulta e usado como referência de distância na busca logada.'}</p>
+              <p>{isProviderAccount ? 'Endereço cadastral do credenciado. Atualize e salve para que a alteração valha no portal.' : 'Mantenha o endereço atualizado: ele é a referência de distância usada na busca da Rede credenciada.'}</p>
             </div>
           </div>
           <div className="my-data-grid">
-            <label className="my-data-wide">Logradouro<input value={profile.address.street} disabled /></label>
-            <label>Número<input value={profile.address.number} disabled /></label>
-            <label>Complemento<input value={profile.address.complement} disabled /></label>
-            <label>Bairro<input value={profile.address.district} disabled /></label>
-            <label>Cidade<input value={profile.address.city} disabled /></label>
-            <label>UF<input value={profile.address.state} disabled /></label>
-            <label>CEP<input value={profile.address.zipCode} disabled /></label>
+            <label className="my-data-wide">Logradouro<input value={profile.address.street} onChange={(event) => updateAddress('street', event.target.value)} placeholder="Rua, avenida, quadra…" /></label>
+            <label>Número<input value={profile.address.number} onChange={(event) => updateAddress('number', event.target.value)} placeholder="Número ou bloco" /></label>
+            <label>Complemento<input value={profile.address.complement} onChange={(event) => updateAddress('complement', event.target.value)} placeholder="Apartamento, sala (opcional)" /></label>
+            <label>Bairro<input value={profile.address.district} onChange={(event) => updateAddress('district', event.target.value)} placeholder="Nome do bairro" /></label>
+            <label>Cidade<input value={profile.address.city} onChange={(event) => updateAddress('city', event.target.value)} placeholder="Nome da cidade" /></label>
+            <label>
+              UF
+              <select value={profile.address.state} onChange={(event) => updateAddress('state', event.target.value)}>
+                <option value="">Selecione</option>
+                {UF_OPTIONS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+              </select>
+            </label>
+            <label>CEP<input value={profile.address.zipCode} maxLength={9} inputMode="numeric" onChange={(event) => updateAddress('zipCode', maskCep(event.target.value))} placeholder="00000-000" /></label>
           </div>
           <section className="my-data-reference" aria-live="polite">
             <MapPin aria-hidden="true" />
@@ -2771,6 +4038,7 @@ const dependentDetails = [
   {
     id: 'maria',
     name: 'Maria Olívia Araújo',
+    nomeSocial: 'Olívia Araújo',
     relation: 'Dependente',
     status: 'Ativo',
     birthDate: '23/09/2015',
@@ -2805,11 +4073,11 @@ export function DependentsPage() {
         {dependentDetails.map((dependent) => (
           <article className="dependent-card" key={dependent.id}>
             <div className="beneficiary-initials" aria-hidden="true">
-              {dependent.name.split(' ').slice(0, 2).map((part) => part[0]).join('')}
+              {nomeExibicao(dependent).split(' ').slice(0, 2).map((part) => part[0]).join('')}
             </div>
             <div>
               <span className="request-category">{dependent.status}</span>
-              <h2>{dependent.name}</h2>
+              <h2>{nomeExibicao(dependent)}</h2>
               <dl>
                 <div><dt>Vínculo</dt><dd>{dependent.relation}</dd></div>
                 <div><dt>Nascimento</dt><dd>{dependent.birthDate}</dd></div>
@@ -2832,7 +4100,7 @@ export function DependentsPage() {
         <h2>Serviços para dependentes</h2>
         <div className="request-card-grid">
           {beneficiaryRequests
-            .filter((request) => ['inclusao-dependentes', 'atualizacao-cadastral', 'declaracoes', 'servico-desligamento'].includes(request.id))
+            .filter((request) => ['inclusao-dependentes', 'servico-atualizacao-dados-cadastrais', 'declaracoes', 'servico-desligamento'].includes(request.id))
             .map((request) => <RequestCard request={request} key={request.id} />)}
         </div>
       </section>
@@ -3030,19 +4298,7 @@ export function NotificationsPage() {
 // Minhas Solicitações
 // ============================================================
 
-type MinhasSolicitacaoStatus = 'Em andamento' | 'Pendente' | 'Concluída'
 type MinhasSolicitacaoAssunto = 'Autorizações' | 'Cadastro' | 'Reembolso e auxílios' | 'Financeiro' | 'Documentos'
-
-type MinhasSolicitacaoFormField = {
-  label: string
-  value: string
-}
-
-type MinhasSolicitacaoAtualizacao = {
-  data: string
-  titulo: string
-  descricao: string
-}
 
 type MinhasSolicitacao = {
   id: string
@@ -3056,13 +4312,9 @@ type MinhasSolicitacao = {
   atualizacoes: MinhasSolicitacaoAtualizacao[]
 }
 
-function solicitacaoConcluida(status: MinhasSolicitacaoStatus) {
-  return status === 'Concluída'
-}
-
 const minhasSolicitacoesData: MinhasSolicitacao[] = [
   {
-    id: 'SOL-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Reembolso de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '20/03/2026', status: 'Pendente',
+    id: 'SOL-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Reembolso de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '20/03/2026', status: 'Suspenso',
     formulario: [
       { label: 'Tipo de reembolso', value: 'Consulta/Avaliação' },
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
@@ -3073,6 +4325,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['nota-fiscal-9987.pdf', 'comprovante-pagamento.pdf'],
     atualizacoes: [
+      { data: '22/03/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando documento complementar para prosseguir com a análise.' },
       { data: '20/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3128,7 +4381,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'MED-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Auxílio para Medicamentos', beneficiario: 'João Silva Santos (Titular)', data: '22/03/2026', status: 'Pendente',
+    id: 'MED-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Auxílio para Medicamentos', beneficiario: 'João Silva Santos (Titular)', data: '22/03/2026', status: 'Reativado',
     formulario: [
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
       { label: 'Medicamento', value: 'Uso contínuo - anti-hipertensivo' },
@@ -3137,6 +4390,8 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['receita-medica.pdf', 'nota-fiscal-farmacia.pdf'],
     atualizacoes: [
+      { data: '25/03/2026', titulo: 'Solicitação reativada', descricao: 'Documento complementar recebido. A análise foi retomada pela equipe técnica.' },
+      { data: '23/03/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando receita médica atualizada para prosseguir com a análise.' },
       { data: '22/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3185,7 +4440,7 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'DEP-2026-002', assunto: 'Cadastro', tipo: 'Inscrição de Dependente', beneficiario: 'Pedro Silva Santos', data: '05/03/2026', status: 'Pendente',
+    id: 'DEP-2026-002', assunto: 'Cadastro', tipo: 'Inscrição de Dependente', beneficiario: 'Pedro Silva Santos', data: '05/03/2026', status: 'Suspenso',
     formulario: [
       { label: 'Nome do dependente', value: 'Pedro Silva Santos' },
       { label: 'Parentesco', value: 'Filho' },
@@ -3193,11 +4448,12 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['certidao-nascimento.pdf'],
     atualizacoes: [
+      { data: '08/03/2026', titulo: 'Solicitação suspensa', descricao: 'Certidão de nascimento ilegível. Envie uma nova cópia digitalizada.' },
       { data: '05/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
   {
-    id: 'AUT-2026-001', assunto: 'Autorizações', tipo: 'Autorização de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '23/03/2026', status: 'Pendente',
+    id: 'AUT-2026-001', assunto: 'Autorizações', tipo: 'Autorização de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '23/03/2026', status: 'Reaberto',
     formulario: [
       { label: 'Procedimento solicitado', value: 'Fisioterapia' },
       { label: 'Beneficiário atendido', value: 'João Silva Santos' },
@@ -3205,6 +4461,8 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['pedido-medico.pdf', 'relatorio-fisioterapico.pdf'],
     atualizacoes: [
+      { data: '27/03/2026', titulo: 'Solicitação reaberta', descricao: 'O beneficiário reabriu a solicitação após anexar o relatório fisioterápico faltante.' },
+      { data: '25/03/2026', titulo: 'Solicitação recusada', descricao: 'Relatório fisioterápico não apresentado. Consulte os documentos exigidos.' },
       { data: '23/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
@@ -3245,8 +4503,9 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
     anexos: ['contracheque-fevereiro.pdf'],
     atualizacoes: [
-      { data: '20/03/2026', titulo: 'Em andamento', descricao: 'Solicitação encaminhada para a área financeira.' },
-      { data: '18/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
+      { data: '22/03/2026', hora: '09:15', titulo: 'Atendimento', descricao: 'Recebemos sua solicitação e já estamos analisando. Segue o comprovante e o parecer técnico gerados até o momento.', autor: 'atendente', anexos: ['comprovante-atualizacao.pdf', 'parecer-tecnico.pdf'] },
+      { data: '20/03/2026', hora: '11:40', titulo: 'Em andamento', descricao: 'Solicitação encaminhada para a área financeira.' },
+      { data: '18/03/2026', hora: '15:00', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
   {
@@ -3277,29 +4536,53 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
   {
-    id: 'DOC-2026-002', assunto: 'Documentos', tipo: 'Segunda Via de Documento', beneficiario: 'Pedro Silva Santos (Filho)', data: '25/02/2026', status: 'Pendente',
+    id: 'DOC-2026-002', assunto: 'Documentos', tipo: 'Segunda Via de Documento', beneficiario: 'Pedro Silva Santos (Filho)', data: '25/02/2026', status: 'Suspenso',
     formulario: [
       { label: 'Beneficiário atendido', value: 'Pedro Silva Santos' },
       { label: 'Documento solicitado', value: 'Carteirinha do Plan-Assiste' },
     ],
     anexos: [],
     atualizacoes: [
+      { data: '27/02/2026', titulo: 'Solicitação suspensa', descricao: 'Aguardando confirmação do endereço de entrega.' },
       { data: '25/02/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
+    ],
+  },
+  {
+    id: 'DOC-2026-003', assunto: 'Documentos', tipo: 'Emissão de Declaração', beneficiario: 'João Silva Santos (Titular)', data: '28/03/2026', status: 'Aberto',
+    formulario: [
+      { label: 'Beneficiário atendido', value: 'João Silva Santos' },
+      { label: 'Documento solicitado', value: 'Declaração de dependentes' },
+      { label: 'Finalidade', value: 'Imposto de renda' },
+    ],
+    anexos: [],
+    atualizacoes: [
+      { data: '28/03/2026', titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
     ],
   },
 ]
 
-function solicitacaoStatusBadge(status: MinhasSolicitacaoStatus) {
-  if (status === 'Concluída') return 'go-badge approved'
-  if (status === 'Em andamento') return 'go-badge analysis'
-  return 'go-badge pending'
+function anexoIcone(nome: string) {
+  const extensao = nome.split('.').pop()?.toLowerCase() ?? ''
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extensao)) return <FileImage aria-hidden="true" />
+  return <FileText aria-hidden="true" />
 }
 
-function solicitacaoStatusLabel(status: MinhasSolicitacaoStatus) {
-  return status
+export function AnexoItem({ nome, onNotice }: { nome: string, onNotice: (mensagem: string) => void }) {
+  return (
+    <li>
+      {anexoIcone(nome)}
+      <span className="solicitacao-attachment-name">{nome}</span>
+      <span className="solicitacao-attachment-actions">
+        <button type="button" title="Visualizar arquivo" aria-label={`Visualizar ${nome}`} onClick={() => onNotice(`Visualização de "${nome}" indisponível neste protótipo.`)}>
+          <Eye aria-hidden="true" />
+        </button>
+        <button type="button" title="Baixar arquivo" aria-label={`Baixar ${nome}`} onClick={() => onNotice(`Download de "${nome}" simulado.`)}>
+          <Download aria-hidden="true" />
+        </button>
+      </span>
+    </li>
+  )
 }
-
-const SOLICITACOES_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 export function MinhasSolicitacoesPage() {
   const [requestLauncherOpen, setRequestLauncherOpen] = useState(false)
@@ -3341,9 +4624,11 @@ export function MinhasSolicitacoesPage() {
     setPage(1)
   }, [query, statusFilter, typeFilter, startDate, endDate, pageSize])
 
-  const total = minhasSolicitacoesData.length
+  const aberto = minhasSolicitacoesData.filter((s) => s.status === 'Aberto').length
   const emAndamento = minhasSolicitacoesData.filter((s) => s.status === 'Em andamento').length
-  const pendente = minhasSolicitacoesData.filter((s) => s.status === 'Pendente').length
+  const suspenso = minhasSolicitacoesData.filter((s) => s.status === 'Suspenso').length
+  const reativado = minhasSolicitacoesData.filter((s) => s.status === 'Reativado').length
+  const reaberto = minhasSolicitacoesData.filter((s) => s.status === 'Reaberto').length
   const concluida = minhasSolicitacoesData.filter((s) => s.status === 'Concluída').length
 
   return (
@@ -3355,26 +4640,36 @@ export function MinhasSolicitacoesPage() {
         </p>
       </div>
 
-      <section className="reimbursement-summary" aria-label="Resumo das solicitações">
+      <section className="reimbursement-summary reimbursement-summary-6" aria-label="Resumo das solicitações">
         <article>
-          <ClipboardList aria-hidden="true" />
-          <strong>{total}</strong>
-          <span>{pluralize(total, 'solicitação', 'solicitações')}</span>
+          <FileText aria-hidden="true" />
+          <strong>{aberto}</strong>
+          <span>Abertos</span>
         </article>
         <article>
-          <RotateCcw aria-hidden="true" />
+          <Activity aria-hidden="true" />
           <strong>{emAndamento}</strong>
-          <span>em andamento</span>
+          <span>Em andamento</span>
         </article>
         <article>
           <Clock aria-hidden="true" />
-          <strong>{pendente}</strong>
-          <span>{pluralize(pendente, 'pendente', 'pendentes')}</span>
+          <strong>{suspenso}</strong>
+          <span>Suspenso</span>
+        </article>
+        <article>
+          <RotateCcw aria-hidden="true" />
+          <strong>{reativado}</strong>
+          <span>Reativado</span>
+        </article>
+        <article>
+          <Undo2 aria-hidden="true" />
+          <strong>{reaberto}</strong>
+          <span>Reabertos</span>
         </article>
         <article>
           <BadgeCheck aria-hidden="true" />
           <strong>{concluida}</strong>
-          <span>{pluralize(concluida, 'concluída', 'concluídas')}</span>
+          <span>Concluídos</span>
         </article>
       </section>
 
@@ -3412,8 +4707,11 @@ export function MinhasSolicitacoesPage() {
               >
                 {[
                   ['Todas', 'Todas'],
+                  ['Aberto', 'Aberto'],
                   ['Em andamento', 'Em andamento'],
-                  ['Pendente', 'Pendente'],
+                  ['Suspenso', 'Suspenso'],
+                  ['Reativado', 'Reativado'],
+                  ['Reaberto', 'Reaberto'],
                   ['Concluída', 'Concluída'],
                 ].map(([value, label]) => (
                   <option value={value} key={value}>{label}</option>
@@ -3554,11 +4852,38 @@ export function MinhasSolicitacoesPage() {
 // Acompanhamento de uma solicitação
 // ============================================================
 
-const solicitacaoRatingLabels = ['Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente']
-
 export function SolicitacaoDetalhePage() {
   const { id } = useParams()
   const solicitacao = minhasSolicitacoesData.find((item) => item.id === id)
+  const [novaMensagem, setNovaMensagem] = useState('')
+  const [mensagensEnviadas, setMensagensEnviadas] = useState<MinhasSolicitacaoAtualizacao[]>([])
+  const [statusOverride, setStatusOverride] = useState<MinhasSolicitacaoStatus | null>(null)
+  const [showReopenModal, setShowReopenModal] = useState(false)
+  const [notice, setNotice] = useState('')
+  const statusAtual = statusOverride ?? solicitacao?.status ?? 'Aberto'
+
+  function formatDataHoraAtual() {
+    const agora = new Date()
+    const data = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`
+    const hora = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
+    return { data, hora }
+  }
+
+  function handleEnviarMensagem(event: FormEvent) {
+    event.preventDefault()
+    const texto = novaMensagem.trim()
+    if (!texto) return
+    const { data, hora } = formatDataHoraAtual()
+    setMensagensEnviadas((current) => [...current, { data, hora, titulo: 'Sua Mensagem', descricao: texto, autor: 'beneficiario' }])
+    setNovaMensagem('')
+  }
+
+  function handleConfirmarReabertura() {
+    const { data, hora } = formatDataHoraAtual()
+    setStatusOverride('Reaberto')
+    setMensagensEnviadas((current) => [...current, { data, hora, titulo: 'Chamado reaberto', descricao: 'Você reabriu esta solicitação. Nossa equipe retomará o atendimento em breve.' }])
+    setShowReopenModal(false)
+  }
 
   if (!solicitacao) {
     return (
@@ -3585,23 +4910,27 @@ export function SolicitacaoDetalhePage() {
       </div>
 
       <section className="reimbursement-card" aria-label="Resumo da solicitação">
-        <div className="service-protocol">
+        <div className="solicitacao-protocol-plain">
           <span>Nº do protocolo</span>
           <strong>{solicitacao.id}</strong>
         </div>
-        <dl className="service-review-grid">
-          <div className="service-review-row"><dt>Serviço</dt><dd>{solicitacao.tipo}</dd></div>
-          <div className="service-review-row"><dt>Assunto</dt><dd>{solicitacao.assunto}</dd></div>
-          <div className="service-review-row"><dt>Beneficiário</dt><dd>{solicitacao.beneficiario}</dd></div>
-          <div className="service-review-row"><dt>Data de abertura</dt><dd>{solicitacao.data}</dd></div>
-          <div className="service-review-row">
-            <dt>Situação</dt>
-            <dd><span className={solicitacaoStatusBadge(solicitacao.status)}>{solicitacaoStatusLabel(solicitacao.status)}</span></dd>
-          </div>
-        </dl>
-
         <div className="reimbursement-form-section">
-          <h3>O que foi solicitado</h3>
+          <dl className="service-review-grid">
+            <div className="service-review-row"><dt>Serviço</dt><dd>{solicitacao.tipo}</dd></div>
+            <div className="service-review-row"><dt>Assunto</dt><dd>{solicitacao.assunto}</dd></div>
+            <div className="service-review-row"><dt>Beneficiário</dt><dd>{solicitacao.beneficiario}</dd></div>
+            <div className="service-review-row"><dt>Data de abertura</dt><dd>{solicitacao.data}</dd></div>
+            <div className="service-review-row">
+              <dt>Situação</dt>
+              <dd><span className={solicitacaoStatusBadge(statusAtual)}>{solicitacaoStatusLabel(statusAtual)}</span></dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <div className="solicitacao-detail-stack">
+        <details className="solicitacao-accordion" open>
+          <summary>Detalhes da solicitação</summary>
           <dl className="service-review-grid">
             {solicitacao.formulario.map((field) => (
               <div className="service-review-row" key={field.label}>
@@ -3610,41 +4939,105 @@ export function SolicitacaoDetalhePage() {
               </div>
             ))}
           </dl>
-          {solicitacao.anexos.length > 0 && (
-            <div className="solicitacao-attachment-list">
-              <h4>Anexos</h4>
-              <ul>
-                {solicitacao.anexos.map((anexo) => (
-                  <li key={anexo}><FileText aria-hidden="true" /> {anexo}</li>
-                ))}
-              </ul>
-            </div>
+        </details>
+
+        <details className="solicitacao-accordion">
+          <summary>Anexos ({solicitacao.anexos.length})</summary>
+          {solicitacao.anexos.length > 0 ? (
+            <ul className="solicitacao-attachment-list">
+              {solicitacao.anexos.map((anexo) => (
+                <AnexoItem key={anexo} nome={anexo} onNotice={setNotice} />
+              ))}
+            </ul>
+          ) : (
+            <p className="page-subtitle">Nenhum arquivo anexado a esta solicitação.</p>
           )}
-        </div>
+        </details>
 
-        <div className="reimbursement-form-section">
-          <h3>Atualizações da solicitação</h3>
+        <section className="reimbursement-card solicitacao-detail-chat" aria-label="Atividade do chamado">
+          <h3>Atividade do chamado</h3>
           <ol className="solicitacao-timeline">
-            {solicitacao.atualizacoes.map((item, index) => (
-              <li key={`${item.data}-${item.titulo}`} className={index === 0 ? 'is-latest' : ''}>
-                <span className="solicitacao-timeline-marker" aria-hidden="true" />
-                <div>
-                  <strong>{item.titulo}</strong>
-                  <time>{item.data}</time>
-                  <p>{item.descricao}</p>
-                </div>
-              </li>
-            ))}
+            {(() => {
+              const historico = [...solicitacao.atualizacoes].reverse().concat(mensagensEnviadas)
+              return historico.map((item, index) => (
+                <li
+                  key={`${item.data}-${item.titulo}-${index}`}
+                  className={[
+                    index === historico.length - 1 ? 'is-latest' : '',
+                    item.autor === 'atendente' ? 'is-atendente' : '',
+                    item.autor === 'beneficiario' ? 'is-beneficiario' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <span className="solicitacao-timeline-marker" aria-hidden="true">
+                    {item.autor === 'atendente' ? (
+                      <Headphones aria-hidden="true" />
+                    ) : item.autor === 'beneficiario' ? (
+                      <UserRound aria-hidden="true" />
+                    ) : (
+                      <CheckCircle2 aria-hidden="true" />
+                    )}
+                  </span>
+                  <div>
+                    <div className="solicitacao-timeline-heading">
+                      <strong>{item.titulo}</strong>
+                      <time>{item.data}{item.hora ? ` ${item.hora}` : ''}</time>
+                    </div>
+                    <p>{item.descricao}</p>
+                    {item.anexos && item.anexos.length > 0 && (
+                      <ul className="solicitacao-attachment-list solicitacao-timeline-attachments">
+                        {item.anexos.map((anexo) => (
+                          <AnexoItem key={anexo} nome={anexo} onNotice={setNotice} />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))
+            })()}
           </ol>
-        </div>
-      </section>
 
-      {solicitacaoConcluida(solicitacao.status) && <SolicitacaoRating requestId={solicitacao.id} />}
+          {solicitacaoConcluida(statusAtual) ? (
+            <div className="solicitacao-reopen-action">
+              <button className="secondary-button" type="button" onClick={() => setShowReopenModal(true)}>
+                <RotateCcw aria-hidden="true" /> Reabrir chamado
+              </button>
+            </div>
+          ) : (
+            <ChatMessageComposer value={novaMensagem} onChange={setNovaMensagem} onSubmit={handleEnviarMensagem} />
+          )}
+        </section>
+      </div>
+
+      {notice && <p className="action-notice" role="status">{notice}</p>}
+
+      {solicitacaoConcluida(statusAtual) && <SolicitacaoRating requestId={solicitacao.id} />}
+
+      {showReopenModal && (
+        <div className="go-modal-overlay" role="presentation" onClick={() => setShowReopenModal(false)}>
+          <div className="go-modal" role="dialog" aria-modal="true" aria-labelledby="reopen-modal-title" onClick={(event) => event.stopPropagation()}>
+            <div className="go-modal-header">
+              <h2 id="reopen-modal-title">Reabrir solicitação</h2>
+              <button className="go-modal-close" type="button" onClick={() => setShowReopenModal(false)} aria-label="Fechar">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="go-modal-body">
+              <p>Tem certeza que deseja reabrir esta solicitação? O atendimento será retomado e você poderá enviar novas mensagens ao atendente.</p>
+              <div className="reimbursement-actions">
+                <button className="secondary-button" type="button" onClick={() => setShowReopenModal(false)}>Cancelar</button>
+                <button className="primary-button" type="button" onClick={handleConfirmarReabertura}>
+                  <RotateCcw aria-hidden="true" /> Reabrir chamado
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function SolicitacaoRating({ requestId }: { requestId: string }) {
+export function SolicitacaoRating({ requestId }: { requestId: string }) {
   const [favoriteState, setFavoriteState] = useState<FavoriteState>(() => getFavoriteState())
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
@@ -3698,7 +5091,9 @@ function SolicitacaoRating({ requestId }: { requestId: string }) {
               onBlur={() => setHoverRating(0)}
               onClick={() => setRating(value)}
             >
-              <Star aria-hidden="true" />
+              <span className="solicitacao-rating-star-circle">
+                <Star aria-hidden="true" fill={value <= previewRating ? 'currentColor' : 'none'} />
+              </span>
               <span>{solicitacaoRatingLabels[value - 1]}</span>
             </button>
           ))}
@@ -3726,10 +5121,13 @@ const requestIconByCategory: Record<BeneficiaryRequest['category'], LucideIcon> 
   Cadastro: UserPlus,
   Autorizações: ClipboardCheck,
   'Reembolso e auxílios': HandCoins,
+  Benefícios: Pill,
   Financeiro: WalletCards,
   'Rede e atendimento': Stethoscope,
   Documentos: FileText,
   'Orientações e canais': HelpCircle,
+  Cobertura: ShieldCheck,
+  'Fale Conosco': MessageCircle,
 }
 
 const novaSolicitacaoTypes = beneficiaryRequests

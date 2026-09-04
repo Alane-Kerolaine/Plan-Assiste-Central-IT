@@ -5,6 +5,7 @@ import { VLibrasWidget } from './components/VLibrasWidget'
 import { AiChatWidget } from './components/AiChatWidget'
 import { CookieConsent } from './components/CookieConsent'
 import { HomePage } from './pages/HomePage'
+import { CmsPaginaCriadaPage } from './pages/CmsPaginaCriadaPage'
 import { LoginPage } from './pages/LoginPage'
 import { BecomeBeneficiaryPage } from './pages/LandingPages'
 import {
@@ -31,6 +32,7 @@ import {
   AccountAreaPage,
   BeneficiaryLayout,
   BeneficiaryNovaReembolsoPage,
+  BeneficiaryNovaBeneficioMedicamentosPage,
   BeneficiaryAuthorizationsPage,
   CardsPage,
   DependentsPage,
@@ -72,6 +74,7 @@ import { placeholderPages } from './data/mock'
 import { MockupPage } from './pages/MockupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CmsAdminOverviewPage, CmsBannersPage, CmsContactPage, CmsFilesPage, CmsMediaPage, CmsNewsPage, CmsPageEditorPage, CmsPagesPage } from './pages/CmsAdminPages'
+import { CmsLiveBrowserPage } from './pages/CmsLiveBrowser'
 import { InstrucoesCondicionaisPreviewPage } from './pages/InstrucoesCondicionaisPreviewPage'
 import { isFeatureInstrucoesCondicionaisEnabled } from './utils/featureFlags'
 import {
@@ -217,6 +220,7 @@ function App() {
             </Suspense>
           }
         />
+        <Route path="/transparencia/*" element={<CmsPaginaCriadaPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/busca" element={<SearchPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route
           path="/credenciado"
@@ -305,6 +309,7 @@ function App() {
           <Route path="minhas-solicitacoes" element={<Navigate to="/beneficiario/solicitacoes" replace />} />
           <Route path="nova-solicitacao" element={<NovaSolicitacaoPage />} />
           <Route path="reembolso-procedimentos/nova-solicitacao" element={<BeneficiaryNovaReembolsoPage />} />
+          <Route path="beneficio-medicamentos/nova-solicitacao" element={<BeneficiaryNovaBeneficioMedicamentosPage />} />
           <Route path="inscricao-dependente/nova-solicitacao" element={<NovaInscricaoDependentePage />} />
           <Route path="autorizacao-procedimentos/nova-solicitacao" element={<NovaAutorizacaoPage />} />
           <Route path="servicos/:slug/nova-solicitacao" element={<ServiceRequestPage />} />
@@ -356,6 +361,7 @@ function App() {
           }
         />
         <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/navegar/*" element={<RequireAuth session={session} profile="team"><CmsLiveBrowserPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
         <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />

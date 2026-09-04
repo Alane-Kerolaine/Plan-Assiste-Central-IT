@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { EditorContent, useEditor, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -9,10 +9,13 @@ import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
+import { YoutubeNode } from './youtubeNode'
+import { ImagemNode, type AlinhamentoImagem } from './imagemNode'
+import { SeletorDeImagem } from './SeletorDeImagem'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Columns3, Heading2, Heading3,
   Italic, Link2, Link2Off, List, ListOrdered, Merge, Minus, Pilcrow, Quote, Redo2, Rows3,
-  Split, Strikethrough, Table2, Trash2, Underline as UnderlineIcon, Undo2,
+  Split, Strikethrough, Table2, Trash2, Underline as UnderlineIcon, Undo2, MonitorPlay, ImagePlus, AlignStartVertical, AlignEndVertical, AlignVerticalJustifyCenter,
 } from 'lucide-react'
 
 type RichTextEditorProps = {
@@ -51,7 +54,39 @@ function TableTools({ editor }: { editor: Editor }) {
   </span>
 }
 
+/**
+ * Alinhamento da imagem selecionada. So aparece com uma imagem selecionada,
+ * como as ferramentas da tabela — a barra ja e longa para trazer sempre.
+ */
+function ImagemTools({ editor }: { editor: Editor }) {
+  if (!editor.isActive('imagem')) return null
+
+  const atual = editor.getAttributes('imagem').align as AlinhamentoImagem | undefined
+  const opcoes: Array<[AlinhamentoImagem, string, ReactNode]> = [
+    ['left', 'Imagem à esquerda, texto ao lado', <AlignStartVertical key="e" />],
+    ['center', 'Imagem centralizada', <AlignVerticalJustifyCenter key="c" />],
+    ['right', 'Imagem à direita, texto ao lado', <AlignEndVertical key="d" />],
+  ]
+
+  return (
+    <span className="go-rte-group" aria-label="Ferramentas da imagem">
+      <Divider />
+      {opcoes.map(([valor, titulo, icone]) => (
+        <Tool
+          key={valor}
+          title={titulo}
+          active={(atual ?? 'center') === valor}
+          onClick={() => editor.chain().focus().setAlinhamentoImagem(valor).run()}
+        >
+          {icone}
+        </Tool>
+      ))}
+    </span>
+  )
+}
+
 export function RichTextEditor({ value = '', onChange, placeholder = 'Escreva aqui...', minHeight }: RichTextEditorProps) {
+  const [escolhendoImagem, setEscolhendoImagem] = useState(false)
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -63,6 +98,8 @@ export function RichTextEditor({ value = '', onChange, placeholder = 'Escreva aq
       TableRow,
       TableHeader,
       TableCell,
+      YoutubeNode,
+      ImagemNode,
     ],
     content: value,
     onUpdate: ({ editor: current }) => onChange?.(current.getHTML()),
@@ -81,6 +118,15 @@ export function RichTextEditor({ value = '', onChange, placeholder = 'Escreva aq
     if (href === null) return
     if (!href.trim()) editor!.chain().focus().extendMarkRange('link').unsetLink().run()
     else editor!.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run()
+  }
+
+  function inserirYoutube() {
+    const url = window.prompt('Cole o endereço do vídeo no YouTube:', '')
+    if (url === null || !url.trim()) return
+    // O comando recusa endereço que não seja do YouTube: o aviso explica a recusa.
+    if (!editor!.chain().focus().setYoutube(url.trim()).run()) {
+      window.alert('Endereço não reconhecido. Use o endereço da página do vídeo no YouTube.')
+    }
   }
 
   return <div className="go-rte cms-rich-text-editor">
@@ -110,10 +156,22 @@ export function RichTextEditor({ value = '', onChange, placeholder = 'Escreva aq
         <Divider />
         <Tool title="Inserir ou editar link" active={editor.isActive('link')} onClick={editLink}><Link2 /></Tool>
         <Tool title="Remover link" disabled={!editor.isActive('link')} onClick={() => editor.chain().focus().unsetLink().run()}><Link2Off /></Tool>
+        <Tool title="Inserir imagem" onClick={() => setEscolhendoImagem(true)}><ImagePlus /></Tool>
+        <Tool title="Inserir vídeo do YouTube" onClick={inserirYoutube}><MonitorPlay /></Tool>
         <Tool title="Inserir tabela 3 × 3" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></Tool>
         <TableTools editor={editor} />
+        <ImagemTools editor={editor} />
       </span>
     </div>
     <EditorContent editor={editor} className="go-rte-content" style={minHeight ? { minHeight } : undefined} />
+    {escolhendoImagem && (
+      <SeletorDeImagem
+        onFechar={() => setEscolhendoImagem(false)}
+        onEscolher={({ src, alt }) => {
+          editor.chain().focus().setImagem({ src, alt }).run()
+          setEscolhendoImagem(false)
+        }}
+      />
+    )}
   </div>
 }

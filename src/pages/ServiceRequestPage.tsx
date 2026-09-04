@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { servicoDetalheRota } from '../utils/servicoPlanAssiste'
 import { EmptyState } from '../components/PortalComponents'
 import { ServiceRequestWizard } from '../components/ServiceRequestWizard'
 import { ServiceRequestWizardV2 } from '../components/ServiceRequestWizardV2'
@@ -45,6 +46,8 @@ export function ServiceRequestPage() {
 
   const catalogEntry = beneficiaryRequests.find((request) => request.route === `/beneficiario/servicos/${slug}/nova-solicitacao`)
   const actionLabel = catalogEntry?.action ?? 'Iniciar solicitação'
+  // Página explicativa no Plan-Assiste: existe só para serviços com formulário.
+  const detalheRota = servicoDetalheRota(catalogEntry)
 
   if (!showForm) {
     return (
@@ -76,6 +79,7 @@ export function ServiceRequestPage() {
             <button className="primary-button" onClick={() => setShowForm(true)} type="button">
               {actionLabel} <ArrowRight aria-hidden="true" />
             </button>
+            {detalheRota && <Link className="secondary-button" to={detalheRota}>Ver detalhes</Link>}
           </div>
         </section>
       </div>
