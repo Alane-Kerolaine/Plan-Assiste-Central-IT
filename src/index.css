@@ -979,6 +979,48 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .service-wizard-steps li.is-current .service-wizard-step-index { border-color: var(--brand-primary); background: var(--brand-primary); color: white; }
 .service-wizard-steps li.is-done .service-wizard-step-index { border-color: var(--brand-primary); background: var(--mint-bg); color: var(--brand-strong); }
 /* Documento em PDF na revisão e no comprovante de envio. */
+/* Escolha entre assinar pelo gov.br ou anexar o documento assinado por fora. */
+.assinatura-escolha { margin-top: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--mint-soft); padding: 20px; }
+.assinatura-escolha > h3 { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; color: var(--text-dark); font-size: 19px; }
+.assinatura-escolha > h3 svg { width: 20px; height: 20px; color: var(--brand-strong); }
+.assinatura-opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.assinatura-opcoes label { display: flex; align-items: flex-start; gap: 12px; border: 2px solid var(--border); border-radius: 12px; background: white; padding: 16px; }
+.assinatura-opcoes label:hover { border-color: var(--brand-primary); }
+.assinatura-opcoes label.is-escolhida { border-color: var(--brand-strong); box-shadow: 0 0 0 3px rgba(8, 119, 101, .12); }
+.assinatura-opcoes input { width: 20px; height: 20px; min-height: 0; flex: none; margin-top: 2px; accent-color: var(--brand-strong); }
+.assinatura-opcoes span { display: grid; gap: 5px; min-width: 0; }
+.assinatura-opcoes strong { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-dark); font-size: 17px; }
+.assinatura-opcoes small { color: var(--brand-dark); font-size: 15px; line-height: 1.45; }
+.assinatura-recomendada { border-radius: 999px; background: var(--brand-accent, #b8f0dd); color: var(--brand-strong); padding: 3px 10px; font-size: 13px; font-style: normal; font-weight: var(--fw-semibold); }
+
+/* Fluxo externo: tres etapas numeradas, porque parte dele acontece fora do portal. */
+.assinatura-externa { margin-top: 16px; border: 1px solid var(--brand-primary); border-radius: 12px; background: white; padding: 18px; }
+.assinatura-externa > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
+.assinatura-externa > header strong { display: flex; align-items: center; gap: 8px; color: var(--text-dark); font-size: 17px; }
+.assinatura-externa > header svg { width: 19px; height: 19px; color: var(--brand-strong); }
+.assinatura-externa > header span { color: var(--brand-dark); font-size: 14px; }
+.assinatura-etapas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.assinatura-etapas li { display: grid; gap: 8px; align-content: start; border: 1px solid var(--border); border-radius: 10px; background: var(--mint-soft); padding: 14px; }
+.assinatura-etapas h4 { margin: 0; color: var(--brand-strong); font-size: 16px; }
+.assinatura-etapas p { margin: 0; color: var(--text); font-size: 15px; line-height: 1.45; }
+.assinatura-etapas small { color: var(--brand-dark); font-size: 13px; line-height: 1.4; }
+.assinatura-etapas button { justify-self: start; min-height: 42px; }
+
+.assinatura-anexado { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; border: 1px solid var(--brand-primary); border-radius: 10px; background: var(--mint-soft); padding: 12px 14px; }
+.assinatura-anexado > svg { flex: none; width: 26px; height: 26px; color: var(--brand-strong); }
+.assinatura-anexado > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.assinatura-anexado strong { color: var(--text-dark); font-size: 15px; overflow-wrap: anywhere; }
+.assinatura-anexado small { color: var(--brand-dark); font-size: 13px; }
+.assinatura-etiqueta { border-radius: 999px; background: white; border: 1px solid var(--brand-primary); color: var(--brand-strong); padding: 4px 12px; font-size: 13px; font-weight: var(--fw-semibold); }
+.assinatura-anexado > button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #f0c9c9; border-radius: 999px; background: white; color: #a33a3a; padding: 7px 14px; font-weight: var(--fw-semibold); }
+.assinatura-anexado > button:hover { border-color: #a33a3a; background: #fdf2f2; }
+.assinatura-anexado > button svg { width: 15px; height: 15px; }
+
+/* Como a solicitacao foi assinada, na tela de sucesso. */
+.assinatura-metodo { display: flex; width: fit-content; max-width: 100%; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 0 auto 24px; border-radius: 999px; background: var(--mint-soft); padding: 8px 16px; color: var(--brand-dark); font-size: 15px; }
+.assinatura-metodo strong { color: var(--text-dark); overflow-wrap: anywhere; }
+.assinatura-metodo svg { flex: none; width: 17px; height: 17px; color: var(--brand-strong); }
+
 .documento-pdf { margin-top: 20px; border: 1px solid var(--border); border-radius: 14px; background: white; overflow: hidden; }
 .documento-pdf-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); background: var(--mint-soft); padding: 16px 20px; }
 .documento-pdf-heading h3 { margin: 0 0 4px; color: var(--text-dark); font-size: 18px; }
