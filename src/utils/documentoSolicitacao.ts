@@ -2,7 +2,7 @@ import { beneficiaries } from '../data/mock'
 import type { ServiceField, ServiceFormSchema, ServiceFormSection } from '../data/serviceFormSchemas'
 import { formatReviewValue } from '../components/serviceRequestWizardHelpers'
 import { nomeExibicao } from './nomeSocial'
-import type { SecaoDocumento } from './documentoPdf'
+import { montarPdf, type SecaoDocumento } from './documentoPdf'
 
 const CABECALHO = ['PLAN-ASSISTE', 'MINISTÉRIO PÚBLICO DA UNIÃO']
 const RODAPE = 'Você não deve editar o documento após assinatura, pois perderá a validade'
@@ -73,4 +73,35 @@ export function assinaturaAgora(nome: string): AssinaturaDocumento {
   const data = agora.toLocaleDateString('pt-BR')
   const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   return { nome, detalhe: `Assinado digitalmente via gov.br em ${data} às ${hora}` }
+}
+
+/**
+ * Baixa a via em PDF da solicitacao.
+ *
+ * Fica aqui, e nao no componente de previa, para que a tela de escolha de
+ * assinatura entregue exatamente o mesmo arquivo que a previa exibe.
+ */
+export function baixarDocumentoPdf(
+  schema: ServiceFormSchema,
+  sections: ServiceFormSection[],
+  values: Record<string, string>,
+  attachments: Record<string, File[]>,
+  assinatura?: AssinaturaDocumento,
+  protocolo?: string,
+) {
+  const url = URL.createObjectURL(montarPdf(documentoDaSolicitacao(schema, sections, values, attachments, assinatura)))
+  const ancora = document.createElement('a')
+  ancora.href = url
+  ancora.download = nomeArquivoDocumento(schema, protocolo)
+  ancora.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Carimbo da via assinada por fora, com o arquivo que a equipe recebeu. */
+export function assinaturaExterna(nome: string, arquivo: string): AssinaturaDocumento {
+  const agora = new Date()
+  const data = agora.toLocaleDateString('pt-BR')
+  const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const origem = arquivo ? ` (${arquivo})` : ''
+  return { nome, detalhe: `Documento assinado externamente e anexado em ${data} às ${hora}${origem}` }
 }

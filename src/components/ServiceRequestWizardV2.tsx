@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, ChevronLeft, Copy, RotateCcw, Send } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ChevronLeft, Copy, PenLine, RotateCcw, Send } from 'lucide-react'
 import { beneficiaries } from '../data/mock'
 import { nomeExibicao } from '../utils/nomeSocial'
 import { DocumentoPdfPreview } from './DocumentoAssinatura'
 import { getStoredUserProfile } from '../utils/userProfile'
-import { assinaturaAgora } from '../utils/documentoSolicitacao'
+import { assinaturaAgora, assinaturaExterna } from '../utils/documentoSolicitacao'
+import { EscolhaDeAssinatura, type MetodoDeAssinatura } from './EscolhaDeAssinatura'
 import { isFieldVisible, type CasoInstrucaoServico, type PerguntaChaveConfig, type ServiceFormSchema } from '../data/serviceFormSchemas'
 import { generateProtocolNumber } from '../utils/protocol'
 import { AvisoNormativo } from './AvisoNormativo'
@@ -57,6 +58,8 @@ export function ServiceRequestWizardV2({
   const [protocol, setProtocol] = useState('')
   const [copied, setCopied] = useState(false)
   const [assinatura, setAssinatura] = useState<{ nome: string, detalhe: string } | undefined>(undefined)
+  const [metodo, setMetodo] = useState<MetodoDeAssinatura>('govbr')
+  const [arquivoAssinado, setArquivoAssinado] = useState<File>()
 
   useEffect(() => {
     if (!copied) return
@@ -150,8 +153,19 @@ export function ServiceRequestWizardV2({
   }
 
   function handleConfirm() {
+    if (schema.assinaturaGovBr && metodo === 'externa' && !arquivoAssinado) {
+      setNotice('Anexe o PDF assinado para enviar a solicitação.')
+      return
+    }
+    setNotice('')
     setProtocol(generateProtocolNumber())
-    if (schema.assinaturaGovBr) setAssinatura(assinaturaAgora(nomeExibicao(getStoredUserProfile())))
+    // A via assinada carimba quem assinou e como, para a tela de sucesso dizer
+    // por qual caminho a solicitacao foi assinada.
+    if (schema.assinaturaGovBr) {
+      setAssinatura(metodo === 'externa'
+        ? assinaturaExterna(nomeExibicao(getStoredUserProfile()), arquivoAssinado?.name ?? '')
+        : assinaturaAgora(nomeExibicao(getStoredUserProfile())))
+    }
     setStep('success')
   }
 
@@ -163,6 +177,8 @@ export function ServiceRequestWizardV2({
     setNotice('')
     setProtocol('')
     setAssinatura(undefined)
+    setMetodo('govbr')
+    setArquivoAssinado(undefined)
     setStep('form')
   }
 
@@ -187,6 +203,11 @@ export function ServiceRequestWizardV2({
               <Copy aria-hidden="true" /> {copied ? 'Copiado!' : 'Copiar protocolo'}
             </button>
           </div>
+          {schema.assinaturaGovBr && (
+            <p className="assinatura-metodo" role="status">
+              <PenLine aria-hidden="true" /> Método de assinatura: <strong>{metodo === 'externa' ? `externa (${arquivoAssinado?.name})` : 'digital gov.br'}</strong>
+            </p>
+          )}
           <div className="service-success-followup">
             <h3>Como acompanhar?</h3>
             <ol>
@@ -226,6 +247,18 @@ export function ServiceRequestWizardV2({
         <div className="reimbursement-card service-review">
           <h2>Revise sua solicitação</h2>
           <p className="page-subtitle">Confira os dados informados antes de confirmar o envio.</p>
+          {schema.assinaturaGovBr && (
+            <EscolhaDeAssinatura
+              schema={schema}
+              sections={visibleSections}
+              values={values}
+              attachments={anexosPorDocumento}
+              metodo={metodo}
+              onMetodo={(proximo) => { setMetodo(proximo); setNotice('') }}
+              arquivoAssinado={arquivoAssinado}
+              onArquivoAssinado={(arquivo) => { setArquivoAssinado(arquivo); setNotice('') }}
+            />
+          )}
           {schema.assinaturaGovBr ? (
             <DocumentoPdfPreview
               schema={schema}
@@ -287,7 +320,11 @@ export function ServiceRequestWizardV2({
               <ChevronLeft aria-hidden="true" /> Voltar e editar
             </button>
             <button className="primary-button" type="button" onClick={handleConfirm}>
-              <Send aria-hidden="true" /> {schema.assinaturaGovBr ? 'Estou ciente, assinar com gov.br' : 'Confirmar e enviar'}
+              <Send aria-hidden="true" /> {!schema.assinaturaGovBr
+                ? 'Confirmar e enviar'
+                : metodo === 'externa'
+                  ? 'Enviar solicitação com documento assinado'
+                  : 'Estou ciente, assinar com gov.br'}
             </button>
           </div>
         </div>
