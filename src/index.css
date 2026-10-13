@@ -2874,7 +2874,7 @@ select:not([multiple]) {
 .provider-document-table-wrap { margin-top: 4px; }
 .provider-help-action { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
 .provider-help-action svg { width: 17px; height: 17px; }
-.team-dashboard-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 48px; }
+.team-dashboard-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 48px; }
 .team-dashboard-cards article,
 .team-operational-grid article { transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease; }
 .team-dashboard-cards article:hover,

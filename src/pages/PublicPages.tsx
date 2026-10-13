@@ -21,6 +21,7 @@ import {
   Heart,
   HeartPulse,
   HandHeart,
+  Headset,
   HelpCircle,
   IdCard,
   ListChecks,
@@ -4327,6 +4328,7 @@ const teamSidebarGroups: AreaSidebarGroup[] = [
     items: [
       { label: 'Gestão da informação', to: '/area-da-equipe/gestao-da-informacao', icon: BookOpenCheck },
       { label: 'Administração do Portal', to: '/area-da-equipe/administracao-do-portal', activePath: '/area-da-equipe/administracao-do-portal', icon: Globe2 },
+      { label: 'Central de serviços', to: 'https://atendente.planassiste.mpu.mp.br/', icon: Headset, external: true },
     ],
   },
   {
@@ -4753,6 +4755,12 @@ export function TeamDashboardPage({ loggedIn, onLogout }: PublicPageProps) {
             <h2>Administração do Portal <LockKeyhole className="team-lock-icon" aria-label="Acesso restrito" /></h2>
             <p>Administração de banners, notícias e base de conhecimento do portal.</p>
             <Link className="text-link" to="/area-da-equipe/administracao-do-portal">Acessar painel <ArrowRight aria-hidden="true" /></Link>
+          </article>
+          <article>
+            <Headset aria-hidden="true" />
+            <h2>Central de serviços</h2>
+            <p>Abertura e acompanhamento de chamados de atendimento do Plan-Assiste.</p>
+            <a className="text-link" href="https://atendente.planassiste.mpu.mp.br/" target="_blank" rel="noreferrer">Acessar central <ExternalLink aria-hidden="true" /></a>
           </article>
           <article className="team-benner-card">
             <span className="team-card-eyebrow">Sistema Benner</span>
