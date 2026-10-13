@@ -6,12 +6,12 @@ const TOKEN_DA_DEMONSTRACAO = '000000'
 const cartoesDeAcesso = (page: import('@playwright/test').Page) => page.locator('.login-access-card h2')
 
 test.describe('Tela de login', () => {
-  test('botão Login do topo mostra beneficiários e equipe, sem credenciados', async ({ page }) => {
+  test('botão Login do topo mostra beneficiários e equipe', async ({ page }) => {
     await page.goto('/')
 
     await page.getByRole('button', { name: 'Login', exact: true }).click()
 
-    await expect(page).toHaveURL(/\/login-govbr\?acesso=portal$/)
+    await expect(page).toHaveURL(/\/login-govbr$/)
     await expect(cartoesDeAcesso(page)).toHaveText(['Beneficiários', 'Equipe do Plan-Assiste'])
   })
 
@@ -20,13 +20,6 @@ test.describe('Tela de login', () => {
 
     await expect(page).toHaveURL(/\/login-govbr\?acesso=beneficiario$/)
     await expect(cartoesDeAcesso(page)).toHaveText(['Beneficiários'])
-  })
-
-  test('área do credenciado sem login mostra todas as opções', async ({ page }) => {
-    await page.goto('/credenciado')
-
-    await expect(page).toHaveURL(/\/login-govbr$/)
-    await expect(cartoesDeAcesso(page)).toHaveText(['Beneficiários', 'Equipe do Plan-Assiste', 'Credenciados'])
   })
 
   test('beneficiário entra com CPF e código de acesso', async ({ page }) => {
@@ -59,7 +52,7 @@ test.describe('Tela de login', () => {
   })
 
   test('"Outras formas de entrar" volta às opções', async ({ page }) => {
-    await page.goto('/login-govbr?acesso=portal')
+    await page.goto('/login-govbr')
 
     await page.getByRole('button', { name: 'Entrar com CPF e código de acesso' }).click()
     await page.getByRole('button', { name: 'Outras formas de entrar' }).click()
@@ -68,22 +61,17 @@ test.describe('Tela de login', () => {
   })
 
   test('equipe entra com a conta corporativa', async ({ page }) => {
-    await page.goto('/login-govbr?acesso=portal')
+    await page.goto('/login-govbr')
 
     await page.getByRole('button', { name: 'Entrar com a conta corporativa' }).click()
 
     await expect(page).toHaveURL(/\/area-da-equipe$/)
   })
 
-  test('credenciado entra com CNPJ e senha', async ({ page }) => {
+  test('não oferece login de credenciado', async ({ page }) => {
     await page.goto('/login-govbr')
 
-    await page.getByRole('button', { name: 'Entrar como credenciado' }).click()
-    await page.getByLabel('CNPJ').fill('12345678000199')
-    await expect(page.getByLabel('CNPJ')).toHaveValue('12.345.678/0001-99')
-    await page.getByLabel('Senha').fill('senha-de-teste')
-    await page.getByRole('button', { name: 'Entrar como credenciado' }).click()
-
-    await expect(page).toHaveURL(/\/credenciado$/)
+    await expect(page.getByText('Credenciados', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /credenciado/i })).toHaveCount(0)
   })
 })

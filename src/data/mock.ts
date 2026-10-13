@@ -1312,9 +1312,9 @@ export const beneficiaryServices: Service[] = [
 
 export const providerServices: Service[] = [
   { title: 'Credenciamento', icon: 'badge', route: '/plan-assiste/como-se-credenciar-ou-renovar' },
-  { title: 'Autorizações', icon: 'file', route: '/credenciado/autorizacoes', requiresAuth: true },
-  { title: 'Faturas', icon: 'invoice', route: '/credenciado#faturas', requiresAuth: true },
-  { title: 'Portal TISS', icon: 'portal', route: '/credenciado#portal-tiss', requiresAuth: true },
+  { title: 'Autorizações', icon: 'file', route: '/credenciado/autorizacoes' },
+  { title: 'Faturas', icon: 'invoice', route: '/credenciado#faturas' },
+  { title: 'Portal TISS', icon: 'portal', route: '/credenciado#portal-tiss' },
 ]
 
 const newsAsset = (fileName: string) => `/assets/news/${fileName}`
