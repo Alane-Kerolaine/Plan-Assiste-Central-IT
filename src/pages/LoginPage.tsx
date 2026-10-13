@@ -1,14 +1,16 @@
-import { useState, type FormEvent } from 'react'
-import { ArrowLeft, KeyRound, Mail, Smartphone } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Fragment, useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowLeft, Building2, Stethoscope } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { GovBrSignInButton } from '../components/GovBrSignInButton'
 import { getStoredUserProfile } from '../utils/userProfile'
-import { emailMascarado, telefoneMascarado } from '../utils/contatoMascarado'
+import { emailMascarado } from '../utils/contatoMascarado'
 import { isCpfValido } from '../utils/cpf'
-import { maskCpf } from '../utils/inputMasks'
+import { maskCpf, maskCpfCnpj } from '../utils/inputMasks'
+import { getLoginAccessParam, type LoginAccess } from '../utils/loginAccess'
 
-/** Codigo aceito na demonstracao. Nao ha envio real de e-mail nem de SMS. */
+/** Codigo aceito na demonstracao. Nao ha envio real de e-mail. */
 const TOKEN_DA_DEMONSTRACAO = '000000'
+const TAMANHO_DO_TOKEN = TOKEN_DA_DEMONSTRACAO.length
 
 /**
  * CPF aceito na demonstracao, a par do token.
@@ -18,47 +20,72 @@ const TOKEN_DA_DEMONSTRACAO = '000000'
  * seguir dizendo a verdade sobre qualquer CPF.
  */
 const CPF_DA_DEMONSTRACAO = '000.000.000-00'
+const TAMANHO_DO_CPF = CPF_DA_DEMONSTRACAO.length
 
-type Canal = 'email' | 'telefone'
-type Etapa = 'cpf' | 'canal' | 'codigo'
+type Etapa = 'opcoes' | 'cpf' | 'codigo' | 'credenciado'
+type Opcao = 'beneficiario' | 'equipe' | 'credenciado'
+
+const OPCOES_POR_ACESSO: Record<LoginAccess, Opcao[]> = {
+  beneficiario: ['beneficiario'],
+  portal: ['beneficiario', 'equipe'],
+  todos: ['beneficiario', 'equipe', 'credenciado'],
+}
+
+const DESTINO_DO_BENEFICIARIO = '/beneficiario'
+const DESTINO_DA_EQUIPE = '/area-da-equipe'
+const DESTINO_DO_CREDENCIADO = '/credenciado'
+
+/** Destino pedido antes do login, se for da area de quem esta entrando; senao, a home da area. */
+function consumirDestino(prefixo: string, padrao: string) {
+  const pedido = localStorage.getItem('planAssisteDestination')
+  localStorage.removeItem('planAssisteDestination')
+  localStorage.removeItem('planAssistePendingProviderFavorite')
+  return pedido?.startsWith(prefixo) ? pedido : padrao
+}
 
 export function LoginPage({
   onGovLogin,
+  onTeamLogin,
   onProviderLogin,
 }: {
   onGovLogin: () => void
+  onTeamLogin: () => void
   onProviderLogin: () => void
 }) {
   const navigate = useNavigate()
-  const perfil = getStoredUserProfile()
+  const [searchParams] = useSearchParams()
+  const opcoes = OPCOES_POR_ACESSO[getLoginAccessParam(searchParams)]
 
-  const [etapa, setEtapa] = useState<Etapa>('cpf')
+  const [etapa, setEtapa] = useState<Etapa>('opcoes')
   const [cpf, setCpf] = useState('')
-  const [canal, setCanal] = useState<Canal>('email')
   const [codigo, setCodigo] = useState('')
+  const [cnpj, setCnpj] = useState('')
   const [erro, setErro] = useState('')
+  const emailDoBeneficiario = emailMascarado(getStoredUserProfile().email)
 
-  const contatos: Record<Canal, string> = {
-    email: emailMascarado(perfil.email),
-    telefone: telefoneMascarado(perfil.whatsapp.trim() || perfil.phone),
+  function irPara(proxima: Etapa) {
+    setErro('')
+    setEtapa(proxima)
   }
 
   function entrarComoBeneficiario() {
-    const destination = localStorage.getItem('planAssisteDestination') || '/beneficiario'
+    // Beneficiario e equipe compartilham a sessao gov.br; o destino pedido pode ser de qualquer uma.
+    const destino = consumirDestino('/', DESTINO_DO_BENEFICIARIO)
     onGovLogin()
-    localStorage.removeItem('planAssistePendingProviderFavorite')
-    localStorage.removeItem('planAssisteDestination')
-    navigate(destination)
+    navigate(destino)
   }
 
-  function loginProvider(event: FormEvent) {
+  function entrarComoEquipe() {
+    const destino = consumirDestino(DESTINO_DA_EQUIPE, DESTINO_DA_EQUIPE)
+    onTeamLogin()
+    navigate(destino)
+  }
+
+  function entrarComoCredenciado(event: FormEvent) {
     event.preventDefault()
-    const requestedDestination = localStorage.getItem('planAssisteDestination')
-    const destination = requestedDestination?.startsWith('/credenciado') ? requestedDestination : '/credenciado'
+    const destino = consumirDestino(DESTINO_DO_CREDENCIADO, DESTINO_DO_CREDENCIADO)
     onProviderLogin()
-    localStorage.removeItem('planAssistePendingProviderFavorite')
-    localStorage.removeItem('planAssisteDestination')
-    navigate(destination)
+    navigate(destino)
   }
 
   function reconhecerCpf(event: FormEvent) {
@@ -67,32 +94,65 @@ export function LoginPage({
       setErro(`CPF não localizado. CPF padrão do protótipo: ${CPF_DA_DEMONSTRACAO}`)
       return
     }
-    setErro('')
-    setEtapa('canal')
-  }
-
-  function enviarCodigo(escolhido: Canal) {
-    setCanal(escolhido)
     setCodigo('')
-    setErro('')
-    setEtapa('codigo')
+    irPara('codigo')
   }
 
   function conferirCodigo(event: FormEvent) {
     event.preventDefault()
-    if (codigo.trim() !== TOKEN_DA_DEMONSTRACAO) {
-      setErro(`Token padrão do protótipo: ${TOKEN_DA_DEMONSTRACAO}`)
+    if (codigo !== TOKEN_DA_DEMONSTRACAO) {
+      setErro(`Código inválido. Token padrão do protótipo: ${TOKEN_DA_DEMONSTRACAO}`)
       return
     }
-    setErro('')
     entrarComoBeneficiario()
   }
 
-  function voltarAoInicioDoAcesso() {
-    setEtapa('cpf')
+  function reenviarCodigo() {
     setCodigo('')
     setErro('')
   }
+
+  const cartoes: Record<Opcao, ReactNode> = {
+    beneficiario: (
+      <section className="login-access-card login-access-card-gov">
+        <h2>Beneficiários</h2>
+        <p>Titulares e dependentes: use sua conta gov.br para acessar os serviços do portal.</p>
+        <GovBrSignInButton className="gov-login-large" onClick={entrarComoBeneficiario} />
+        <p className="login-access-hint">Não tem conta gov.br?</p>
+        <button className="login-access-button login-access-button-outline" type="button" onClick={() => irPara('cpf')}>
+          Entrar com CPF e código de acesso
+        </button>
+      </section>
+    ),
+    equipe: (
+      <section className="login-access-card login-access-card-plain">
+        <h2>Equipe do Plan-Assiste</h2>
+        <p>Servidores e colaboradores: use a sua conta corporativa institucional.</p>
+        <button className="login-access-button" type="button" onClick={entrarComoEquipe}>
+          <Building2 aria-hidden="true" /> Entrar com a conta corporativa
+        </button>
+      </section>
+    ),
+    credenciado: (
+      <section className="login-access-card login-access-card-plain">
+        <h2>Credenciados</h2>
+        <p>
+          Acesso exclusivo para credenciados com credenciamento concluído e ativo no Plan-Assiste.
+          Se ainda não é credenciado, conclua primeiro o processo de credenciamento.
+        </p>
+        <button className="login-access-button" type="button" onClick={() => irPara('credenciado')}>
+          <Stethoscope aria-hidden="true" /> Entrar como credenciado
+        </button>
+        <p className="login-access-note">O CNPJ e a senha são informados na próxima tela.</p>
+        <Link className="login-access-link" to="/plan-assiste/como-se-credenciar-ou-renovar">Solicitar acesso de credenciado</Link>
+      </section>
+    ),
+  }
+
+  const voltarAsOpcoes = (
+    <button type="button" className="back-button" onClick={() => irPara('opcoes')}><ArrowLeft /> Outras formas de entrar</button>
+  )
+  const mensagemDeErro = erro && <p className="field-error-text" role="alert">{erro}</p>
 
   return (
     <main className="login-page">
@@ -103,108 +163,86 @@ export function LoginPage({
           <p>Escolha o tipo de acesso para continuar no portal.</p>
         </div>
 
-        <section className="login-access-card login-access-card-gov">
-          <h2>Beneficiários e equipe</h2>
-          <p>Use sua conta gov.br para acessar os serviços do portal.</p>
-          <GovBrSignInButton className="gov-login-large" onClick={entrarComoBeneficiario} />
+        {etapa === 'opcoes' && opcoes.map((opcao, indice) => (
+          <Fragment key={opcao}>
+            {indice > 0 && <div className="login-divider" aria-hidden="true"><span>ou</span></div>}
+            {cartoes[opcao]}
+          </Fragment>
+        ))}
 
-          <div className="login-divider login-divider-interno" aria-hidden="true"><span>ou</span></div>
+        {etapa === 'cpf' && (
+          <form className="login-step-form" onSubmit={reconhecerCpf}>
+            <label>
+              <span>CPF</span>
+              <input
+                value={cpf}
+                onChange={(evento) => { setCpf(maskCpf(evento.target.value)); setErro('') }}
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                maxLength={TAMANHO_DO_CPF}
+                autoComplete="off"
+                autoFocus
+              />
+            </label>
+            <p className="login-access-note">Enviaremos um código para o e-mail ou telefone cadastrados no seu plano.</p>
+            {mensagemDeErro}
+            <button className="login-access-button" type="submit" disabled={cpf.length < TAMANHO_DO_CPF}>Continuar</button>
+            {voltarAsOpcoes}
+          </form>
+        )}
 
-          {etapa === 'cpf' && (
-            <form className="login-token-form" onSubmit={reconhecerCpf}>
-              <h3><KeyRound aria-hidden="true" /> Acesso por código</h3>
-              <p>Informe seu CPF para receber um código de acesso.</p>
-              <label>
-                <span>CPF</span>
-                <input
-                  value={cpf}
-                  onChange={(evento) => { setCpf(maskCpf(evento.target.value)); setErro('') }}
-                  placeholder="000.000.000-00"
-                  inputMode="numeric"
-                  maxLength={14}
-                  autoComplete="off"
-                />
-              </label>
-              {erro && <p className="field-error-text" role="alert">{erro}</p>}
-              <button className="secondary-button" type="submit">Continuar</button>
-            </form>
-          )}
-
-          {etapa === 'canal' && (
-            <div className="login-token-form">
-              <h3><KeyRound aria-hidden="true" /> Onde receber o código?</h3>
-              <p>Enviaremos um código de seis dígitos para o contato escolhido.</p>
-              <div className="login-token-canais">
-                <button type="button" onClick={() => enviarCodigo('email')}>
-                  <Mail aria-hidden="true" />
-                  <span>
-                    <strong>E-mail</strong>
-                    <small>{contatos.email}</small>
-                  </span>
-                </button>
-                <button type="button" onClick={() => enviarCodigo('telefone')}>
-                  <Smartphone aria-hidden="true" />
-                  <span>
-                    <strong>Telefone</strong>
-                    <small>{contatos.telefone}</small>
-                  </span>
-                </button>
-              </div>
-              <button className="login-token-voltar" type="button" onClick={voltarAoInicioDoAcesso}>
-                Usar outro CPF
-              </button>
+        {etapa === 'codigo' && (
+          <form className="login-step-form" onSubmit={conferirCodigo}>
+            <p className="login-step-message">
+              Enviamos um código de {TAMANHO_DO_TOKEN} dígitos para <strong>{emailDoBeneficiario}</strong>.
+            </p>
+            <label>
+              <span>Código recebido</span>
+              <input
+                className="login-token-codigo"
+                value={codigo}
+                onChange={(evento) => { setCodigo(evento.target.value.replace(/\D/g, '').slice(0, TAMANHO_DO_TOKEN)); setErro('') }}
+                inputMode="numeric"
+                maxLength={TAMANHO_DO_TOKEN}
+                autoComplete="one-time-code"
+                autoFocus
+              />
+            </label>
+            {mensagemDeErro}
+            <button className="login-access-button" type="submit" disabled={codigo.length < TAMANHO_DO_TOKEN}>Entrar</button>
+            <div className="login-step-links">
+              <button type="button" onClick={reenviarCodigo}>Reenviar código</button>
+              <button type="button" onClick={() => irPara('cpf')}>Usar outro CPF</button>
             </div>
-          )}
+            {voltarAsOpcoes}
+          </form>
+        )}
 
-          {etapa === 'codigo' && (
-            <form className="login-token-form" onSubmit={conferirCodigo}>
-              <h3><KeyRound aria-hidden="true" /> Digite o código</h3>
-              <p>
-                Código de seis dígitos enviado para {canal === 'email' ? 'o e-mail' : 'o telefone'}{' '}
-                <strong>{contatos[canal]}</strong>.
-              </p>
-              <label>
-                <span>Código de acesso</span>
-                <input
-                  className="login-token-codigo"
-                  value={codigo}
-                  onChange={(evento) => { setCodigo(evento.target.value.replace(/\D/g, '').slice(0, 6)); setErro('') }}
-                  placeholder="000000"
-                  inputMode="numeric"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  autoFocus
-                />
-              </label>
-              {erro && <p className="field-error-text" role="alert">{erro}</p>}
-              <button className="secondary-button" type="submit">Entrar com o código</button>
-              <div className="login-token-acoes">
-                <button type="button" onClick={() => enviarCodigo(canal)}>Reenviar código</button>
-                <button type="button" onClick={() => setEtapa('canal')}>Trocar o contato</button>
-              </div>
-            </form>
-          )}
-        </section>
-
-        <div className="login-divider" aria-hidden="true"><span>ou</span></div>
-
-        <form className="provider-login-form" onSubmit={loginProvider}>
-          <h2>Credenciados</h2>
-          <p>Acesso exclusivo para credenciados já cadastrados.</p>
-          <label>
-            <span>CNPJ</span>
-            <input placeholder="00.000.000/0000-00" required />
-          </label>
-          <label>
-            <span>Senha</span>
-            <input type="password" placeholder="Digite sua senha" required />
-          </label>
-          <button type="submit">Entrar como credenciado</button>
-          <div className="provider-login-links">
-            <Link to="/fale-conosco">Esqueci minha senha</Link>
-            <Link to="/plan-assiste/como-se-credenciar-ou-renovar">Solicitar acesso de credenciado</Link>
-          </div>
-        </form>
+        {etapa === 'credenciado' && (
+          <form className="login-step-form" onSubmit={entrarComoCredenciado}>
+            <label>
+              <span>CNPJ</span>
+              <input
+                value={cnpj}
+                onChange={(evento) => setCnpj(maskCpfCnpj(evento.target.value))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                maxLength={18}
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              <span>Senha</span>
+              <input type="password" placeholder="Digite sua senha" required />
+            </label>
+            <button className="login-access-button" type="submit">Entrar como credenciado</button>
+            <div className="login-step-links">
+              <Link to="/fale-conosco">Esqueci minha senha</Link>
+            </div>
+            {voltarAsOpcoes}
+          </form>
+        )}
 
         <button type="button" className="back-button" onClick={() => navigate('/')}><ArrowLeft /> Voltar ao portal</button>
       </section>

@@ -36,6 +36,7 @@ import {
 } from '../utils/favorites'
 import { getStoredSession, hasProfile, setActiveProfile, type PortalProfile } from '../utils/session'
 import { generateCaptchaCode } from '../utils/captcha'
+import { loginUrlForDestination } from '../utils/loginAccess'
 import { getCmsSlideshow } from '../cms/siteContentRepository'
 import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 
@@ -123,7 +124,7 @@ export function HomePage({
       return
     }
     localStorage.setItem('planAssisteDestination', service.route)
-    navigate('/login-govbr')
+    navigate(loginUrlForDestination(service.route))
   }
 
   return (
@@ -503,7 +504,7 @@ function AudienceCard({
     }
     if (protectedArea && (!loggedIn || (profile && !hasRequestedProfile))) {
       localStorage.setItem('planAssisteDestination', destination)
-      navigate('/login-govbr')
+      navigate(loginUrlForDestination(destination))
       return
     }
     navigate(destination)
