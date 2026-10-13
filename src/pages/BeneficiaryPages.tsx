@@ -3289,15 +3289,12 @@ const requestIconById: Record<string, LucideIcon> = {
   irpf: FileText,
   'extrato-mes': FileText,
   carteirinhas: IdCard,
-  declaracoes: FileText,
-  'termo-hospital-alto-custo': ClipboardCheck,
   'rede-credenciada': Stethoscope,
   aplicativo: Smartphone,
   'orientacoes-eps': HelpCircle,
   'quem-pode-aderir': BadgeCheck,
   'central-atendimento': HelpCircle,
   'recomendacoes-credenciados': Star,
-  'permanencia-apos-aposentadoria': WalletCards,
   'servico-atualizacao-dados-cadastrais': UserRound,
   'servico-emissao-documentos': IdCard,
   'servico-emissao-carteira-temporaria': IdCard,
@@ -4100,7 +4097,7 @@ export function DependentsPage() {
         <h2>Serviços para dependentes</h2>
         <div className="request-card-grid">
           {beneficiaryRequests
-            .filter((request) => ['inclusao-dependentes', 'servico-atualizacao-dados-cadastrais', 'declaracoes', 'servico-desligamento'].includes(request.id))
+            .filter((request) => ['servico-atualizacao-dados-cadastrais', 'servico-desligamento'].includes(request.id))
             .map((request) => <RequestCard request={request} key={request.id} />)}
         </div>
       </section>
