@@ -2,7 +2,7 @@ export type PortalProfile = 'beneficiary' | 'team' | 'provider'
 
 export type PortalSession = {
   authenticated: boolean
-  authMethod: 'govbr' | 'provider' | null
+  authMethod: 'govbr' | 'corporate' | 'provider' | null
   displayName: string
   roleLabel: string
   profiles: PortalProfile[]
@@ -60,6 +60,16 @@ export function createGovBrSession(): PortalSession {
     roleLabel: 'Beneficiária e equipe',
     profiles: ['beneficiary', 'team'],
     activeProfile: 'beneficiary',
+  }
+}
+
+/** Equipe entrando com a conta corporativa: mesmos perfis do gov.br, abrindo na área da equipe. */
+export function createTeamSession(): PortalSession {
+  return {
+    ...createGovBrSession(),
+    authMethod: 'corporate',
+    roleLabel: 'Área da equipe',
+    activeProfile: 'team',
   }
 }
 

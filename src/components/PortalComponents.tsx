@@ -47,17 +47,14 @@ import {
   type BeneficiaryNotification,
 } from '../utils/notifications'
 import {
-  createGovBrSession,
-  createProviderSession,
   getProfileHome,
   getStoredSession,
   setActiveProfile,
-  storeSession,
   type PortalProfile,
 } from '../utils/session'
 import { getStoredUserProfile } from '../utils/userProfile'
+import { loginUrlFor } from '../utils/loginAccess'
 import { nomeExibicao } from '../utils/nomeSocial'
-import { GovBrSignInButton } from './GovBrSignInButton'
 import { getCmsAddresses, getCmsContactChannels, getCmsSocialLinks } from '../cms/siteContentRepository'
 export { ProviderSearch } from './ProviderNetwork'
 
@@ -135,7 +132,6 @@ export function Header({
   onLogout?: () => void
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
-  const [loginOpen, setLoginOpen] = useState(false)
   const [notifications, setNotifications] = useState<BeneficiaryNotification[]>(() => getStoredNotifications())
   const [userProfile, setUserProfile] = useState(() => getStoredUserProfile())
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -143,6 +139,11 @@ export function Header({
   const navigate = useNavigate()
   const session = getStoredSession()
   const activeProfile = session.activeProfile
+
+  function openLogin() {
+    localStorage.removeItem('planAssisteDestination')
+    navigate(loginUrlFor('portal'))
+  }
   const canSeeBeneficiary = activeProfile === 'beneficiary'
   const profileAvatar = activeProfile === 'provider'
     ? (userProfile.providerAvatar || '/assets/provider-clinic-logo.svg')
@@ -323,14 +324,13 @@ export function Header({
               </div>
             </>
           ) : (
-            <button className="login-button" type="button" onClick={() => setLoginOpen(true)}>
+            <button className="login-button" type="button" onClick={openLogin}>
               <LogIn aria-hidden="true" />
               Login
             </button>
           )}
         </div>
       </div>
-      {loginOpen && <LoginDialog onClose={() => setLoginOpen(false)} />}
     </header>
   )
 }
@@ -449,69 +449,6 @@ export function MainMenu({ loggedIn = false }: { loggedIn?: boolean }) {
         <button className="search-menu" type="button" aria-label="Abrir busca" onClick={() => setSearching(true)}><Search /></button>
       </div>
     </nav>
-  )
-}
-
-function LoginDialog({ onClose }: { onClose: () => void }) {
-  const navigate = useNavigate()
-  const [cnpj, setCnpj] = useState('')
-  const [password, setPassword] = useState('')
-
-  function loginGovBr() {
-    const destination = localStorage.getItem('planAssisteDestination') || '/beneficiario'
-    storeSession(createGovBrSession())
-    localStorage.removeItem('planAssistePendingProviderFavorite')
-    localStorage.removeItem('planAssisteDestination')
-    onClose()
-    navigate(destination)
-  }
-
-  function loginProvider(event: FormEvent) {
-    event.preventDefault()
-    if (!cnpj.trim() || !password.trim()) return
-    const requestedDestination = localStorage.getItem('planAssisteDestination')
-    const destination = requestedDestination?.startsWith('/credenciado') ? requestedDestination : '/credenciado'
-    storeSession(createProviderSession())
-    localStorage.removeItem('planAssistePendingProviderFavorite')
-    localStorage.removeItem('planAssisteDestination')
-    onClose()
-    navigate(destination)
-  }
-
-  return (
-    <div className="login-modal-backdrop" role="presentation">
-      <section className="login-modal-card" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
-        <button className="login-modal-close" type="button" onClick={onClose} aria-label="Fechar login"><X /></button>
-        <Logo />
-        <div className="login-intro">
-          <h2 id="login-modal-title">Acesse o Plan-Assiste</h2>
-          <p>Escolha o tipo de acesso para continuar no portal.</p>
-        </div>
-        <section className="login-access-card login-access-card-gov">
-          <h3>Beneficiários e equipe</h3>
-          <p>Use sua conta gov.br para acessar os serviços do portal.</p>
-          <GovBrSignInButton className="gov-login-large" onClick={loginGovBr} />
-        </section>
-        <div className="login-divider" aria-hidden="true"><span>ou</span></div>
-        <form className="provider-login-form" onSubmit={loginProvider}>
-          <h3>Credenciados</h3>
-          <p>Acesso exclusivo para credenciados já credenciados. Para obter acesso, conclua primeiro o processo de credenciamento.</p>
-          <label>
-            <span>CNPJ</span>
-            <input value={cnpj} onChange={(event) => setCnpj(event.target.value)} placeholder="00.000.000/0000-00" required />
-          </label>
-          <label>
-            <span>Senha</span>
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Digite sua senha" required />
-          </label>
-          <button type="submit">Entrar como credenciado</button>
-          <div className="provider-login-links">
-            <Link to="/fale-conosco" onClick={onClose}>Esqueci minha senha</Link>
-            <Link to="/plan-assiste/como-se-credenciar-ou-renovar" onClick={onClose}>Como se credenciar e obter acesso</Link>
-          </div>
-        </form>
-      </section>
-    </div>
   )
 }
 

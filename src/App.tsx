@@ -1,5 +1,5 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BackToTop, ScrollEnhancements } from './components/PortalComponents'
 import { VLibrasWidget } from './components/VLibrasWidget'
 import { AiChatWidget } from './components/AiChatWidget'
@@ -81,6 +81,7 @@ import {
   clearSession,
   createGovBrSession,
   createProviderSession,
+  createTeamSession,
   getProfileHome,
   getStoredSession,
   hasProfile,
@@ -88,6 +89,7 @@ import {
   type PortalProfile,
   type PortalSession,
 } from './utils/session'
+import { loginUrlForDestination } from './utils/loginAccess'
 
 const TransparenciaPage = lazy(() =>
   import('./pages/TransparenciaPage').then((module) => ({ default: module.TransparenciaPage })),
@@ -120,7 +122,7 @@ function RequireAuth({
 
   if (!session.authenticated) {
     localStorage.setItem('planAssisteDestination', `${location.pathname}${location.search}`)
-    return <Navigate to="/login-govbr" replace />
+    return <Navigate to={loginUrlForDestination(location.pathname)} replace />
   }
 
   if (profile && !hasProfile(session, profile)) {
@@ -135,7 +137,10 @@ function RequireAuth({
 }
 
 function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [session, setSession] = useState<PortalSession>(() => getStoredSession())
+  const loggingOutRef = useRef(false)
   const loggedIn = session.authenticated
 
   useEffect(() => {
@@ -166,15 +171,34 @@ function App() {
     setSession(nextSession)
   }
 
+  function loginTeam() {
+    const nextSession = createTeamSession()
+    storeSession(nextSession)
+    setSession(nextSession)
+  }
+
   function loginProvider() {
     const nextSession = createProviderSession()
     storeSession(nextSession)
     setSession(nextSession)
   }
 
-  function logout() {
+  // A sessao so e limpa depois que a inicial estiver ativa; limpar antes faz a rota
+  // protegida em que o usuario estava redireciona-lo para o login. O estado acompanha
+  // pelo evento planAssisteSessionUpdated, que clearSession dispara.
+  useEffect(() => {
+    if (!loggingOutRef.current || location.pathname !== '/') return
+    loggingOutRef.current = false
     clearSession()
-    setSession(getStoredSession())
+  }, [location.pathname])
+
+  function logout() {
+    if (location.pathname === '/') {
+      clearSession()
+      return
+    }
+    loggingOutRef.current = true
+    navigate('/', { replace: true })
   }
 
   return (
@@ -183,7 +207,7 @@ function App() {
       <CookieConsent />
       <Routes>
         <Route path="/" element={<HomePage loggedIn={loggedIn} onLogout={logout} />} />
-        <Route path="/login-govbr" element={<LoginPage onGovLogin={loginGovBr} onProviderLogin={loginProvider} />} />
+        <Route path="/login-govbr" element={<LoginPage onGovLogin={loginGovBr} onTeamLogin={loginTeam} onProviderLogin={loginProvider} />} />
         <Route path="/rede-credenciada" element={<PublicProviderNetworkPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/rede-credenciada/credenciado/:id" element={<PublicProviderDetailsPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/rede-credenciada/prestador/:id" element={<LegacyCredenciadoRedirect />} />
