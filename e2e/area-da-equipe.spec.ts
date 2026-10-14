@@ -1,11 +1,11 @@
-import { test, expect } from './fixtures'
+import { test, expect, entrarComoEquipe } from './fixtures'
 
 const CENTRAL_DE_SERVICOS = 'https://atendente.planassiste.mpu.mp.br/'
 
 test.describe('Área da equipe', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login-govbr')
-    await page.getByRole('button', { name: 'Entrar com a conta corporativa' }).click()
+    await page.goto('/login-govbr?acesso=equipe')
+    await entrarComoEquipe(page)
     await expect(page).toHaveURL(/\/area-da-equipe$/)
   })
 

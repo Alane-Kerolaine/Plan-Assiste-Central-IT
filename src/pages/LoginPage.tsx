@@ -6,7 +6,8 @@ import { getStoredUserProfile } from '../utils/userProfile'
 import { emailMascarado } from '../utils/contatoMascarado'
 import { isCpfValido } from '../utils/cpf'
 import { maskCpf } from '../utils/inputMasks'
-import { getLoginAccessParam, type LoginAccess } from '../utils/loginAccess'
+import { getLoginAccessParam, loginUrlFor, type LoginAccess } from '../utils/loginAccess'
+import { TeamLoginScreen } from './TeamLoginScreen'
 
 /** Codigo aceito na demonstracao. Nao ha envio real de e-mail. */
 const TOKEN_DA_DEMONSTRACAO = '000000'
@@ -25,7 +26,7 @@ const TAMANHO_DO_CPF = CPF_DA_DEMONSTRACAO.length
 type Etapa = 'opcoes' | 'cpf' | 'codigo'
 type Opcao = 'beneficiario' | 'equipe'
 
-const OPCOES_POR_ACESSO: Record<LoginAccess, Opcao[]> = {
+const OPCOES_POR_ACESSO: Record<Exclude<LoginAccess, 'equipe'>, Opcao[]> = {
   beneficiario: ['beneficiario'],
   todos: ['beneficiario', 'equipe'],
 }
@@ -50,7 +51,9 @@ export function LoginPage({
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const opcoes = OPCOES_POR_ACESSO[getLoginAccessParam(searchParams)]
+  const acesso = getLoginAccessParam(searchParams)
+  // 'equipe' nao tem cartoes: abre direto o login da equipe (Citsmart).
+  const opcoes = acesso === 'equipe' ? [] : OPCOES_POR_ACESSO[acesso]
 
   const [etapa, setEtapa] = useState<Etapa>('opcoes')
   const [cpf, setCpf] = useState('')
@@ -116,7 +119,7 @@ export function LoginPage({
       <section className="login-access-card login-access-card-plain">
         <h2>Equipe do Plan-Assiste</h2>
         <p>Servidores e colaboradores: use a sua conta corporativa institucional.</p>
-        <button className="login-access-button" type="button" onClick={entrarComoEquipe}>
+        <button className="login-access-button" type="button" onClick={() => navigate(loginUrlFor('equipe'))}>
           <Building2 aria-hidden="true" /> Entrar com a conta corporativa
         </button>
       </section>
@@ -127,6 +130,8 @@ export function LoginPage({
     <button type="button" className="back-button" onClick={() => irPara('opcoes')}><ArrowLeft /> Outras formas de entrar</button>
   )
   const mensagemDeErro = erro && <p className="field-error-text" role="alert">{erro}</p>
+
+  if (acesso === 'equipe') return <TeamLoginScreen onLogin={entrarComoEquipe} />
 
   return (
     <main className="login-page">

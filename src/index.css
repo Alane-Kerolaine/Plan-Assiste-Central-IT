@@ -1654,6 +1654,32 @@ select:not([multiple]) {
 .login-step-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .login-step-links button, .login-step-links a { border: 0; background: none; padding: 0; color: var(--brand-strong); font-size: 15px; font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 3px; }
 .login-step-form .back-button { margin-top: 8px; }
+/* Login da Equipe do Plan-Assiste, no visual do Citsmart X ("Meu Plan-Assiste"). */
+.team-login-page { --citsmart-petroleo: #005f78; --citsmart-campo: #e8f0fe; --citsmart-linha: #8a9aa8; display: grid; place-items: center; min-height: 100dvh; padding: 24px 16px; background: #ecebe7; font-family: Roboto, Arial, Helvetica, sans-serif; }
+.team-login-card { width: min(100%, 416px); border: 1px solid #d9d7d2; border-radius: 22px; background: white; padding: 56px 30px 36px; box-shadow: 0 2px 4px rgba(0, 0, 0, .12); }
+.team-login-logo { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 70px; }
+.team-login-logo svg { width: 64px; height: 64px; flex: none; }
+.team-login-logo span { display: grid; font-family: "Titillium Web", Arial, sans-serif; line-height: .95; }
+.team-login-logo-meu { color: #0b7a66; font-size: 34px; font-weight: 700; }
+.team-login-logo-nome { color: #00c896; font-size: 34px; font-weight: 700; letter-spacing: -.01em; }
+.team-login-intro { margin: 0 0 20px; color: #2b2b2b; font-family: inherit; font-size: 16px; font-weight: 400; line-height: 1.4; }
+.team-login-form { display: grid; gap: 16px; }
+.team-login-field { display: flex; align-items: stretch; min-height: 56px; border-bottom: 1px solid var(--citsmart-linha); background: var(--citsmart-campo); }
+.team-login-field:focus-within { border-bottom: 2px solid var(--citsmart-petroleo); }
+.team-login-field > svg, .team-login-field label > svg { flex: none; align-self: center; width: 20px; height: 20px; margin: 0 16px 0 12px; color: var(--citsmart-petroleo); fill: currentColor; }
+.team-login-field label { display: flex; flex: 1; align-items: stretch; min-width: 0; }
+.team-login-field input { flex: 1; min-width: 0; border: 0; background: transparent; color: #222; padding: 0 12px 0 0; font: inherit; font-size: 16px; outline: none; }
+.team-login-field input::placeholder { color: #5f7d3f; opacity: 1; }
+.team-login-field-password input::placeholder { color: #8f9aa3; }
+.team-login-toggle { display: grid; place-items: center; width: 40px; flex: none; border: 0; background: #f2f2f2; color: var(--citsmart-petroleo); }
+.team-login-toggle svg { width: 20px; height: 20px; }
+.team-login-toggle:focus-visible { outline: 2px solid var(--citsmart-petroleo); outline-offset: -2px; }
+.team-login-submit { min-height: 36px; margin-top: 16px; border: 0; border-radius: 4px; background: var(--citsmart-petroleo); color: white; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: -.01em; box-shadow: 0 2px 4px rgba(0, 0, 0, .22); }
+.team-login-submit:hover { background: #004b5f; }
+.team-login-submit:focus-visible { outline: 2px solid #003746; outline-offset: 2px; }
+.team-login-links { margin: 14px 0 0; padding-left: 40px; color: #222; font-size: 16px; }
+.team-login-links button { border: 0; background: none; padding: 0; color: #6b8e00; font: inherit; cursor: pointer; }
+.team-login-links button:hover { text-decoration: underline; }
 .login-token-codigo { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: var(--fw-semibold); }
 
 .login-divider { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin: 12px 0; color: var(--brand-dark); font-size: 16px; font-weight: var(--fw-semibold); text-transform: lowercase; }
