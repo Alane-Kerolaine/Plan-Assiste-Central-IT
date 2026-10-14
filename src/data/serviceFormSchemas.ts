@@ -330,6 +330,7 @@ const SIMPLE_SERVICES: { slug: string, title: string }[] = [
   { slug: 'tratamento-odontologico-duvidas', title: 'Tratamento odontológico (dúvidas, informações e esclarecimentos)' },
   { slug: 'auxilio-materiais-saude', title: 'Auxílio de materiais de saúde' },
   { slug: 'transporte-tratamento-fora-domicilio', title: 'Transporte de paciente em tratamento fora do domicílio' },
+  { slug: 'transporte-diarias-acompanhante', title: 'Transporte com cobertura de diárias para acompanhante' },
   { slug: 'despesas-saude-duvidas', title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)' },
   { slug: 'recurso-informacoes-financeiras', title: 'Recurso / contestação de informações financeiras' },
   { slug: 'atualizacao-site', title: 'Atualização do site' },
