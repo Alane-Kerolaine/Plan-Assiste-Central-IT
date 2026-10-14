@@ -1,4 +1,13 @@
-import { test, expect } from './fixtures'
+import { test, expect, type Page } from './fixtures'
+
+/** O menu do perfil fecha se a pagina rolar; volta ao topo e tenta de novo ate abrir. */
+async function sairPeloMenuDoPerfil(page: Page) {
+  await expect(async () => {
+    await page.evaluate('window.scrollTo(0, 0)')
+    await page.getByRole('button', { name: 'Abrir menu de perfil' }).click()
+    await page.locator('.profile-popover').getByRole('button', { name: 'Sair' }).click({ timeout: 2000 })
+  }).toPass({ timeout: 15000 })
+}
 
 test.describe('Sair', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,8 +22,7 @@ test.describe('Sair', () => {
   })
 
   test('pelo menu do perfil volta para a página inicial, não para o login', async ({ page }) => {
-    await page.getByRole('button', { name: 'Abrir menu de perfil' }).click()
-    await page.locator('.profile-popover').getByRole('button', { name: 'Sair' }).click()
+    await sairPeloMenuDoPerfil(page)
 
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible()
@@ -22,8 +30,7 @@ test.describe('Sair', () => {
 
   test('estando na página inicial, continua nela e desloga', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'Abrir menu de perfil' }).click()
-    await page.locator('.profile-popover').getByRole('button', { name: 'Sair' }).click()
+    await sairPeloMenuDoPerfil(page)
 
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible()

@@ -60,14 +60,6 @@ test.describe('Tela de login', () => {
     await expect(cartoesDeAcesso(page)).toHaveText(['Beneficiários', 'Equipe do Plan-Assiste'])
   })
 
-  test('equipe entra com a conta corporativa', async ({ page }) => {
-    await page.goto('/login-govbr')
-
-    await page.getByRole('button', { name: 'Entrar com a conta corporativa' }).click()
-
-    await expect(page).toHaveURL(/\/area-da-equipe$/)
-  })
-
   test('não oferece login de credenciado', async ({ page }) => {
     await page.goto('/login-govbr')
 

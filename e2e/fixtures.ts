@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test'
+import { test as base, expect, type Page } from '@playwright/test'
 
 /**
  * Page que fecha o banner de cookies sempre que ele aparecer, para que ele
@@ -13,4 +13,11 @@ export const test = base.extend({
   },
 })
 
-export { expect }
+/** Preenche e envia o login da equipe (tela do Citsmart). */
+export async function entrarComoEquipe(page: Page) {
+  await page.getByPlaceholder('Digite seu nome de usuário ou e-mail *').fill('ana.maria')
+  await page.getByPlaceholder('Digite sua senha*').fill('senha-de-teste')
+  await page.getByRole('button', { name: 'Entrar No Citsmart X' }).click()
+}
+
+export { expect, type Page }
