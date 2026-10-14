@@ -3333,6 +3333,7 @@ const requestIconById: Record<string, LucideIcon> = {
   'servico-tratamento-odontologico-duvidas': Stethoscope,
   'servico-auxilio-materiais-saude': HandCoins,
   'servico-transporte-tratamento-fora-domicilio': MapPin,
+  'servico-transporte-diarias-acompanhante': MapPin,
   'servico-despesas-saude-duvidas': CircleDollarSign,
   'servico-recurso-informacoes-financeiras': WalletCards,
   'servico-denuncia-reclamacao': AlertTriangle,

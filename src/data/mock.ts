@@ -1156,6 +1156,15 @@ export const beneficiaryRequests: BeneficiaryRequest[] = [
     route: '/beneficiario/servicos/transporte-tratamento-fora-domicilio/nova-solicitacao',
   },
   {
+    id: 'servico-transporte-diarias-acompanhante',
+    title: 'Transporte com cobertura de diárias para acompanhante',
+    category: 'Reembolso e auxílios',
+    description: 'Solicite auxílio de transporte com cobertura de diárias para o acompanhante do paciente em tratamento.',
+    tags: ['Transporte', 'Diárias', 'Acompanhante', 'Auxílio'],
+    action: 'Solicitar auxílio',
+    route: '/beneficiario/servicos/transporte-diarias-acompanhante/nova-solicitacao',
+  },
+  {
     id: 'servico-despesas-saude-duvidas',
     title: 'Atendimento - despesas de saúde (dúvidas, informações e esclarecimentos)',
     category: 'Financeiro',
