@@ -4,7 +4,7 @@ const CENTRAL_DE_SERVICOS = 'https://atendente.planassiste.mpu.mp.br/'
 
 test.describe('Área da equipe', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login-govbr?acesso=portal')
+    await page.goto('/login-govbr')
     await page.getByRole('button', { name: 'Entrar com a conta corporativa' }).click()
     await expect(page).toHaveURL(/\/area-da-equipe$/)
   })

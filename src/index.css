@@ -83,13 +83,6 @@ body[data-portal-profile="beneficiary"] {
   --profile-accent: #02c491;
 }
 
-body[data-portal-profile="provider"] {
-  --portal-bar: #3f6f67;
-  --portal-bar-strong: #315c55;
-  --portal-bar-dark: #254b45;
-  --profile-accent: #4a7b73;
-}
-
 body[data-portal-profile="team"] {
   --portal-bar: #197686;
   --portal-bar-strong: #0f4c56;
@@ -2907,6 +2900,10 @@ select:not([multiple]) {
 .info-longform p:last-child { margin-bottom: 0; }
 
 .provider-public-theme {
+  --portal-bar: #3f6f67;
+  --portal-bar-strong: #315c55;
+  --portal-bar-dark: #254b45;
+  --profile-accent: #4a7b73;
   --brand-primary: #3f6f67;
   --brand-strong: #315c55;
   --brand-dark: #3f6f67;

@@ -19,7 +19,6 @@ import {
   ProviderBillingDetailPage,
   ProviderBillingPage,
   ProviderDashboardPage,
-  ProviderPublicProfilePage,
   SearchPage,
   StaticInfoPage,
   TeamDashboardPage,
@@ -80,7 +79,6 @@ import { isFeatureInstrucoesCondicionaisEnabled } from './utils/featureFlags'
 import {
   clearSession,
   createGovBrSession,
-  createProviderSession,
   createTeamSession,
   getProfileHome,
   getStoredSession,
@@ -177,12 +175,6 @@ function App() {
     setSession(nextSession)
   }
 
-  function loginProvider() {
-    const nextSession = createProviderSession()
-    storeSession(nextSession)
-    setSession(nextSession)
-  }
-
   // A sessao so e limpa depois que a inicial estiver ativa; limpar antes faz a rota
   // protegida em que o usuario estava redireciona-lo para o login. O estado acompanha
   // pelo evento planAssisteSessionUpdated, que clearSession dispara.
@@ -207,7 +199,7 @@ function App() {
       <CookieConsent />
       <Routes>
         <Route path="/" element={<HomePage loggedIn={loggedIn} onLogout={logout} />} />
-        <Route path="/login-govbr" element={<LoginPage onGovLogin={loginGovBr} onTeamLogin={loginTeam} onProviderLogin={loginProvider} />} />
+        <Route path="/login-govbr" element={<LoginPage onGovLogin={loginGovBr} onTeamLogin={loginTeam} />} />
         <Route path="/rede-credenciada" element={<PublicProviderNetworkPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/rede-credenciada/credenciado/:id" element={<PublicProviderDetailsPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/rede-credenciada/prestador/:id" element={<LegacyCredenciadoRedirect />} />
@@ -246,46 +238,12 @@ function App() {
         />
         <Route path="/transparencia/*" element={<CmsPaginaCriadaPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/busca" element={<SearchPage loggedIn={loggedIn} onLogout={logout} />} />
-        <Route
-          path="/credenciado"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderDashboardPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/pagina-do-credenciado"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderPublicProfilePage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/autorizacoes"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderAuthorizationsPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/faturamento"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderBillingPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/credenciado/faturamento/:section"
-          element={
-            <RequireAuth session={session} profile="provider">
-              <ProviderBillingDetailPage loggedIn={loggedIn} onLogout={logout} />
-            </RequireAuth>
-          }
-        />
+        {/* Area do credenciado e publica: o credenciado nao faz login no portal. */}
+        <Route path="/credenciado" element={<ProviderDashboardPage loggedIn={loggedIn} onLogout={logout} />} />
+        <Route path="/credenciado/autorizacoes" element={<ProviderAuthorizationsPage loggedIn={loggedIn} onLogout={logout} />} />
+        <Route path="/credenciado/faturamento" element={<ProviderBillingPage loggedIn={loggedIn} onLogout={logout} />} />
+        <Route path="/credenciado/faturamento/:section" element={<ProviderBillingDetailPage loggedIn={loggedIn} onLogout={logout} />} />
+        <Route path="/credenciado/pagina-do-credenciado" element={<Navigate to="/credenciado" replace />} />
         <Route path="/prestador/*" element={<LegacyCredenciadoRedirect />} />
         <Route
           path="/area-da-equipe"

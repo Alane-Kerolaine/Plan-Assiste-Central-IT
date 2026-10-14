@@ -33,7 +33,6 @@ import {
   PersonStanding,
   Scale,
   Search,
-  Save,
   Send,
   Share2,
   ShieldCheck,
@@ -80,8 +79,6 @@ import { AtalhoDeEdicao } from '../components/AtalhoDeEdicao'
 import { dentroDoEditor } from '../utils/modoEdicao'
 import { caminhoDoSlug, trilhaDaPagina } from '../cms/portalNavegacao'
 import { supportChannels } from '../data/supportChannels'
-import { getStoredUserProfile } from '../utils/userProfile'
-import { getProviderPublicProfile, providerTagOptions, saveProviderPublicProfile, testProviderId, type ProviderPublicProfile } from '../utils/providerPublicProfile'
 
 export type PublicPageProps = {
   loggedIn: boolean
@@ -2061,11 +2058,7 @@ export function PublicShell({
   themeClass = '',
 }: PublicPageProps & { children: React.ReactNode, themeClass?: string }) {
   const activeProfile = loggedIn ? getStoredSession().activeProfile : null
-  const profileThemeClass = activeProfile === 'team'
-    ? 'team-public-theme'
-    : activeProfile === 'provider'
-      ? 'provider-public-theme'
-      : ''
+  const profileThemeClass = activeProfile === 'team' ? 'team-public-theme' : ''
   const shellClassName = [profileThemeClass, themeClass].filter(Boolean).join(' ')
   return (
     <div className={shellClassName}>
@@ -4313,13 +4306,6 @@ const providerSidebarGroups: AreaSidebarGroup[] = [
       { label: 'Portal TISS', to: 'https://sistema.planassiste.mpu.mp.br/portaltiss/login.aspx', icon: MonitorCheck, external: true },
     ],
   },
-  {
-    label: 'Minha conta',
-    items: [
-      { label: 'Meus dados', to: '/minha-area', icon: UserPlus },
-      { label: 'Página do credenciado', to: '/credenciado/pagina-do-credenciado', icon: Globe2 },
-    ],
-  },
 ]
 
 const teamSidebarGroups: AreaSidebarGroup[] = [
@@ -4357,7 +4343,8 @@ export function RestrictedAreaPageFrame({
 }) {
   const providerArea = area === 'provider'
   return (
-    <PublicShell loggedIn={loggedIn} onLogout={onLogout}>
+    // A area do credenciado e publica: a cor vem da area, nao do perfil logado.
+    <PublicShell loggedIn={loggedIn} onLogout={onLogout} themeClass={providerArea ? 'provider-public-theme' : ''}>
       <main className={`container public-page ${providerArea ? 'provider-dashboard-page' : 'team-dashboard-page'}`}>
         <PublicBreadcrumb current={breadcrumb} />
         <div className="beneficiary-grid restricted-area-grid">
@@ -4406,62 +4393,6 @@ export function ProviderDashboardPage({ loggedIn, onLogout }: PublicPageProps) {
             )
           })}
         </section>
-    </RestrictedAreaPageFrame>
-  )
-}
-
-export function ProviderPublicProfilePage({ loggedIn, onLogout }: PublicPageProps) {
-  const [profile, setProfile] = useState<ProviderPublicProfile>(getProviderPublicProfile)
-  const [notice, setNotice] = useState('')
-  const user = getStoredUserProfile()
-
-  function toggleTag(tag: string) {
-    setProfile((current) => ({
-      ...current,
-      tags: current.tags.includes(tag) ? current.tags.filter((item) => item !== tag) : [...current.tags, tag],
-    }))
-  }
-
-  function save(event: FormEvent) {
-    event.preventDefault()
-    saveProviderPublicProfile(profile)
-    setNotice('Página atualizada. As alterações já estão disponíveis na Rede credenciada.')
-  }
-
-  return (
-    <RestrictedAreaPageFrame area="provider" breadcrumb="Página do credenciado" loggedIn={loggedIn} onLogout={onLogout}>
-      <section className="simple-page-heading provider-dashboard-heading">
-        <div><h1>Página do credenciado</h1><p>Personalize as informações complementares exibidas na Rede credenciada.</p></div>
-        <Link className="secondary-button" to={`/rede-credenciada/credenciado/${testProviderId}`} target="_blank">Visualizar página <ExternalLink aria-hidden="true" /></Link>
-      </section>
-
-      <form className="provider-public-profile-form" onSubmit={save}>
-        <section className="my-data-card">
-          <div className="my-data-card-heading"><Building2 aria-hidden="true" /><div><h2>Dados do cadastro</h2><p>Estas informações são atualizadas automaticamente a partir de Meus dados.</p></div></div>
-          <div className="my-data-grid">
-            <label>Nome do credenciado<input value="Clínica Saúde & Vida" disabled /></label>
-            <label>E-mail<input value={user.providerEmail || ''} disabled /></label>
-            <label>Telefone<input value={user.phone} disabled /></label>
-            <label>WhatsApp<input value={user.providerWhatsapp || ''} disabled /></label>
-            <label className="my-data-wide">Endereço<input value={[user.address.street, user.address.number, user.address.complement, user.address.district, `${user.address.city}/${user.address.state}`].filter(Boolean).join(', ')} disabled /></label>
-          </div>
-          <Link className="text-link" to="/minha-area">Atualizar em Meus dados <ArrowRight aria-hidden="true" /></Link>
-        </section>
-
-        <section className="my-data-card">
-          <div className="my-data-card-heading"><Globe2 aria-hidden="true" /><div><h2>Informações da página</h2><p>Os campos abaixo aparecem apenas na apresentação pública do credenciado.</p></div></div>
-          <div className="my-data-grid">
-            <label className="my-data-wide">Horário de atendimento<input value={profile.openingStatus} onChange={(event) => setProfile({ ...profile, openingStatus: event.target.value })} placeholder="Ex.: segunda a sexta, das 8h às 18h" /></label>
-            <label>Website<input type="url" value={profile.website} onChange={(event) => setProfile({ ...profile, website: event.target.value })} placeholder="https://" /></label>
-            <label>Localização no Google Maps<input value={profile.mapsQuery} onChange={(event) => setProfile({ ...profile, mapsQuery: event.target.value })} placeholder="Endereço ou link do Google Maps" /></label>
-            <label className="my-data-wide">Observação (opcional)<textarea value={profile.observation} onChange={(event) => setProfile({ ...profile, observation: event.target.value })} placeholder="Informação adicional exibida somente nesta página" /></label>
-          </div>
-          <fieldset className="provider-profile-tags"><legend>Informações e serviços exibidos</legend><p>Selecione as opções que devem aparecer como tags no perfil.</p><div>{providerTagOptions.map((tag) => <label key={tag}><input type="checkbox" checked={profile.tags.includes(tag)} onChange={() => toggleTag(tag)} /> {tag}</label>)}</div></fieldset>
-        </section>
-
-        {notice && <p className="form-status success" role="status">{notice}</p>}
-        <div className="my-data-actions"><button className="primary-button" type="submit"><Save aria-hidden="true" /> Salvar página</button></div>
-      </form>
     </RestrictedAreaPageFrame>
   )
 }

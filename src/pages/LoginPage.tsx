@@ -1,11 +1,11 @@
 import { Fragment, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, Building2, Stethoscope } from 'lucide-react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Building2 } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GovBrSignInButton } from '../components/GovBrSignInButton'
 import { getStoredUserProfile } from '../utils/userProfile'
 import { emailMascarado } from '../utils/contatoMascarado'
 import { isCpfValido } from '../utils/cpf'
-import { maskCpf, maskCpfCnpj } from '../utils/inputMasks'
+import { maskCpf } from '../utils/inputMasks'
 import { getLoginAccessParam, type LoginAccess } from '../utils/loginAccess'
 
 /** Codigo aceito na demonstracao. Nao ha envio real de e-mail. */
@@ -22,18 +22,16 @@ const TAMANHO_DO_TOKEN = TOKEN_DA_DEMONSTRACAO.length
 const CPF_DA_DEMONSTRACAO = '000.000.000-00'
 const TAMANHO_DO_CPF = CPF_DA_DEMONSTRACAO.length
 
-type Etapa = 'opcoes' | 'cpf' | 'codigo' | 'credenciado'
-type Opcao = 'beneficiario' | 'equipe' | 'credenciado'
+type Etapa = 'opcoes' | 'cpf' | 'codigo'
+type Opcao = 'beneficiario' | 'equipe'
 
 const OPCOES_POR_ACESSO: Record<LoginAccess, Opcao[]> = {
   beneficiario: ['beneficiario'],
-  portal: ['beneficiario', 'equipe'],
-  todos: ['beneficiario', 'equipe', 'credenciado'],
+  todos: ['beneficiario', 'equipe'],
 }
 
 const DESTINO_DO_BENEFICIARIO = '/beneficiario'
 const DESTINO_DA_EQUIPE = '/area-da-equipe'
-const DESTINO_DO_CREDENCIADO = '/credenciado'
 
 /** Destino pedido antes do login, se for da area de quem esta entrando; senao, a home da area. */
 function consumirDestino(prefixo: string, padrao: string) {
@@ -46,11 +44,9 @@ function consumirDestino(prefixo: string, padrao: string) {
 export function LoginPage({
   onGovLogin,
   onTeamLogin,
-  onProviderLogin,
 }: {
   onGovLogin: () => void
   onTeamLogin: () => void
-  onProviderLogin: () => void
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -59,7 +55,6 @@ export function LoginPage({
   const [etapa, setEtapa] = useState<Etapa>('opcoes')
   const [cpf, setCpf] = useState('')
   const [codigo, setCodigo] = useState('')
-  const [cnpj, setCnpj] = useState('')
   const [erro, setErro] = useState('')
   const emailDoBeneficiario = emailMascarado(getStoredUserProfile().email)
 
@@ -78,13 +73,6 @@ export function LoginPage({
   function entrarComoEquipe() {
     const destino = consumirDestino(DESTINO_DA_EQUIPE, DESTINO_DA_EQUIPE)
     onTeamLogin()
-    navigate(destino)
-  }
-
-  function entrarComoCredenciado(event: FormEvent) {
-    event.preventDefault()
-    const destino = consumirDestino(DESTINO_DO_CREDENCIADO, DESTINO_DO_CREDENCIADO)
-    onProviderLogin()
     navigate(destino)
   }
 
@@ -131,20 +119,6 @@ export function LoginPage({
         <button className="login-access-button" type="button" onClick={entrarComoEquipe}>
           <Building2 aria-hidden="true" /> Entrar com a conta corporativa
         </button>
-      </section>
-    ),
-    credenciado: (
-      <section className="login-access-card login-access-card-plain">
-        <h2>Credenciados</h2>
-        <p>
-          Acesso exclusivo para credenciados com credenciamento concluído e ativo no Plan-Assiste.
-          Se ainda não é credenciado, conclua primeiro o processo de credenciamento.
-        </p>
-        <button className="login-access-button" type="button" onClick={() => irPara('credenciado')}>
-          <Stethoscope aria-hidden="true" /> Entrar como credenciado
-        </button>
-        <p className="login-access-note">O CNPJ e a senha são informados na próxima tela.</p>
-        <Link className="login-access-link" to="/plan-assiste/como-se-credenciar-ou-renovar">Solicitar acesso de credenciado</Link>
       </section>
     ),
   }
@@ -218,31 +192,6 @@ export function LoginPage({
           </form>
         )}
 
-        {etapa === 'credenciado' && (
-          <form className="login-step-form" onSubmit={entrarComoCredenciado}>
-            <label>
-              <span>CNPJ</span>
-              <input
-                value={cnpj}
-                onChange={(evento) => setCnpj(maskCpfCnpj(evento.target.value))}
-                placeholder="00.000.000/0000-00"
-                inputMode="numeric"
-                maxLength={18}
-                required
-                autoFocus
-              />
-            </label>
-            <label>
-              <span>Senha</span>
-              <input type="password" placeholder="Digite sua senha" required />
-            </label>
-            <button className="login-access-button" type="submit">Entrar como credenciado</button>
-            <div className="login-step-links">
-              <Link to="/fale-conosco">Esqueci minha senha</Link>
-            </div>
-            {voltarAsOpcoes}
-          </form>
-        )}
 
         <button type="button" className="back-button" onClick={() => navigate('/')}><ArrowLeft /> Voltar ao portal</button>
       </section>

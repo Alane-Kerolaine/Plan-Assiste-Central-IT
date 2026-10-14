@@ -154,9 +154,7 @@ export function HomePage({
                 text="Consulte credenciamento, autorizações, faturas e serviços do Portal TISS."
                 accent="dark"
                 destination="/credenciado"
-                profile="provider"
                 loggedIn={loggedIn}
-                protectedArea
               />
             )}
             {showTeamArea && (

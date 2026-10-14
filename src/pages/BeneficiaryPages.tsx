@@ -3289,15 +3289,12 @@ const requestIconById: Record<string, LucideIcon> = {
   irpf: FileText,
   'extrato-mes': FileText,
   carteirinhas: IdCard,
-  declaracoes: FileText,
-  'termo-hospital-alto-custo': ClipboardCheck,
   'rede-credenciada': Stethoscope,
   aplicativo: Smartphone,
   'orientacoes-eps': HelpCircle,
   'quem-pode-aderir': BadgeCheck,
   'central-atendimento': HelpCircle,
   'recomendacoes-credenciados': Star,
-  'permanencia-apos-aposentadoria': WalletCards,
   'servico-atualizacao-dados-cadastrais': UserRound,
   'servico-emissao-documentos': IdCard,
   'servico-emissao-carteira-temporaria': IdCard,
@@ -3765,24 +3762,16 @@ export function MyDataPage() {
   const initialProfileRef = useRef(profile)
   const session = getStoredSession()
   const navigate = useNavigate()
-  const isProviderAccount = session.activeProfile === 'provider'
   const isBeneficiaryAccount = session.activeProfile === 'beneficiary'
-  const mainAreaPath = isProviderAccount
-    ? '/credenciado'
-    : session.activeProfile === 'team'
-      ? '/area-da-equipe'
-      : '/beneficiario'
-  const accountAvatar = isProviderAccount
-    ? (profile.providerAvatar || '/assets/provider-clinic-logo.svg')
-    : (profile.avatar || defaultUserProfile.avatar || '')
-  const accountName = isProviderAccount ? (session.displayName || 'Clínica Saúde & Vida') : nomeExibicao(profile)
-  const accountEmail = isProviderAccount ? (profile.providerEmail || 'contato@saudeevida.com.br') : profile.email
+  const mainAreaPath = session.activeProfile === 'team' ? '/area-da-equipe' : '/beneficiario'
+  const accountAvatar = profile.avatar || defaultUserProfile.avatar || ''
+  const accountName = nomeExibicao(profile)
   // A referencia precisa acompanhar o endereco em edicao: as coordenadas guardadas
   // sao do endereco anterior e so sao recalculadas ao salvar.
   const enderecoLocalizado = geocodeAddressForPrototype(profile.address)
   const addressHasCoordinates = enderecoLocalizado.latitude !== undefined && enderecoLocalizado.longitude !== undefined
 
-  function updateProfile(key: keyof Pick<UserProfile, 'email' | 'providerEmail' | 'providerWhatsapp' | 'phone' | 'whatsapp'>, value: string) {
+  function updateProfile(key: keyof Pick<UserProfile, 'email' | 'phone' | 'whatsapp'>, value: string) {
     setProfile((current) => ({ ...current, [key]: value }))
   }
 
@@ -3796,9 +3785,7 @@ export function MyDataPage() {
 
     const reader = new FileReader()
     reader.onload = () => {
-      setProfile((current) => isProviderAccount
-        ? ({ ...current, providerAvatar: String(reader.result) })
-        : ({ ...current, avatar: String(reader.result) }))
+      setProfile((current) => ({ ...current, avatar: String(reader.result) }))
       setNotice('Foto atualizada no protótipo. Salve as alterações para manter a imagem.')
     }
     reader.readAsDataURL(file)
@@ -3808,10 +3795,7 @@ export function MyDataPage() {
     event.preventDefault()
     const initialProfile = initialProfileRef.current
     const items: string[] = []
-    const currentEmail = isProviderAccount ? profile.providerEmail : profile.email
-    const initialEmail = isProviderAccount ? initialProfile.providerEmail : initialProfile.email
-
-    if (currentEmail !== initialEmail) {
+    if (profile.email !== initialProfile.email) {
       items.push('Confirme a alteração pelo link enviado para o e-mail informado.')
     }
     if (profile.phone !== initialProfile.phone) {
@@ -3821,11 +3805,6 @@ export function MyDataPage() {
       items.push(initialProfile.whatsapp.trim()
         ? 'Confirme a alteração do número de WhatsApp seguindo as instruções enviadas.'
         : 'Confirme a inclusão do número de WhatsApp seguindo as instruções enviadas.')
-    }
-    if (isProviderAccount && profile.providerWhatsapp !== initialProfile.providerWhatsapp) {
-      items.push(initialProfile.providerWhatsapp?.trim()
-        ? 'Confirme a alteração do WhatsApp institucional seguindo as instruções enviadas.'
-        : 'Confirme a inclusão do WhatsApp institucional seguindo as instruções enviadas.')
     }
 
     const saved = saveStoredUserProfile(profile)
@@ -3849,7 +3828,7 @@ export function MyDataPage() {
           <img src={accountAvatar} alt="" />
           <div>
             <h2>{accountName}</h2>
-            <p>{isProviderAccount ? 'Perfil do credenciado credenciado' : (session.roleLabel || 'Perfil do usuário')}</p>
+            <p>{session.roleLabel || 'Perfil do usuário'}</p>
           </div>
           <label className="secondary-button my-data-photo-button">
             Alterar foto
@@ -3861,27 +3840,14 @@ export function MyDataPage() {
           <div className="my-data-card-heading">
             <UserRound aria-hidden="true" />
             <div>
-              <h2>{isProviderAccount ? 'Dados do credenciado' : 'Dados pessoais'}</h2>
+              <h2>Dados pessoais</h2>
               <p>As informações de origem sistêmica ficam bloqueadas. Contatos e foto podem ser atualizados no protótipo.</p>
             </div>
           </div>
           <div className="my-data-grid">
-            <label>{isProviderAccount ? 'Razão social' : 'Nome completo'}<input value={accountName} disabled /></label>
-            <label>E-mail<input type="email" value={accountEmail} onChange={(event) => updateProfile(isProviderAccount ? 'providerEmail' : 'email', event.target.value)} /></label>
+            <label>Nome completo<input value={accountName} disabled /></label>
+            <label>E-mail<input type="email" value={profile.email} onChange={(event) => updateProfile('email', event.target.value)} /></label>
             <label>Telefone<input value={profile.phone} onChange={(event) => updateProfile('phone', event.target.value)} /></label>
-            {isProviderAccount && (
-              <label>
-                WhatsApp para contato
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={profile.providerWhatsapp || ''}
-                  placeholder="Informe o WhatsApp da empresa"
-                  maxLength={15}
-                  onChange={(event) => updateProfile('providerWhatsapp', formatMobileNumber(event.target.value))}
-                />
-              </label>
-            )}
             {isBeneficiaryAccount && (
               <label>
                 WhatsApp
@@ -3895,20 +3861,10 @@ export function MyDataPage() {
                 />
               </label>
             )}
-            {isProviderAccount ? (
-              <>
-                <label>CNPJ<input value="00.000.000/0001-90" disabled /></label>
-                <label>Tipo de credenciado<input value="Clínica médica" disabled /></label>
-                <label>Situação cadastral<input value="Credenciamento ativo" disabled /></label>
-              </>
-            ) : (
-              <>
-                <label>Data de nascimento<input value={profile.birthDate} disabled /></label>
-                <label>CPF<input value={profile.cpf} disabled /></label>
-                <label>Matrícula<input value={profile.registration} disabled /></label>
-                <label>Órgão<input value={profile.organ} disabled /></label>
-              </>
-            )}
+            <label>Data de nascimento<input value={profile.birthDate} disabled /></label>
+            <label>CPF<input value={profile.cpf} disabled /></label>
+            <label>Matrícula<input value={profile.registration} disabled /></label>
+            <label>Órgão<input value={profile.organ} disabled /></label>
           </div>
           {isBeneficiaryAccount && <div className="dependent-personal-data">
             <div className="dependent-personal-heading">
@@ -3937,8 +3893,8 @@ export function MyDataPage() {
           <div className="my-data-card-heading">
             <MapPin aria-hidden="true" />
             <div>
-              <h2>{isProviderAccount ? 'Endereço de atendimento' : 'Endereço residencial'}</h2>
-              <p>{isProviderAccount ? 'Endereço cadastral do credenciado. Atualize e salve para que a alteração valha no portal.' : 'Mantenha o endereço atualizado: ele é a referência de distância usada na busca da Rede credenciada.'}</p>
+              <h2>Endereço residencial</h2>
+              <p>Mantenha o endereço atualizado: ele é a referência de distância usada na busca da Rede credenciada.</p>
             </div>
           </div>
           <div className="my-data-grid">
@@ -4100,7 +4056,7 @@ export function DependentsPage() {
         <h2>Serviços para dependentes</h2>
         <div className="request-card-grid">
           {beneficiaryRequests
-            .filter((request) => ['inclusao-dependentes', 'servico-atualizacao-dados-cadastrais', 'declaracoes', 'servico-desligamento'].includes(request.id))
+            .filter((request) => ['servico-atualizacao-dados-cadastrais', 'servico-desligamento'].includes(request.id))
             .map((request) => <RequestCard request={request} key={request.id} />)}
         </div>
       </section>

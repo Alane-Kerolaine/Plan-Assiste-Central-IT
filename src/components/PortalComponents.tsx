@@ -142,12 +142,10 @@ export function Header({
 
   function openLogin() {
     localStorage.removeItem('planAssisteDestination')
-    navigate(loginUrlFor('portal'))
+    navigate(loginUrlFor('todos'))
   }
   const canSeeBeneficiary = activeProfile === 'beneficiary'
-  const profileAvatar = activeProfile === 'provider'
-    ? (userProfile.providerAvatar || '/assets/provider-clinic-logo.svg')
-    : (userProfile.avatar || mockUser.avatar)
+  const profileAvatar = userProfile.avatar || mockUser.avatar
   const canSwitchProfile = session.profiles.includes('beneficiary') && session.profiles.includes('team')
   const unreadNotifications = notifications.filter((notification) => !notification.read)
   const previewNotifications = sortNotifications(unreadNotifications).slice(0, 4)
@@ -217,7 +215,6 @@ export function Header({
 
   function getProfileDescription(profile: PortalProfile | null) {
     if (profile === 'beneficiary') return 'Beneficiário titular'
-    if (profile === 'provider') return 'Credenciado'
     if (profile === 'team') return 'Equipe Plan-Assiste'
     return session.roleLabel || mockUser.profile
   }
@@ -302,11 +299,6 @@ export function Header({
                     <Link className="profile-home-link" to="/minha-area" onClick={() => setProfileOpen(false)}>
                       Meus dados <ArrowRight aria-hidden="true" />
                     </Link>
-                    {activeProfile === 'provider' && (
-                      <Link className="profile-home-link" to="/credenciado/pagina-do-credenciado" onClick={() => setProfileOpen(false)}>
-                        Página do credenciado <ArrowRight aria-hidden="true" />
-                      </Link>
-                    )}
                     {canSwitchProfile && (
                       <div className="profile-switcher" aria-label="Trocar perfil">
                         <span>Trocar perfil de acesso</span>
@@ -462,7 +454,6 @@ function getMenuLinks(activeProfile: PortalProfile | null) {
     )
   }
   if (activeProfile === 'team') links.push({ to: '/area-da-equipe', label: 'Área da equipe' })
-  if (activeProfile === 'provider') links.push({ to: '/credenciado', label: 'Credenciado' })
   links.push(
     { to: '/rede-credenciada', label: 'Rede credenciada' },
     { to: '/noticias', label: 'Notícias' },
@@ -750,9 +741,6 @@ export function RestrictedAreaSidebar({
   const profile = getStoredUserProfile()
   const isProvider = area === 'provider'
   const areaLabel = isProvider ? 'Área do credenciado' : 'Área da equipe'
-  const avatar = isProvider
-    ? (profile.providerAvatar || '/assets/provider-clinic-logo.svg')
-    : (profile.avatar || mockUser.avatar)
   const currentItem = groups.flatMap((group) => group.items)
     .filter((item) => {
       const activePath = item.activePath || item.to
@@ -786,13 +774,16 @@ export function RestrictedAreaSidebar({
         </select>
       </div>
       <div className="sidebar-content">
-        <div className="sidebar-profile">
-          <img src={avatar} alt="" />
-          <div>
-            <span>{areaLabel}</span>
-            <strong>{session.displayName || nomeExibicao(mockUser)}</strong>
+        {/* A area do credenciado e publica: nao ha usuario logado para mostrar. */}
+        {!isProvider && (
+          <div className="sidebar-profile">
+            <img src={profile.avatar || mockUser.avatar} alt="" />
+            <div>
+              <span>{areaLabel}</span>
+              <strong>{session.displayName || nomeExibicao(mockUser)}</strong>
+            </div>
           </div>
-        </div>
+        )}
         <nav className="sidebar-nav" aria-label={areaLabel}>
           <NavLink to={homePath} end className={({ isActive }) => isActive ? 'active' : ''}>
             <Home /><span>{homeLabel}</span>
@@ -816,9 +807,11 @@ export function RestrictedAreaSidebar({
             </div>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <button type="button" onClick={onLogout}><LogOut /> Sair</button>
-        </div>
+        {!isProvider && (
+          <div className="sidebar-bottom">
+            <button type="button" onClick={onLogout}><LogOut /> Sair</button>
+          </div>
+        )}
       </div>
     </aside>
   )

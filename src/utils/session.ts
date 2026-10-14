@@ -1,8 +1,8 @@
-export type PortalProfile = 'beneficiary' | 'team' | 'provider'
+export type PortalProfile = 'beneficiary' | 'team'
 
 export type PortalSession = {
   authenticated: boolean
-  authMethod: 'govbr' | 'corporate' | 'provider' | null
+  authMethod: 'govbr' | 'corporate' | null
   displayName: string
   roleLabel: string
   profiles: PortalProfile[]
@@ -33,7 +33,8 @@ export function getStoredSession(): PortalSession {
         : profiles[0] ?? null
 
       return {
-        authenticated: parsed.authenticated === true,
+        // Sessoes antigas so de credenciado ficam sem perfil valido e contam como deslogadas.
+        authenticated: parsed.authenticated === true && profiles.length > 0,
         authMethod: parsed.authMethod ?? null,
         displayName: parsed.displayName ?? '',
         roleLabel: parsed.roleLabel ?? '',
@@ -70,17 +71,6 @@ export function createTeamSession(): PortalSession {
     authMethod: 'corporate',
     roleLabel: 'Área da equipe',
     activeProfile: 'team',
-  }
-}
-
-export function createProviderSession(): PortalSession {
-  return {
-    authenticated: true,
-    authMethod: 'provider',
-    displayName: 'Clínica Saúde & Vida',
-    roleLabel: 'Credenciado',
-    profiles: ['provider'],
-    activeProfile: 'provider',
   }
 }
 
@@ -121,17 +111,15 @@ export function notifySessionChanged() {
 export function getProfileLabel(profile: PortalProfile | null) {
   if (profile === 'beneficiary') return 'Área do beneficiário'
   if (profile === 'team') return 'Área da equipe'
-  if (profile === 'provider') return 'Área do credenciado'
   return ''
 }
 
 export function getProfileHome(profile: PortalProfile | null) {
-  if (profile === 'provider') return '/credenciado'
   if (profile === 'team') return '/area-da-equipe'
   if (profile === 'beneficiary') return '/beneficiario'
   return '/'
 }
 
 function isPortalProfile(profile: unknown): profile is PortalProfile {
-  return profile === 'beneficiary' || profile === 'team' || profile === 'provider'
+  return profile === 'beneficiary' || profile === 'team'
 }
