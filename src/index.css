@@ -1404,6 +1404,10 @@ select:not([multiple]) {
 .sidebar-content { display: flex; flex-direction: column; }
 .sidebar-profile { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); background: white; padding: 24px; text-align: left; }
 .sidebar-profile img { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--brand-primary); }
+/* Avatar com iniciais (usuário da equipe sem foto): mesmo tamanho e borda das fotos. */
+.user-avatar-iniciais { display: inline-grid; flex: 0 0 auto; place-items: center; border-radius: 50%; color: white; font-family: inherit; font-weight: 700; letter-spacing: .02em; line-height: 1; user-select: none; }
+.profile-button .user-avatar-iniciais { width: 48px; height: 48px; border: 2px solid var(--portal-bar, var(--brand-primary)); font-size: 17px; }
+.sidebar-profile .user-avatar-iniciais { width: 52px; height: 52px; border: 2px solid var(--brand-primary); color: white; font-size: 18px; font-weight: 700; }
 .restricted-area-sidebar-provider .sidebar-profile img { background: transparent; object-fit: cover; padding: 0; }
 .restricted-area-main { min-width: 0; }
 .sidebar-profile div { min-width: 0; display: grid; gap: 1px; }
@@ -2895,6 +2899,53 @@ select:not([multiple]) {
 .team-operational-grid article p { font-size: 17px; line-height: 1.45; }
 .team-dashboard-cards h2 { display: flex; align-items: center; gap: 8px; }
 .team-lock-icon { width: 17px !important; height: 17px !important; color: var(--brand-dark) !important; margin: 0 !important; }
+/* Permissão Administração Portal (área da equipe) */
+.permissoes-aviso { margin: 0 0 20px; border-radius: 10px; padding: 12px 16px; font-weight: var(--fw-semibold); }
+.permissoes-aviso-sucesso { border: 1px solid #9fd8c5; background: #e8f7f1; color: #0b5c4c; }
+.permissoes-aviso-erro { border: 1px solid #f1b8b8; background: #fdeeee; color: var(--danger-strong); }
+.permissoes-secao { margin-bottom: 40px; }
+.permissoes-secao h2 { margin: 0 0 6px; color: var(--text-dark); font-size: 24px; }
+.permissoes-secao-cabecalho { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.permissoes-secao-descricao { margin: 0 0 14px; color: var(--brand-dark); font-size: 16px; }
+.permissoes-busca { display: grid; gap: 6px; width: min(100%, 380px); color: var(--text-dark); font-size: 15px; font-weight: var(--fw-semibold); }
+.permissoes-busca-campo { display: flex; align-items: center; gap: 8px; min-height: 46px; border: 1px solid var(--border); border-radius: 9px; background: white; padding: 0 12px; }
+.permissoes-busca-campo:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(25, 118, 134, .15); }
+.permissoes-busca-campo svg { width: 18px; height: 18px; flex: none; color: var(--brand-strong); }
+.permissoes-busca-campo input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-dark); font: inherit; font-weight: var(--fw-regular); outline: none; }
+.permissoes-tabela-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: white; }
+.permissoes-tabela { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 15px; }
+.permissoes-tabela th, .permissoes-tabela td { border-bottom: 1px solid var(--border); padding: 12px 16px; color: var(--text-dark); text-align: left; vertical-align: middle; }
+.permissoes-tabela thead th { background: var(--mint-soft); color: var(--brand-strong); font-size: 14px; font-weight: var(--fw-semibold); }
+.permissoes-tabela tbody th { font-weight: var(--fw-semibold); }
+.permissoes-tabela tbody tr:last-child > * { border-bottom: 0; }
+.permissoes-tabela small { color: var(--brand-dark); font-size: 13px; }
+.permissoes-vazio { color: var(--brand-dark) !important; text-align: center !important; }
+.permissoes-acao { text-align: right !important; white-space: nowrap; }
+.permissoes-acao button { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.permissoes-acao button svg { width: 16px; height: 16px; }
+.permissoes-selo { display: inline-flex; align-items: center; min-height: 26px; border-radius: 999px; padding: 0 10px; font-size: 13px; font-weight: var(--fw-semibold); white-space: nowrap; }
+.permissoes-selo-gerente { background: #e6eef9; color: #1d4f91; }
+.permissoes-selo-concedida { background: #e3f5ee; color: #0b6e55; }
+.permissoes-selo-sem-acesso { background: #f1f2f3; color: #5b6670; }
+.permissoes-selo-revogada { background: #fdeeee; color: #a02c2c; }
+.permissoes-resultados { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.permissoes-resultado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 10px; background: white; padding: 12px 16px; }
+.permissoes-resultado div { display: grid; gap: 2px; min-width: 0; }
+.permissoes-resultado strong { color: var(--text-dark); font-size: 16px; }
+.permissoes-resultado small { color: var(--brand-dark); font-size: 14px; }
+.permissoes-resultado button { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.permissoes-resultado button svg { width: 16px; height: 16px; }
+.permissoes-resultados .permissoes-vazio { border: 1px dashed var(--border); border-radius: 10px; padding: 14px; }
+.permissoes-contagem { margin: 12px 0 0; color: var(--brand-dark); font-size: 14px; }
+.permissoes-secao .provider-pagination { margin-top: 12px; }
+.permissoes-modal-fundo { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(8, 42, 38, .5); }
+.permissoes-modal { width: min(100%, 460px); border-radius: 16px; background: white; padding: 28px; box-shadow: 0 24px 60px rgba(8, 42, 38, .3); }
+.permissoes-modal h2 { margin: 0 0 10px; color: var(--text-dark); font-size: 22px; }
+.permissoes-modal p { margin: 0 0 10px; color: var(--text-dark); font-size: 16px; line-height: 1.45; }
+.permissoes-modal-nota { color: var(--brand-dark) !important; font-size: 14px !important; }
+.permissoes-modal-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.permissoes-modal-acoes button { min-height: 44px; padding: 0 18px; }
+.team-login-erro { margin: 0; color: #b42318; font-size: 14px; line-height: 1.4; }
 .team-info-section { margin-top: 8px; }
 .team-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
 .team-info-card { border: 1px solid var(--border); border-radius: 12px; background: white; padding: 22px; box-shadow: 0 8px 18px rgba(16, 63, 58, .04); }

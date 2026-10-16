@@ -1,20 +1,36 @@
 import { useState, type FormEvent } from 'react'
 import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react'
+import { findTeamUserByLogin, getTeamUser, type TeamUser } from '../utils/teamAccess'
+
+/** Usuario usado pelo acesso unico simulado "Login MPF - Servidores". */
+const USUARIO_DO_ACESSO_MPF = 'ana.maria'
 
 /**
  * Login da Equipe do Plan-Assiste, no visual do Citsmart X ("Meu Plan-Assiste").
- * No prototipo qualquer usuario e senha entram; "Login MPF - Servidores" simula o
- * acesso unico dos servidores do MPF.
+ * No prototipo a senha nao e conferida, mas o usuario precisa existir na equipe
+ * (por usuario, e-mail institucional ou matricula): e ele que define o papel e as
+ * permissoes. "Login MPF - Servidores" simula o acesso unico dos servidores do MPF.
  */
-export function TeamLoginScreen({ onLogin }: { onLogin: () => void }) {
+export function TeamLoginScreen({ onLogin }: { onLogin: (usuario: TeamUser) => void }) {
   const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [senhaVisivel, setSenhaVisivel] = useState(false)
+  const [erro, setErro] = useState('')
 
   function entrar(event: FormEvent) {
     event.preventDefault()
     if (!usuario.trim() || !senha) return
-    onLogin()
+    const encontrado = findTeamUserByLogin(usuario)
+    if (!encontrado) {
+      setErro('Usuário não encontrado. Usuários de teste do protótipo: ana.maria (gerente), carlos.lima (com acesso à administração) e fernanda.costa (sem acesso).')
+      return
+    }
+    onLogin(encontrado)
+  }
+
+  function entrarPeloMpf() {
+    const usuarioMpf = getTeamUser(USUARIO_DO_ACESSO_MPF)
+    if (usuarioMpf) onLogin(usuarioMpf)
   }
 
   return (
@@ -29,7 +45,7 @@ export function TeamLoginScreen({ onLogin }: { onLogin: () => void }) {
             <span className="sr-only">Nome de usuário ou e-mail</span>
             <input
               value={usuario}
-              onChange={(evento) => setUsuario(evento.target.value)}
+              onChange={(evento) => { setUsuario(evento.target.value); setErro('') }}
               placeholder="Digite seu nome de usuário ou e-mail *"
               autoComplete="username"
               required
@@ -59,11 +75,12 @@ export function TeamLoginScreen({ onLogin }: { onLogin: () => void }) {
               {senhaVisivel ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
             </button>
           </div>
+          {erro && <p className="team-login-erro" role="alert">{erro}</p>}
           <button type="submit" className="team-login-submit">Entrar No Citsmart X</button>
         </form>
 
         <ul className="team-login-links">
-          <li><button type="button" onClick={onLogin}>Login MPF - Servidores</button></li>
+          <li><button type="button" onClick={entrarPeloMpf}>Login MPF - Servidores</button></li>
         </ul>
       </section>
     </main>
