@@ -7,6 +7,8 @@ export type PortalSession = {
   roleLabel: string
   profiles: PortalProfile[]
   activeProfile: PortalProfile | null
+  /** Usuário da equipe logado (identifica papel e permissões na Área da equipe). */
+  teamUserId: string | null
 }
 
 const SESSION_KEY = 'planAssisteSession'
@@ -19,6 +21,7 @@ const emptySession: PortalSession = {
   roleLabel: '',
   profiles: [],
   activeProfile: null,
+  teamUserId: null,
 }
 
 export function getStoredSession(): PortalSession {
@@ -40,6 +43,10 @@ export function getStoredSession(): PortalSession {
         roleLabel: parsed.roleLabel ?? '',
         profiles,
         activeProfile,
+        // Sessoes salvas antes da identificacao da equipe eram todas da Ana Maria.
+        teamUserId: typeof parsed.teamUserId === 'string'
+          ? parsed.teamUserId
+          : (profiles.includes('team') ? 'ana.maria' : null),
       }
     } catch {
       localStorage.removeItem(SESSION_KEY)
@@ -61,16 +68,24 @@ export function createGovBrSession(): PortalSession {
     roleLabel: 'Beneficiária e equipe',
     profiles: ['beneficiary', 'team'],
     activeProfile: 'beneficiary',
+    // A beneficiária de exemplo também é gerente da equipe.
+    teamUserId: 'ana.maria',
   }
 }
 
-/** Equipe entrando com a conta corporativa: mesmos perfis do gov.br, abrindo na área da equipe. */
-export function createTeamSession(): PortalSession {
+/**
+ * Equipe entrando com a conta corporativa, abrindo na área da equipe. Quem também
+ * é beneficiário mantém os dois perfis, como no gov.br.
+ */
+export function createTeamSession(usuario: { id: string, nome: string, tambemBeneficiario?: boolean }): PortalSession {
   return {
-    ...createGovBrSession(),
+    authenticated: true,
     authMethod: 'corporate',
+    displayName: usuario.nome,
     roleLabel: 'Área da equipe',
+    profiles: usuario.tambemBeneficiario ? ['beneficiary', 'team'] : ['team'],
     activeProfile: 'team',
+    teamUserId: usuario.id,
   }
 }
 

@@ -8,6 +8,7 @@ import { isCpfValido } from '../utils/cpf'
 import { maskCpf } from '../utils/inputMasks'
 import { getLoginAccessParam, loginUrlFor, type LoginAccess } from '../utils/loginAccess'
 import { TeamLoginScreen } from './TeamLoginScreen'
+import type { TeamUser } from '../utils/teamAccess'
 
 /** Codigo aceito na demonstracao. Nao ha envio real de e-mail. */
 const TOKEN_DA_DEMONSTRACAO = '000000'
@@ -47,7 +48,7 @@ export function LoginPage({
   onTeamLogin,
 }: {
   onGovLogin: () => void
-  onTeamLogin: () => void
+  onTeamLogin: (usuario: TeamUser) => void
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -73,9 +74,9 @@ export function LoginPage({
     navigate(destino)
   }
 
-  function entrarComoEquipe() {
+  function entrarComoEquipe(usuario: TeamUser) {
     const destino = consumirDestino(DESTINO_DA_EQUIPE, DESTINO_DA_EQUIPE)
-    onTeamLogin()
+    onTeamLogin(usuario)
     navigate(destino)
   }
 

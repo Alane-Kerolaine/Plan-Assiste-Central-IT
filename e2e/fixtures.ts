@@ -13,9 +13,9 @@ export const test = base.extend({
   },
 })
 
-/** Preenche e envia o login da equipe (tela do Citsmart). */
-export async function entrarComoEquipe(page: Page) {
-  await page.getByPlaceholder('Digite seu nome de usuário ou e-mail *').fill('ana.maria')
+/** Preenche e envia o login da equipe (tela do Citsmart). Padrão: ana.maria, gerente. */
+export async function entrarComoEquipe(page: Page, usuario = 'ana.maria') {
+  await page.getByPlaceholder('Digite seu nome de usuário ou e-mail *').fill(usuario)
   await page.getByPlaceholder('Digite sua senha*').fill('senha-de-teste')
   await page.getByRole('button', { name: 'Entrar No Citsmart X' }).click()
 }

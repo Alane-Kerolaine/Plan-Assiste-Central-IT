@@ -68,6 +68,7 @@ import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
 import { htmlSeguro } from '../utils/htmlSeguro'
 import { getStoredSession } from '../utils/session'
+import { useTeamAccess, type TeamAccess } from '../utils/teamAccess'
 import { NewsCard } from './HomePage'
 import { createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsPage } from '../cms/contentRepository'
 import { CmsBlockRenderer, CmsPageBlocks, CmsPaginasFilhas } from '../components/CmsBlocks'
@@ -4280,9 +4281,16 @@ function ProviderNewsCarousel() {
 
 function TeamNewsCarousel() {
   const managed = getCmsSlideshow('team')
+  const { podeAdministrar } = useTeamAccess()
+  const comunicados = managed.length
+    ? managed.map((item) => ({ title: item.title, text: item.description, action: item.actionLabel, href: item.destination }))
+    : teamDashboardNews
+  // Quem não acessa a Administração do Portal não vê comunicados que levam a ela.
+  const visiveis = podeAdministrar ? comunicados : comunicados.filter((item) => !item.href.startsWith(ADMINISTRACAO_DO_PORTAL_PATH))
+  if (visiveis.length === 0) return null
   return (
     <DashboardNewsCarousel
-      items={managed.length ? managed.map((item) => ({ title: item.title, text: item.description, action: item.actionLabel, href: item.destination })) : teamDashboardNews}
+      items={visiveis}
       eyebrow={managed[0]?.eyebrow || 'Comunicado interno'}
       ariaLabel="Informações importantes para a equipe"
       className="team-news-carousel"
@@ -4308,15 +4316,21 @@ const providerSidebarGroups: AreaSidebarGroup[] = [
   },
 ]
 
-const teamSidebarGroups: AreaSidebarGroup[] = [
-  {
-    label: 'Trabalho',
-    items: [
-      { label: 'Gestão da informação', to: '/area-da-equipe/gestao-da-informacao', icon: BookOpenCheck },
-      { label: 'Administração do Portal', to: '/area-da-equipe/administracao-do-portal', activePath: '/area-da-equipe/administracao-do-portal', icon: Globe2 },
-      { label: 'Central de serviços', to: 'https://atendente.planassiste.mpu.mp.br/', icon: Headset, external: true },
-    ],
-  },
+const ADMINISTRACAO_DO_PORTAL_PATH = '/area-da-equipe/administracao-do-portal'
+const PERMISSAO_ADMINISTRACAO_PATH = '/area-da-equipe/permissao-administracao-portal'
+
+// Administração do Portal e a tela de permissões só aparecem para quem tem acesso.
+function teamSidebarGroupsFor({ podeAdministrar, podeGerenciarPermissoes }: TeamAccess): AreaSidebarGroup[] {
+  const trabalho: AreaSidebarGroup['items'] = [
+    { label: 'Gestão da informação', to: '/area-da-equipe/gestao-da-informacao', icon: BookOpenCheck },
+    ...(podeAdministrar ? [{ label: 'Administração do Portal', to: ADMINISTRACAO_DO_PORTAL_PATH, activePath: ADMINISTRACAO_DO_PORTAL_PATH, icon: Globe2 }] : []),
+    ...(podeGerenciarPermissoes ? [{ label: 'Permissão Administração Portal', to: PERMISSAO_ADMINISTRACAO_PATH, icon: ShieldCheck }] : []),
+    { label: 'Central de serviços', to: 'https://atendente.planassiste.mpu.mp.br/', icon: Headset, external: true },
+  ]
+  return [{ label: 'Trabalho', items: trabalho }, ...teamSidebarFixedGroups]
+}
+
+const teamSidebarFixedGroups: AreaSidebarGroup[] = [
   {
     label: 'Sistemas',
     items: [
@@ -4342,6 +4356,7 @@ export function RestrictedAreaPageFrame({
   children: ReactNode
 }) {
   const providerArea = area === 'provider'
+  const acessoDaEquipe = useTeamAccess()
   return (
     // A area do credenciado e publica: a cor vem da area, nao do perfil logado.
     <PublicShell loggedIn={loggedIn} onLogout={onLogout} themeClass={providerArea ? 'provider-public-theme' : ''}>
@@ -4352,7 +4367,7 @@ export function RestrictedAreaPageFrame({
             area={area}
             homeLabel="Visão geral"
             homePath={providerArea ? '/credenciado' : '/area-da-equipe'}
-            groups={providerArea ? providerSidebarGroups : teamSidebarGroups}
+            groups={providerArea ? providerSidebarGroups : teamSidebarGroupsFor(acessoDaEquipe)}
             onLogout={onLogout || (() => undefined)}
           />
           <div className="beneficiary-main restricted-area-main">{children}</div>
@@ -4663,6 +4678,7 @@ const teamInfoGroups = [
 ]
 
 export function TeamDashboardPage({ loggedIn, onLogout }: PublicPageProps) {
+  const { podeAdministrar } = useTeamAccess()
   return (
     <RestrictedAreaPageFrame area="team" breadcrumb="Área da equipe" loggedIn={loggedIn} onLogout={onLogout}>
         <TeamNewsCarousel />
@@ -4681,12 +4697,14 @@ export function TeamDashboardPage({ loggedIn, onLogout }: PublicPageProps) {
             <p>Conteúdos internos de referência para as equipes nacionais e regionais.</p>
             <Link className="text-link" to="/area-da-equipe/gestao-da-informacao">Ver conteúdos <ArrowRight aria-hidden="true" /></Link>
           </article>
-          <article>
-            <Globe2 aria-hidden="true" />
-            <h2>Administração do Portal <LockKeyhole className="team-lock-icon" aria-label="Acesso restrito" /></h2>
-            <p>Administração de banners, notícias e base de conhecimento do portal.</p>
-            <Link className="text-link" to="/area-da-equipe/administracao-do-portal">Acessar painel <ArrowRight aria-hidden="true" /></Link>
-          </article>
+          {podeAdministrar && (
+            <article>
+              <Globe2 aria-hidden="true" />
+              <h2>Administração do Portal <LockKeyhole className="team-lock-icon" aria-label="Acesso restrito" /></h2>
+              <p>Administração de banners, notícias e base de conhecimento do portal.</p>
+              <Link className="text-link" to={ADMINISTRACAO_DO_PORTAL_PATH}>Acessar painel <ArrowRight aria-hidden="true" /></Link>
+            </article>
+          )}
           <article>
             <Headset aria-hidden="true" />
             <h2>Central de serviços</h2>

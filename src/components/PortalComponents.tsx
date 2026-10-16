@@ -54,6 +54,8 @@ import {
 } from '../utils/session'
 import { getStoredUserProfile } from '../utils/userProfile'
 import { loginUrlFor } from '../utils/loginAccess'
+import { getTeamUser } from '../utils/teamAccess'
+import { UserAvatar } from './UserAvatar'
 import { nomeExibicao } from '../utils/nomeSocial'
 import { getCmsAddresses, getCmsContactChannels, getCmsSocialLinks } from '../cms/siteContentRepository'
 export { ProviderSearch } from './ProviderNetwork'
@@ -146,6 +148,8 @@ export function Header({
   }
   const canSeeBeneficiary = activeProfile === 'beneficiary'
   const profileAvatar = userProfile.avatar || mockUser.avatar
+  // Na área da equipe o avatar é do usuário da equipe logado (foto ou iniciais).
+  const teamUser = activeProfile === 'team' ? getTeamUser(session.teamUserId) : undefined
   const canSwitchProfile = session.profiles.includes('beneficiary') && session.profiles.includes('team')
   const unreadNotifications = notifications.filter((notification) => !notification.read)
   const previewNotifications = sortNotifications(unreadNotifications).slice(0, 4)
@@ -287,7 +291,9 @@ export function Header({
                     setProfileOpen(!profileOpen)
                   }}
                 >
-                  <img src={profileAvatar} alt="" />
+                  {teamUser
+                    ? <UserAvatar nome={teamUser.nome} foto={teamUser.usaFotoDoPerfil ? profileAvatar : undefined} />
+                    : <img src={profileAvatar} alt="" />}
                   <ChevronDown />
                 </button>
                 {profileOpen && (
@@ -741,6 +747,9 @@ export function RestrictedAreaSidebar({
   const profile = getStoredUserProfile()
   const isProvider = area === 'provider'
   const areaLabel = isProvider ? 'Área do credenciado' : 'Área da equipe'
+  const teamUser = getTeamUser(session.teamUserId)
+  const teamUserName = teamUser?.nome || session.displayName || nomeExibicao(mockUser)
+  const teamUserPhoto = !teamUser || teamUser.usaFotoDoPerfil ? (profile.avatar || mockUser.avatar) : undefined
   const currentItem = groups.flatMap((group) => group.items)
     .filter((item) => {
       const activePath = item.activePath || item.to
@@ -777,10 +786,10 @@ export function RestrictedAreaSidebar({
         {/* A area do credenciado e publica: nao ha usuario logado para mostrar. */}
         {!isProvider && (
           <div className="sidebar-profile">
-            <img src={profile.avatar || mockUser.avatar} alt="" />
+            <UserAvatar nome={teamUserName} foto={teamUserPhoto} />
             <div>
               <span>{areaLabel}</span>
-              <strong>{session.displayName || nomeExibicao(mockUser)}</strong>
+              <strong>{teamUserName}</strong>
             </div>
           </div>
         )}

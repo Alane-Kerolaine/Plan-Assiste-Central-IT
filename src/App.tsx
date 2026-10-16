@@ -88,6 +88,8 @@ import {
   type PortalSession,
 } from './utils/session'
 import { loginUrlForDestination } from './utils/loginAccess'
+import { useTeamAccess, type TeamUser } from './utils/teamAccess'
+import { PortalAdminPermissionsPage } from './pages/PortalAdminPermissionsPage'
 
 const TransparenciaPage = lazy(() =>
   import('./pages/TransparenciaPage').then((module) => ({ default: module.TransparenciaPage })),
@@ -134,6 +136,20 @@ function RequireAuth({
   return children
 }
 
+/** Telas da Administração do Portal: só gerentes e membros autorizados por um gerente. */
+function SomenteAdministradorDoPortal({ children }: { children: React.ReactNode }) {
+  const { podeAdministrar } = useTeamAccess()
+  if (!podeAdministrar) return <Navigate to="/area-da-equipe" replace />
+  return children
+}
+
+/** Tela de permissões: só gerentes. */
+function SomenteGerente({ children }: { children: React.ReactNode }) {
+  const { podeGerenciarPermissoes } = useTeamAccess()
+  if (!podeGerenciarPermissoes) return <Navigate to="/area-da-equipe" replace />
+  return children
+}
+
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -169,8 +185,8 @@ function App() {
     setSession(nextSession)
   }
 
-  function loginTeam() {
-    const nextSession = createTeamSession()
+  function loginTeam(usuario: TeamUser) {
+    const nextSession = createTeamSession(usuario)
     storeSession(nextSession)
     setSession(nextSession)
   }
@@ -342,20 +358,32 @@ function App() {
             </RequireAuth>
           }
         />
-        <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/navegar/*" element={<RequireAuth session={session} profile="team"><CmsLiveBrowserPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/midias" element={<RequireAuth session={session} profile="team"><CmsMediaPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/arquivos" element={<RequireAuth session={session} profile="team"><CmsFilesPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/noticias" element={<RequireAuth session={session} profile="team"><CmsNewsPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
-        <Route path="/area-da-equipe/administracao-do-portal/contatos" element={<RequireAuth session={session} profile="team"><CmsContactPage loggedIn={loggedIn} onLogout={logout} /></RequireAuth>} />
+        <Route
+          path="/area-da-equipe/permissao-administracao-portal"
+          element={
+            <RequireAuth session={session} profile="team">
+              <SomenteGerente>
+                <PortalAdminPermissionsPage loggedIn={loggedIn} onLogout={logout} />
+              </SomenteGerente>
+            </RequireAuth>
+          }
+        />
+        <Route path="/area-da-equipe/administracao-do-portal" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsAdminOverviewPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/navegar/*" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsLiveBrowserPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/paginas" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsPagesPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/paginas/:pageId" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsPageEditorPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/banners" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsBannersPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/midias" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsMediaPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/arquivos" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsFilesPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/noticias" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsNewsPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
+        <Route path="/area-da-equipe/administracao-do-portal/contatos" element={<RequireAuth session={session} profile="team"><SomenteAdministradorDoPortal><CmsContactPage loggedIn={loggedIn} onLogout={logout} /></SomenteAdministradorDoPortal></RequireAuth>} />
         <Route
           path="/gestao-operacional"
           element={
             <RequireAuth session={session} profile="team">
-              <GestaoOperacionalLayout onLogout={logout} />
+              <SomenteAdministradorDoPortal>
+                <GestaoOperacionalLayout onLogout={logout} />
+              </SomenteAdministradorDoPortal>
             </RequireAuth>
           }
         >
