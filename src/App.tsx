@@ -90,6 +90,7 @@ import {
 import { loginUrlForDestination } from './utils/loginAccess'
 import { useTeamAccess, type TeamUser } from './utils/teamAccess'
 import { PortalAdminPermissionsPage } from './pages/PortalAdminPermissionsPage'
+import { PublicServiceFormPage } from './pages/PublicServiceFormPage'
 
 const TransparenciaPage = lazy(() =>
   import('./pages/TransparenciaPage').then((module) => ({ default: module.TransparenciaPage })),
@@ -228,6 +229,8 @@ function App() {
         <Route path="/plan-assiste/prestadores" element={<Navigate to="/plan-assiste/credenciados" replace />} />
         <Route path="/plan-assiste/credenciamento-de-pessoa-juridica" element={<Navigate to="/plan-assiste/como-se-credenciar-ou-renovar/pessoa-juridica" replace />} />
         <Route path="/plan-assiste/credenciamento-pessoa-fisica" element={<Navigate to="/plan-assiste/como-se-credenciar-ou-renovar/pessoa-fisica" replace />} />
+        {/* Serviços que aceitam preenchimento sem login (ex.: Inscrição / adesão). */}
+        <Route path="/plan-assiste/servicos/:slug/formulario" element={<PublicServiceFormPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/plan-assiste/*" element={<PlanAssisteArticlePage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/transparencia/demonstracoes-contabeis" element={<AccountingStatementsPage loggedIn={loggedIn} onLogout={logout} />} />
         <Route path="/transparencia/avaliacoes-atuariais" element={<ActuarialEvaluationsPage loggedIn={loggedIn} onLogout={logout} />} />

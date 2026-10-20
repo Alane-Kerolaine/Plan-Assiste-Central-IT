@@ -26,11 +26,23 @@ import {
 type Props = {
   schema: ServiceFormSchema
   successSecondaryAction?: { label: string, to: string }
+  /** Nome de quem assina. Padrão: o usuário logado. */
+  nomeDoAssinante?: (values: Record<string, string>) => string
+  /** Passos de "Como acompanhar?" na tela de sucesso. */
+  acompanhamento?: string[]
 }
+
+const ACOMPANHAMENTO_PADRAO = [
+  'Acesse o menu Minhas Solicitações',
+  'Localize o protocolo informado',
+  'Verifique o status e atualizações',
+]
 
 export function ServiceRequestWizard({
   schema,
   successSecondaryAction = DEFAULT_SUCCESS_SECONDARY_ACTION,
+  nomeDoAssinante = () => nomeExibicao(getStoredUserProfile()),
+  acompanhamento = ACOMPANHAMENTO_PADRAO,
 }: Props) {
   const [step, setStep] = useState<WizardStep>('form')
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(schema))
@@ -124,8 +136,8 @@ export function ServiceRequestWizard({
     // por qual caminho a solicitacao foi assinada.
     if (schema.assinaturaGovBr) {
       setAssinatura(metodo === 'externa'
-        ? assinaturaExterna(nomeExibicao(getStoredUserProfile()), arquivoAssinado?.name ?? '')
-        : assinaturaAgora(nomeExibicao(getStoredUserProfile())))
+        ? assinaturaExterna(nomeDoAssinante(values), arquivoAssinado?.name ?? '')
+        : assinaturaAgora(nomeDoAssinante(values)))
     }
     setStep('success')
   }
@@ -164,9 +176,9 @@ export function ServiceRequestWizard({
           <div className="service-success-followup">
             <h3>Como acompanhar?</h3>
             <ol>
-              <li><span className="service-followup-index">1</span> Acesse o menu Minhas Solicitações</li>
-              <li><span className="service-followup-index">2</span> Localize o protocolo informado</li>
-              <li><span className="service-followup-index">3</span> Verifique o status e atualizações</li>
+              {acompanhamento.map((passo, indice) => (
+                <li key={passo}><span className="service-followup-index">{indice + 1}</span> {passo}</li>
+              ))}
             </ol>
           </div>
           {schema.assinaturaGovBr && (
