@@ -61,13 +61,13 @@ import {
   toggleFavoriteNews,
   type FavoriteState,
 } from '../utils/favorites'
-import { UF_OPTIONS, getServiceFormSchema } from '../data/serviceFormSchemas'
+import { UF_OPTIONS, getPublicServiceFormSchema, getServiceFormSchema, isServicoSemLogin } from '../data/serviceFormSchemas'
 import { normalizaTexto } from '../utils/texto'
 import { findServicoByPaginaSlug, servicoFormSlug, servicoPaginaSlug, servicoRotaFormulario } from '../utils/servicoPlanAssiste'
 import { maskCpf, maskPhone } from '../utils/inputMasks'
 import { stripHtml } from '../utils/html'
 import { htmlSeguro } from '../utils/htmlSeguro'
-import { getStoredSession } from '../utils/session'
+import { getStoredSession, hasProfile } from '../utils/session'
 import { useTeamAccess, type TeamAccess } from '../utils/teamAccess'
 import { NewsCard } from './HomePage'
 import { createCmsBlock, createCmsPage, useCmsSnapshot, type CmsBlock, type CmsPage } from '../cms/contentRepository'
@@ -2565,12 +2565,18 @@ function PlanAssisteServicoPage({ slug, loggedIn, onLogout }: PublicPageProps & 
   const servico = findServicoByPaginaSlug(slug)
   if (!servico) return <Navigate to="/plan-assiste/servicos" replace />
 
-  const schema = servicoFormSlug(servico) ? getServiceFormSchema(servicoFormSlug(servico) as string) : undefined
+  const formSlug = servicoFormSlug(servico)
+  // Sem login de beneficiário, serviços que aceitam isso abrem a versão pública do
+  // formulário (sem o bloco de identificação, que vem do cadastro).
+  const semLogin = Boolean(formSlug) && !hasProfile(getStoredSession(), 'beneficiary') && isServicoSemLogin(formSlug as string)
+  const schema = formSlug
+    ? (semLogin ? getPublicServiceFormSchema(formSlug) : getServiceFormSchema(formSlug))
+    : undefined
   const documentos = schema?.sections
     .flatMap((secao) => secao.fields)
     .filter((campo) => campo.type === 'file') ?? []
   const blocos = schema?.sections.filter((secao) => secao.title && secao.fields.some((campo) => campo.type !== 'note' && campo.type !== 'file')) ?? []
-  const rotaFormulario = servicoRotaFormulario(servico)
+  const rotaFormulario = semLogin ? `/plan-assiste/servicos/${formSlug}/formulario` : servicoRotaFormulario(servico)
   const destino = rotaFormulario ?? servico.route ?? servico.externalUrl
   // Só chama de 'Formulário' o que realmente leva a um; o resto usa o rótulo do catálogo.
   const rotuloAcao = rotaFormulario ? `Formulário` : servico.action

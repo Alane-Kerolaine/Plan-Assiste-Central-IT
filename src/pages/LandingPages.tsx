@@ -76,7 +76,8 @@ export function BecomeBeneficiaryPage({ loggedIn, onLogout }: { loggedIn: boolea
 
             <BecomeBeneficiaryContent />
             <div className="become-actions">
-              <Link className="primary-button" to="/login-govbr">Iniciar orientação</Link>
+              {/* Inscrição sem login; o beneficiário logado é levado ao formulário da área logada. */}
+              <Link className="primary-button" to="/plan-assiste/servicos/inscricao-adesao/formulario">Iniciar orientação</Link>
               <Link className="text-link" to="/fale-conosco">Falar com suporte <ArrowRight /></Link>
             </div>
           </div>

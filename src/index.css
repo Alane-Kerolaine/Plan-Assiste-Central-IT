@@ -4865,3 +4865,6 @@ button.filter-clear-button:hover { border-color: var(--brand-primary); backgroun
   .actuarial-card { min-height: 0; }
   .transparency-stats { grid-template-columns: 1fr; }
 }
+/* Aviso do formulário preenchido sem login (Plan-Assiste > Serviços) */
+.servico-sem-login-aviso { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 20px; border: 1px solid #b9dcd3; border-radius: 10px; background: var(--mint-soft); padding: 12px 16px; color: var(--text-dark); font-size: 15px; line-height: 1.45; }
+.servico-sem-login-aviso svg { flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--brand-strong); }

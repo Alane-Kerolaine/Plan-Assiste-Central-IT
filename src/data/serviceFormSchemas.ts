@@ -1413,6 +1413,84 @@ export function getServiceFormSchema(slug: string): ServiceFormSchema | undefine
   return SERVICE_FORM_SCHEMAS[slug]
 }
 
+// ---------------------------------------------------------------------------
+// Preenchimento sem login (seção Serviços do Plan-Assiste)
+// ---------------------------------------------------------------------------
+
+type AjusteSemLogin = {
+  /** Contatos que passam a ser obrigatórios: sem login, são o único meio de retorno. */
+  contatosObrigatorios: string[]
+  /** Campos incluídos numa seção, logo depois do campo indicado. */
+  camposExtras?: { secaoId: string, depoisDe: string, campos: ServiceField[] }[]
+  /** Campos com o nome de quem solicita, em ordem de preferência (vai na assinatura). */
+  camposDoSolicitante: string[]
+}
+
+const AJUSTES_SEM_LOGIN: Record<string, AjusteSemLogin> = {
+  'inscricao-adesao': {
+    // Sem login, e-mail e todos os telefones de contato são obrigatórios.
+    contatosObrigatorios: [
+      'titularTelefoneResidencial', 'titularTelefoneCelular', 'titularTelefoneComercial', 'titularEmail',
+      'especialTitularEmailParticular', 'especialTitularCelular',
+    ],
+    camposExtras: [{
+      // A inscrição de dependente não pedia contato: com login ele vinha do cadastro do titular.
+      secaoId: 'inscricao-dependente',
+      depoisDe: 'dependenteTitularMatricula',
+      campos: [
+        { id: 'dependenteTitularEmail', label: 'E-mail do(a) titular', type: 'text', format: 'email', required: true, placeholder: 'nome@exemplo.com' },
+        { id: 'dependenteTitularCelular', label: 'Celular ou WhatsApp do(a) titular', type: 'text', format: 'phone', required: true, placeholder: '(00) 00000-0000' },
+      ],
+    }],
+    camposDoSolicitante: ['titularNome', 'dependenteTitularNome', 'especialTitularNome'],
+  },
+}
+
+/** Serviço que pode ser solicitado sem login, pela seção Serviços do Plan-Assiste. */
+export function isServicoSemLogin(slug: string): boolean {
+  return slug in AJUSTES_SEM_LOGIN && slug in SERVICE_FORM_SCHEMAS
+}
+
+/**
+ * Versão do formulário para quem não está logado:
+ * - sem o bloco "Identificação", que é preenchido a partir do login;
+ * - campos que vinham travados com dados do cadastro (nome e matrícula do titular)
+ *   ficam em branco, editáveis e obrigatórios;
+ * - os contatos passam a ser obrigatórios.
+ */
+export function getPublicServiceFormSchema(slug: string): ServiceFormSchema | undefined {
+  const schema = SERVICE_FORM_SCHEMAS[slug]
+  const ajuste = AJUSTES_SEM_LOGIN[slug]
+  if (!schema || !ajuste) return undefined
+
+  const ajustarCampo = (campo: ServiceField): ServiceField => {
+    if (campo.disabled && campo.defaultValue !== undefined) {
+      return { ...campo, disabled: false, defaultValue: undefined, required: true, placeholder: `Informe: ${campo.label.toLowerCase()}` }
+    }
+    if (ajuste.contatosObrigatorios.includes(campo.id)) return { ...campo, required: true }
+    return campo
+  }
+
+  return {
+    ...schema,
+    sections: schema.sections
+      .filter((secao) => secao.id !== 'identificacao')
+      .map((secao) => {
+        const campos = secao.fields.map(ajustarCampo)
+        const extra = ajuste.camposExtras?.find((item) => item.secaoId === secao.id)
+        if (!extra) return { ...secao, fields: campos }
+        const posicao = campos.findIndex((campo) => campo.id === extra.depoisDe) + 1
+        return { ...secao, fields: [...campos.slice(0, posicao), ...extra.campos, ...campos.slice(posicao)] }
+      }),
+  }
+}
+
+/** Nome de quem solicita, tirado do próprio formulário (sem login não há cadastro). */
+export function nomeDoSolicitanteSemLogin(slug: string, valores: Record<string, string>): string {
+  const campos = AJUSTES_SEM_LOGIN[slug]?.camposDoSolicitante ?? []
+  return campos.map((id) => valores[id]?.trim()).find(Boolean) ?? 'Solicitante'
+}
+
 export function isFieldVisible(condition: ServiceFieldCondition | undefined, values: Record<string, string>): boolean {
   if (!condition) return true
   return values[condition.fieldId] === condition.equals
