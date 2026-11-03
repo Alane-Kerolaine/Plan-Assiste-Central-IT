@@ -747,9 +747,19 @@ button.primary-button:hover:not(:disabled), a.primary-button:hover { border-colo
 .reimbursement-query-filters > button { grid-column: span 3; }
 .reimbursement-query-filters > label:nth-child(3) { grid-column: span 4; }
 .reimbursement-query-filters > .primary-button { border-color: var(--brand-primary); border-radius: 9px; background: var(--brand-primary); color: white; }
-.reimbursement-result-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
+.reimbursement-result-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
 .reimbursement-result-actions button { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 9px; background: var(--brand-primary); color: white; padding: 0 14px; font-weight: var(--fw-semibold); }
 .reimbursement-result-actions svg { width: 20px; height: 20px; }
+.reimbursement-result-actions button:disabled { opacity: .6; cursor: progress; }
+.reimbursement-table .reimbursement-actions-col { text-align: center; }
+.reimbursement-chamado-link { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 4px 8px; color: var(--brand-strong); font-weight: var(--fw-semibold); text-decoration: none; }
+.reimbursement-chamado-link:hover { background: var(--mint-bg); text-decoration: underline; }
+.reimbursement-chamado-link svg { width: 18px; height: 18px; }
+.reimbursement-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-top: 18px; color: var(--brand-dark); }
+.reimbursement-pagination label { display: inline-flex; align-items: center; gap: 8px; }
+.reimbursement-pagination select { width: auto; }
+.reimbursement-pagination .provider-pagination { margin: 0; }
+.reimbursement-pagination .provider-pagination svg { width: 16px; height: 16px; vertical-align: -3px; }
 .reimbursement-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
 .reimbursement-items-table { margin-top: 20px; }
 .reimbursement-table { width: 100%; min-width: 1400px; border-collapse: collapse; background: white; }

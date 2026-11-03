@@ -52,7 +52,7 @@ function semAcento(texto: string): string {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
-function larguraTexto(texto: string, tamanho: number, negrito = false): number {
+export function larguraTexto(texto: string, tamanho: number, negrito = false): number {
   const tabela = negrito ? LARGURAS_BOLD : LARGURAS
   let total = 0
   for (const char of semAcento(texto)) {
@@ -62,7 +62,7 @@ function larguraTexto(texto: string, tamanho: number, negrito = false): number {
   return total * tamanho
 }
 
-function quebra(texto: string, largura: number, tamanho: number): string[] {
+export function quebra(texto: string, largura: number, tamanho: number): string[] {
   const palavras = texto.split(/\s+/).filter(Boolean)
   if (palavras.length === 0) return ['']
   const linhas: string[] = []
@@ -77,7 +77,7 @@ function quebra(texto: string, largura: number, tamanho: number): string[] {
 }
 
 /** Latin-1 mantém a acentuação e garante um byte por caractere. */
-function paraWinAnsi(texto: string): string {
+export function paraWinAnsi(texto: string): string {
   let saida = ''
   for (const char of texto) {
     const codigo = char.charCodeAt(0)
