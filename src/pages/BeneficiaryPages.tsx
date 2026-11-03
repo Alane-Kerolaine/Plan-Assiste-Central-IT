@@ -131,6 +131,7 @@ import {
 } from '../utils/solicitacoes'
 import { NewsCard } from './HomePage'
 import { NewsDateRangePicker } from './PublicPages'
+import { baixarArquivo, carregarLogoPdf, enviarPdfPorEmail, imprimirPdf, montarRelatorioPdf } from '../utils/relatorioPdf'
 
 const whatsAppConfirmed = false
 
@@ -792,9 +793,144 @@ const reimbursementRecords: ReimbursementRecord[] = [
     value: 'R$ 186,40',
     note: 'Creditado em conta cadastrada.',
   },
+  {
+    id: '2026-1588',
+    beneficiary: 'André Luiz Araújo',
+    requestDate: '06/05/2026',
+    receiptNumber: 'REC-1934',
+    receiptDate: '02/05/2026',
+    providerDocument: '456.789.012-33',
+    type: 'Fisioterapia',
+    status: 'Aprovado',
+    value: 'R$ 600,00',
+    note: 'Pagamento previsto para a próxima folha.',
+  },
+  {
+    id: '2026-1541',
+    beneficiary: 'Ana Maria de Araújo',
+    requestDate: '29/04/2026',
+    receiptNumber: 'NF-7420',
+    receiptDate: '27/04/2026',
+    providerDocument: '34.567.890/0001-21',
+    type: 'Consulta médica',
+    status: 'Pago',
+    value: 'R$ 350,00',
+    note: 'Creditado em conta cadastrada.',
+  },
+  {
+    id: '2026-1497',
+    beneficiary: 'Maria Olívia Araújo',
+    requestDate: '22/04/2026',
+    receiptNumber: 'REC-1877',
+    receiptDate: '20/04/2026',
+    providerDocument: '987.654.321-00',
+    type: 'Psicologia',
+    status: 'Pago',
+    value: 'R$ 450,00',
+    note: 'Creditado em conta cadastrada.',
+  },
+  {
+    id: '2026-1453',
+    beneficiary: 'André Luiz Araújo',
+    requestDate: '15/04/2026',
+    receiptNumber: 'NF-7198',
+    receiptDate: '11/04/2026',
+    providerDocument: '45.678.901/0001-32',
+    type: 'Exame',
+    status: 'Documento pendente',
+    value: 'R$ 212,90',
+    note: 'Pedido médico ilegível. Reenvie o documento.',
+  },
+  {
+    id: '2026-1406',
+    beneficiary: 'Ana Maria de Araújo',
+    requestDate: '08/04/2026',
+    receiptNumber: 'NF-7056',
+    receiptDate: '06/04/2026',
+    providerDocument: '56.789.012/0001-43',
+    type: 'Acupuntura',
+    status: 'Em análise',
+    value: 'R$ 280,00',
+    note: 'Aguardando conferência técnica.',
+  },
+  {
+    id: '2026-1362',
+    beneficiary: 'Maria Olívia Araújo',
+    requestDate: '31/03/2026',
+    receiptNumber: 'REC-1802',
+    receiptDate: '28/03/2026',
+    providerDocument: '987.654.321-00',
+    type: 'Psicologia',
+    status: 'Pago',
+    value: 'R$ 450,00',
+    note: 'Creditado em conta cadastrada.',
+  },
+  {
+    id: '2026-1318',
+    beneficiary: 'Ana Maria de Araújo',
+    requestDate: '24/03/2026',
+    receiptNumber: 'NF-6931',
+    receiptDate: '20/03/2026',
+    providerDocument: '67.890.123/0001-54',
+    type: 'Odontologia',
+    status: 'Aprovado',
+    value: 'R$ 780,00',
+    note: 'Pagamento previsto para a próxima folha.',
+  },
+  {
+    id: '2026-1275',
+    beneficiary: 'André Luiz Araújo',
+    requestDate: '17/03/2026',
+    receiptNumber: 'REC-1745',
+    receiptDate: '14/03/2026',
+    providerDocument: '456.789.012-33',
+    type: 'Fisioterapia',
+    status: 'Pago',
+    value: 'R$ 600,00',
+    note: 'Creditado em conta cadastrada.',
+  },
+  {
+    id: '2026-1231',
+    beneficiary: 'Ana Maria de Araújo',
+    requestDate: '10/03/2026',
+    receiptNumber: 'NF-6788',
+    receiptDate: '06/03/2026',
+    providerDocument: '12.345.678/0001-90',
+    type: 'Consulta médica',
+    status: 'Pago',
+    value: 'R$ 320,00',
+    note: 'Creditado em conta cadastrada.',
+  },
 ]
 
-const dependentTypeByBeneficiary = Object.fromEntries(beneficiaries.map((beneficiary) => [beneficiary.name, beneficiary.relation]))
+const REEMBOLSOS_PAGE_SIZE_OPTIONS = [5, 10, 20]
+const RELATORIO_REEMBOLSOS_TITULO = 'Extrato de reembolsos solicitados'
+const RELATORIO_REEMBOLSOS_COLUNAS = [
+  { titulo: 'Beneficiário', peso: 1.45 },
+  { titulo: 'Nº reembolso', peso: 0.8 },
+  { titulo: 'Data da solicitação', peso: 0.85 },
+  { titulo: 'Nº recibo/nota', peso: 0.8 },
+  { titulo: 'Data recibo/nota', peso: 0.85 },
+  { titulo: 'Situação', peso: 0.95 },
+  { titulo: 'CPF/CNPJ credenciado', peso: 1.15 },
+  { titulo: 'Tipo', peso: 1.1 },
+  { titulo: 'Valor', peso: 0.8 },
+]
+
+function chamadoDoReembolso(numero: string) {
+  return `REE-${numero}`
+}
+
+function valorEmReais(valor: string) {
+  return Number(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0
+}
+
+function dataIsoParaBr(data: string) {
+  const [ano, mes, dia] = data.split('-')
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : ''
+}
+
+const dependentTypeByBeneficiary =Object.fromEntries(beneficiaries.map((beneficiary) => [beneficiary.name, beneficiary.relation]))
 
 const initialReimbursementDraft: ReimbursementDraft = {
   type: '',
@@ -2491,6 +2627,9 @@ export function ReimbursementsPage() {
   const [statusFilter, setStatusFilter] = useState('Todas')
   const [notice, setNotice] = useState('')
   const [appliedFilters, setAppliedFilters] = useState({ periodStart, periodEnd, beneficiaryFilter, reimbursementNumber, typeFilter, statusFilter })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(REEMBOLSOS_PAGE_SIZE_OPTIONS[0])
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
 
   const filteredRecords = reimbursementRecords.filter((record) => {
     const matchesBeneficiary = appliedFilters.beneficiaryFilter === 'Todos' || record.beneficiary === appliedFilters.beneficiaryFilter
@@ -2507,6 +2646,71 @@ export function ReimbursementsPage() {
   const pendingDocuments = reimbursementRecords.filter((record) => record.status === 'Documento pendente').length
   const inAnalysis = reimbursementRecords.filter((record) => record.status === 'Em análise').length
   const approvedOrPaid = reimbursementRecords.filter((record) => ['Aprovado', 'Pago'].includes(record.status)).length
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageRecords = filteredRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  async function gerarRelatorio(): Promise<File> {
+    const perfil = getStoredUserProfile()
+    const filtros = appliedFilters
+    const periodo = filtros.periodStart || filtros.periodEnd
+      ? `${dataIsoParaBr(filtros.periodStart) || 'início'} a ${dataIsoParaBr(filtros.periodEnd) || 'hoje'}`
+      : 'Todo o período'
+    const beneficiario = filtros.beneficiaryFilter === 'Todos' ? 'Todos' : nomeExibicaoPorRegistro(filtros.beneficiaryFilter)
+    const total = filteredRecords.reduce((soma, record) => soma + valorEmReais(record.value), 0)
+    const agora = new Date()
+    const pdf = montarRelatorioPdf({
+      logo: await carregarLogoPdf('/assets/logo-colorida.svg'),
+      titulo: RELATORIO_REEMBOLSOS_TITULO,
+      subtitulo: 'Reembolsos e auxílios solicitados ao Plan-Assiste, conforme os filtros da consulta.',
+      emitidoEm: `${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+      informacoes: [
+        { rotulo: 'Titular', valor: nomeExibicao(perfil) },
+        { rotulo: 'Matrícula', valor: perfil.registration },
+        { rotulo: 'Órgão', valor: perfil.organ },
+        { rotulo: 'Período', valor: periodo },
+        { rotulo: 'Beneficiário', valor: beneficiario },
+        { rotulo: 'Tipo / Situação', valor: `${filtros.typeFilter} / ${filtros.statusFilter}` },
+        { rotulo: 'Registros', valor: pluralCount(filteredRecords.length, 'registro', 'registros') },
+        { rotulo: 'Valor total', valor: total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) },
+      ],
+      colunas: RELATORIO_REEMBOLSOS_COLUNAS,
+      linhas: filteredRecords.map((record) => [
+        nomeExibicaoPorRegistro(record.beneficiary), record.id, record.requestDate, record.receiptNumber, record.receiptDate,
+        record.status, record.providerDocument, record.type, record.value,
+      ]),
+      rodape: 'Plan-Assiste · Programa de Saúde e Assistência Social do MPU · Documento gerado pelo Portal do Beneficiário',
+    })
+    const carimbo = agora.toISOString().slice(0, 10)
+    return new File([pdf], `extrato-reembolsos-${carimbo}.pdf`, { type: 'application/pdf' })
+  }
+
+  async function executarComRelatorio(acao: (arquivo: File) => void | Promise<void>) {
+    if (isGeneratingReport) return
+    setIsGeneratingReport(true)
+    try {
+      await acao(await gerarRelatorio())
+    } catch {
+      setNotice('Não foi possível gerar o PDF do extrato. Tente novamente.')
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
+
+  async function enviarRelatorioPorEmail(arquivo: File) {
+    const resultado = await enviarPdfPorEmail(
+      arquivo,
+      `Plan-Assiste — ${RELATORIO_REEMBOLSOS_TITULO}`,
+      `Segue em anexo o ${RELATORIO_REEMBOLSOS_TITULO.toLowerCase()} gerado pelo Portal do Beneficiário do Plan-Assiste.`,
+    )
+    const avisos: Record<typeof resultado, string> = {
+      compartilhado: `Extrato "${arquivo.name}" enviado ao aplicativo de e-mail escolhido.`,
+      cancelado: 'Envio por e-mail cancelado.',
+      'aplicativo-padrao': `O PDF foi baixado e o seu aplicativo de e-mail foi aberto. Anexe o arquivo "${arquivo.name}" à mensagem.`,
+    }
+    setNotice(avisos[resultado])
+  }
 
   return (
     <div className="reimbursements-page">
@@ -2579,8 +2783,8 @@ export function ReimbursementsPage() {
               {['Documento pendente', 'Em análise', 'Aprovado', 'Pago'].map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => { setPeriodStart(''); setPeriodEnd(''); setBeneficiaryFilter('Todos'); setReimbursementNumber(''); setTypeFilter('Todos'); setStatusFilter('Todas'); setAppliedFilters({ periodStart: '', periodEnd: '', beneficiaryFilter: 'Todos', reimbursementNumber: '', typeFilter: 'Todos', statusFilter: 'Todas' }); setNotice('Filtros removidos.') }}>Limpar</button>
-          <button className="primary-button" type="button" onClick={() => { const filters = { periodStart, periodEnd, beneficiaryFilter, reimbursementNumber, typeFilter, statusFilter }; setAppliedFilters(filters); setNotice('Consulta realizada com os filtros informados.') }}>Buscar</button>
+          <button type="button" onClick={() => { setPeriodStart(''); setPeriodEnd(''); setBeneficiaryFilter('Todos'); setReimbursementNumber(''); setTypeFilter('Todos'); setStatusFilter('Todas'); setAppliedFilters({ periodStart: '', periodEnd: '', beneficiaryFilter: 'Todos', reimbursementNumber: '', typeFilter: 'Todos', statusFilter: 'Todas' }); setNotice('Filtros removidos.'); setPage(1) }}>Limpar</button>
+          <button className="primary-button" type="button" onClick={() => { const filters = { periodStart, periodEnd, beneficiaryFilter, reimbursementNumber, typeFilter, statusFilter }; setAppliedFilters(filters); setNotice('Consulta realizada com os filtros informados.'); setPage(1) }}>Buscar</button>
         </div>
       </section>
 
@@ -2589,11 +2793,10 @@ export function ReimbursementsPage() {
           <h2>Reembolsos solicitados</h2>
           <span>{pluralCount(filteredRecords.length, 'registro encontrado', 'registros encontrados')}</span>
         </div>
-        <div className="reimbursement-result-actions" aria-label="Ações para reembolsos solicitados">
-          <button type="button" onClick={() => setNotice('Download do extrato de reembolsos simulado.')}><Download aria-hidden="true" /> Fazer download</button>
-          <button type="button" onClick={() => setNotice('Impressão do extrato de reembolsos simulada.')}><FileText aria-hidden="true" /> Imprimir</button>
-          <button type="button" onClick={() => setNotice('Envio por e-mail simulado.')}><Mail aria-hidden="true" /> Enviar por e-mail</button>
-          <button type="button" onClick={() => setNotice('Compartilhamento simulado.')}><Send aria-hidden="true" /> Compartilhar</button>
+        <div className="reimbursement-result-actions" aria-label="Ações para reembolsos solicitados" aria-busy={isGeneratingReport || undefined}>
+          <button type="button" disabled={isGeneratingReport} onClick={() => executarComRelatorio((arquivo) => { baixarArquivo(arquivo, arquivo.name); setNotice(`Download de "${arquivo.name}" iniciado.`) })}><Download aria-hidden="true" /> Fazer download</button>
+          <button type="button" disabled={isGeneratingReport} onClick={() => executarComRelatorio((arquivo) => { imprimirPdf(arquivo); setNotice('Extrato de reembolsos enviado para impressão.') })}><FileText aria-hidden="true" /> Imprimir</button>
+          <button type="button" disabled={isGeneratingReport} onClick={() => executarComRelatorio(enviarRelatorioPorEmail)}><Mail aria-hidden="true" /> Enviar por e-mail</button>
         </div>
         <div className="reimbursement-table-wrap">
           <table className="reimbursement-table">
@@ -2608,11 +2811,11 @@ export function ReimbursementsPage() {
                 <th>CPF/CNPJ credenciado</th>
                 <th>Tipo</th>
                 <th>Valor</th>
-                <th>Observações</th>
+                <th className="reimbursement-actions-col">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.map((record) => (
+              {pageRecords.map((record) => (
                 <tr key={record.id}>
                   <td>{nomeExibicaoPorRegistro(record.beneficiary)}</td>
                   <td>{record.id}</td>
@@ -2623,12 +2826,50 @@ export function ReimbursementsPage() {
                   <td>{record.providerDocument}</td>
                   <td>{record.type}</td>
                   <td>{record.value}</td>
-                  <td>{record.note}</td>
+                  <td className="reimbursement-actions-col">
+                    <Link className="reimbursement-chamado-link" to={`/beneficiario/solicitacoes/${chamadoDoReembolso(record.id)}`} aria-label={`Visualizar solicitação do reembolso ${record.id}`}>
+                      <Eye aria-hidden="true" /> Visualizar solicitação
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {filteredRecords.length > 0 && (
+          <div className="reimbursement-pagination">
+            <label>
+              Itens por página
+              <select className="go-select" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1) }}>
+                {REEMBOLSOS_PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>
+            <span>
+              {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredRecords.length)} de {filteredRecords.length}
+            </span>
+            {totalPages > 1 && (
+              <nav className="provider-pagination" aria-label="Paginação dos reembolsos solicitados">
+                <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+                  <ChevronLeft aria-hidden="true" /> Anterior
+                </button>
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                  <button
+                    type="button"
+                    className={currentPage === pageNumber ? 'selected' : ''}
+                    aria-current={currentPage === pageNumber ? 'page' : undefined}
+                    onClick={() => setPage(pageNumber)}
+                    key={pageNumber}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+                <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>
+                  Próxima <ChevronRight aria-hidden="true" />
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
       </section>
 
       {notice && <p className="action-notice" role="status">{notice}</p>}
@@ -4269,7 +4510,7 @@ type MinhasSolicitacao = {
   atualizacoes: MinhasSolicitacaoAtualizacao[]
 }
 
-const minhasSolicitacoesData: MinhasSolicitacao[] = [
+const solicitacoesAvulsas: MinhasSolicitacao[] = [
   {
     id: 'SOL-2026-001', assunto: 'Reembolso e auxílios', tipo: 'Reembolso de Procedimento', beneficiario: 'João Silva Santos (Titular)', data: '20/03/2026', status: 'Suspenso',
     formulario: [
@@ -4517,6 +4758,43 @@ const minhasSolicitacoesData: MinhasSolicitacao[] = [
     ],
   },
 ]
+
+const situacaoDoReembolsoNoChamado: Record<ReimbursementStatus, { status: MinhasSolicitacaoStatus, titulo: string }> = {
+  'Documento pendente': { status: 'Suspenso', titulo: 'Solicitação suspensa' },
+  'Em análise': { status: 'Em andamento', titulo: 'Em andamento' },
+  Aprovado: { status: 'Em andamento', titulo: 'Reembolso aprovado' },
+  Pago: { status: 'Concluída', titulo: 'Reembolso pago' },
+}
+
+// Cada reembolso solicitado tem o seu chamado; a tabela de Reembolsos leva até ele.
+const chamadosDeReembolso: MinhasSolicitacao[] = reimbursementRecords.map((record) => {
+  const situacao = situacaoDoReembolsoNoChamado[record.status]
+  return {
+    id: chamadoDoReembolso(record.id),
+    assunto: 'Reembolso e auxílios',
+    tipo: 'Reembolso de Procedimento',
+    beneficiario: `${record.beneficiary} (${dependentTypeByBeneficiary[record.beneficiary] ?? 'Beneficiário'})`,
+    data: record.requestDate,
+    status: situacao.status,
+    formulario: [
+      { label: 'Nº do reembolso', value: record.id },
+      { label: 'Tipo de reembolso', value: record.type },
+      { label: 'Beneficiário atendido', value: record.beneficiary },
+      { label: 'Nº nota fiscal/recibo', value: record.receiptNumber },
+      { label: 'Data da nota fiscal/recibo', value: record.receiptDate },
+      { label: 'CPF/CNPJ credenciado', value: record.providerDocument },
+      { label: 'Valor', value: record.value },
+    ],
+    anexos: [`${record.receiptNumber.toLowerCase()}.pdf`],
+    atualizacoes: [
+      { data: record.requestDate, titulo: situacao.titulo, descricao: record.note },
+      { data: record.requestDate, titulo: 'Solicitação recebida', descricao: 'Sua solicitação foi registrada e está na fila de análise.' },
+    ],
+  }
+})
+
+const minhasSolicitacoesData = [...chamadosDeReembolso, ...solicitacoesAvulsas]
+  .sort((a, b) => reimbursementDateValue(b.data) - reimbursementDateValue(a.data))
 
 function anexoIcone(nome: string) {
   const extensao = nome.split('.').pop()?.toLowerCase() ?? ''
